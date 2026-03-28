@@ -49,7 +49,7 @@ export interface IQuiz {
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   showAnswersImmediately: boolean;
-  userId?: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -242,10 +242,12 @@ const quizSchema = new Schema<IQuizDocument, IQuizModel>(
       default: false,
     },
 
-    // User reference (optional until user system is implemented)
+    // User reference (required for data isolation)
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: [true, "Quiz must belong to a user"],
+      index: true,
     },
   },
   {

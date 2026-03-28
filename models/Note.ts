@@ -43,10 +43,12 @@ const noteSchema = new Schema<INoteDocument, INoteModel>(
       },
     ],
 
-    // User reference (optional until user system is implemented)
+    // User reference (required for data isolation)
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: [true, "Note must belong to a user"],
+      index: true,
     },
   },
   {

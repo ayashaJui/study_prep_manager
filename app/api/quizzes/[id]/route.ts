@@ -10,8 +10,19 @@ export async function GET(
   try {
     await connectDB();
     const { id } = await params;
+    const userId = request.headers.get("x-user-id"); // From middleware
 
-    const quiz = await quizController.getQuizById(id);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    const quiz = await quizController.getQuizById(id, userId);
 
     return NextResponse.json(
       {
@@ -47,8 +58,19 @@ export async function PATCH(
     await connectDB();
     const { id } = await params;
     const body = await request.json();
+    const userId = request.headers.get("x-user-id"); // From middleware
 
-    const quiz = await quizController.updateQuiz(id, body);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    const quiz = await quizController.updateQuiz(id, body, userId);
 
     return NextResponse.json(
       {
@@ -95,8 +117,19 @@ export async function DELETE(
   try {
     await connectDB();
     const { id } = await params;
+    const userId = request.headers.get("x-user-id"); // From middleware
 
-    await quizController.deleteQuiz(id);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    await quizController.deleteQuiz(id, userId);
 
     return NextResponse.json(
       {

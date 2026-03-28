@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import MainContent from "@/components/layout/MainContent";
@@ -16,7 +16,7 @@ import { mockTopics, Topic } from "@/lib/mockData";
 import { topicAPI } from "@/lib/api";
 import { useNavigation } from "@/hooks/useNavigation";
 
-export default function Home() {
+function HomeContent() {
   const {
     activeTopic,
     activeSubtopic,
@@ -322,5 +322,22 @@ export default function Home() {
         </form>
       </Modal>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="h-screen w-screen flex flex-col overflow-hidden items-center justify-center"
+          style={{ background: "#0f1419" }}
+        >
+          <p style={{ color: "#cbd5e0" }}>Loading...</p>
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }

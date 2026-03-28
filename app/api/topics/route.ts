@@ -9,8 +9,20 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get("parentId");
+    const userId = request.headers.get("x-user-id") || undefined; // From middleware
 
-    const topics = await topicController.getAllTopics(parentId);
+    // Get topics for this user only
+    let query: any = { userId };
+
+    if (parentId) {
+      if (parentId === "null" || parentId === "root") {
+        query.parentId = null;
+      } else {
+        query.parentId = parentId;
+      }
+    }
+
+    const topics = await topicController.getAllTopics(parentId, userId);
 
     return NextResponse.json(
       {
@@ -38,6 +50,21 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
+    const userId = request.headers.get("x-user-id"); // From middleware
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    // Add userId to the topic data
+    body.userId = userId;
+
     const topic = await topicController.createTopic(body);
 
     return NextResponse.json(

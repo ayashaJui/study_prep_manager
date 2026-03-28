@@ -3,22 +3,32 @@ import Topic from "@/models/Topic";
 import mongoose from "mongoose";
 
 // Get all flashcards for a topic
-export const getFlashcardsByTopic = async (topicId: string) => {
+export const getFlashcardsByTopic = async (topicId: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(topicId)) {
     throw new Error("Invalid topic ID");
   }
 
-  const flashcards = await Flashcard.find({ topicId }).sort({ createdAt: -1 });
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const flashcards = await Flashcard.find({ topicId, userId }).sort({
+    createdAt: -1,
+  });
   return flashcards;
 };
 
 // Get single flashcard by ID
-export const getFlashcardById = async (id: string) => {
+export const getFlashcardById = async (id: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid flashcard ID");
   }
 
-  const flashcard = await Flashcard.findById(id);
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const flashcard = await Flashcard.findOne({ _id: id, userId });
 
   if (!flashcard) {
     throw new Error("Flashcard not found");
@@ -59,15 +69,27 @@ export const createFlashcard = async (data: any) => {
 };
 
 // Update flashcard
-export const updateFlashcard = async (id: string, data: any) => {
+export const updateFlashcard = async (
+  id: string,
+  data: any,
+  userId: string,
+) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid flashcard ID");
   }
 
-  const flashcard = await Flashcard.findByIdAndUpdate(id, data, {
-    new: true,
-    runValidators: true,
-  });
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const flashcard = await Flashcard.findOneAndUpdate(
+    { _id: id, userId },
+    data,
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
 
   if (!flashcard) {
     throw new Error("Flashcard not found");
@@ -77,12 +99,16 @@ export const updateFlashcard = async (id: string, data: any) => {
 };
 
 // Delete flashcard
-export const deleteFlashcard = async (id: string) => {
+export const deleteFlashcard = async (id: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid flashcard ID");
   }
 
-  const flashcard = await Flashcard.findByIdAndDelete(id);
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const flashcard = await Flashcard.findOneAndDelete({ _id: id, userId });
 
   if (!flashcard) {
     throw new Error("Flashcard not found");

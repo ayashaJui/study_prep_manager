@@ -10,8 +10,19 @@ export async function GET(
   try {
     await connectDB();
     const { id } = await params;
+    const userId = request.headers.get("x-user-id"); // From middleware
 
-    const note = await noteController.getNoteById(id);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    const note = await noteController.getNoteById(id, userId);
 
     return NextResponse.json(
       {
@@ -47,7 +58,19 @@ export async function PATCH(
     const { id } = await params;
 
     const body = await request.json();
-    const note = await noteController.updateNote(id, body);
+    const userId = request.headers.get("x-user-id"); // From middleware
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    const note = await noteController.updateNote(id, body, userId);
 
     return NextResponse.json({
       success: true,
@@ -90,8 +113,19 @@ export async function DELETE(
   try {
     await connectDB();
     const { id } = await params;
+    const userId = request.headers.get("x-user-id"); // From middleware
 
-    const note = await noteController.deleteNote(id);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    const note = await noteController.deleteNote(id, userId);
 
     return NextResponse.json({
       success: true,

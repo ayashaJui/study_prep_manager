@@ -4,22 +4,30 @@ import mongoose from "mongoose";
 
 export const noteController = {
   // Get all notes for a topic
-  async getNotesByTopic(topicId: string) {
+  async getNotesByTopic(topicId: string, userId: string) {
     if (!mongoose.Types.ObjectId.isValid(topicId)) {
       throw new Error("Invalid topic ID");
     }
 
-    const notes = await Note.find({ topicId }).sort({ createdAt: -1 });
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error("Invalid user ID");
+    }
+
+    const notes = await Note.find({ topicId, userId }).sort({ createdAt: -1 });
     return notes;
   },
 
   // Get a single note by ID
-  async getNoteById(id: string) {
+  async getNoteById(id: string, userId: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new Error("Invalid note ID");
     }
 
-    const note = await Note.findById(id);
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error("Invalid user ID");
+    }
+
+    const note = await Note.findOne({ _id: id, userId });
     if (!note) {
       throw new Error("Note not found");
     }
@@ -75,6 +83,7 @@ export const noteController = {
       title?: string;
       tags?: string[];
     },
+    userId: string,
   ) {
     if (!id) {
       throw new Error("Note ID is required");
@@ -84,8 +93,12 @@ export const noteController = {
       throw new Error("Invalid note ID");
     }
 
-    const note = await Note.findByIdAndUpdate(
-      id,
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error("Invalid user ID");
+    }
+
+    const note = await Note.findOneAndUpdate(
+      { _id: id, userId },
       { $set: data },
       { new: true, runValidators: true },
     );
@@ -98,18 +111,19 @@ export const noteController = {
   },
 
   // Delete a note
-  async deleteNote(id: string) {
+  async deleteNote(id: string, userId: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new Error("Invalid note ID");
     }
 
-    const note = await Note.findById(id);
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error("Invalid user ID");
+    }
+
+    const note = await Note.findOneAndDelete({ _id: id, userId });
     if (!note) {
       throw new Error("Note not found");
     }
-
-    // Delete the note
-    await Note.findByIdAndDelete(id);
 
     // Update topic stats
     await Topic.findByIdAndUpdate(note.topicId, {

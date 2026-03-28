@@ -3,8 +3,13 @@ import mongoose from "mongoose";
 
 export const topicController = {
   // Get all topics or filter by parentId
-  async getAllTopics(parentId?: string | null) {
+  async getAllTopics(parentId?: string | null, userId?: string) {
     const query: any = {};
+
+    // Always filter by userId
+    if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+      query.userId = new mongoose.Types.ObjectId(userId);
+    }
 
     if (parentId) {
       if (parentId === "null" || parentId === "root") {
@@ -19,12 +24,16 @@ export const topicController = {
   },
 
   // Get a single topic by ID
-  async getTopicById(id: string) {
+  async getTopicById(id: string, userId: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new Error("Invalid topic ID");
     }
 
-    const topic = await Topic.findById(id);
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error("Invalid user ID");
+    }
+
+    const topic = await Topic.findOne({ _id: id, userId });
     if (!topic) {
       throw new Error("Topic not found");
     }
@@ -33,13 +42,22 @@ export const topicController = {
   },
 
   // Get a single topic by slug
-  async getTopicBySlug(slug: string, parentId?: string | null) {
+  async getTopicBySlug(
+    slug: string,
+    parentId?: string | null,
+    userId?: string,
+  ) {
     if (!slug || slug.trim().length === 0) {
       throw new Error("Slug is required");
     }
 
     const query: any = { slug: slug.trim().toLowerCase() };
-    
+
+    // Always filter by userId if provided
+    if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+      query.userId = new mongoose.Types.ObjectId(userId);
+    }
+
     // If parentId provided, scope search to that parent
     if (parentId) {
       if (parentId === "null" || parentId === "root") {
@@ -70,13 +88,27 @@ export const topicController = {
     status?: string;
     tags?: string[];
     favorite?: boolean;
+    userId: string;
   }) {
-    const { name, description, parentId, level, path, status, tags, favorite } =
-      data;
+    const {
+      name,
+      description,
+      parentId,
+      level,
+      path,
+      status,
+      tags,
+      favorite,
+      userId,
+    } = data;
 
     // Validation
     if (!name || name.trim().length === 0) {
       throw new Error("Topic name is required");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error("Invalid user ID");
     }
 
     // Validate parentId if provided
@@ -85,7 +117,7 @@ export const topicController = {
         throw new Error("Invalid parent topic ID");
       }
 
-      const parentTopic = await Topic.findById(parentId);
+      const parentTopic = await Topic.findOne({ _id: parentId, userId });
       if (!parentTopic) {
         throw new Error("Parent topic not found");
       }
@@ -101,6 +133,7 @@ export const topicController = {
       status: status || "not-started",
       tags: tags || [],
       favorite: favorite ?? false,
+      userId,
       stats: {
         notesCount: 0,
         flashcardsCount: 0,
@@ -122,17 +155,22 @@ export const topicController = {
       tags?: string[];
       favorite?: boolean;
     },
+    userId: string,
   ) {
     if (!id) {
       throw new Error("Topic ID is required");
     }
-    
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new Error("Invalid topic ID");
     }
 
-    const topic = await Topic.findByIdAndUpdate(
-      id,
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error("Invalid user ID");
+    }
+
+    const topic = await Topic.findOneAndUpdate(
+      { _id: id, userId },
       { $set: data },
       { new: true, runValidators: true },
     );
@@ -145,20 +183,24 @@ export const topicController = {
   },
 
   // Delete a topic
-  async deleteTopic(id: string) {
+  async deleteTopic(id: string, userId: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new Error("Invalid topic ID");
     }
 
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error("Invalid user ID");
+    }
+
     // Check if topic has children
-    const hasChildren = await Topic.findOne({ parentId: id });
+    const hasChildren = await Topic.findOne({ parentId: id, userId });
     if (hasChildren) {
       throw new Error(
         "Cannot delete topic with subtopics. Delete subtopics first.",
       );
     }
 
-    const topic = await Topic.findByIdAndDelete(id);
+    const topic = await Topic.findOneAndDelete({ _id: id, userId });
     if (!topic) {
       throw new Error("Topic not found");
     }

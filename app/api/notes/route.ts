@@ -9,6 +9,17 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const topicId = searchParams.get("topicId");
+    const userId = request.headers.get("x-user-id"); // From middleware
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
 
     if (!topicId) {
       return NextResponse.json(
@@ -20,7 +31,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const notes = await noteController.getNotesByTopic(topicId);
+    const notes = await noteController.getNotesByTopic(topicId, userId);
 
     return NextResponse.json(
       {
@@ -48,6 +59,20 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
+    const userId = request.headers.get("x-user-id"); // From middleware
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    // Add userId to the note data
+    body.userId = userId;
     const note = await noteController.createNote(body);
 
     return NextResponse.json(

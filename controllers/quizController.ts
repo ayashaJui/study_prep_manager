@@ -3,22 +3,30 @@ import Topic from "@/models/Topic";
 import mongoose from "mongoose";
 
 // Get all quizzes for a topic
-export const getQuizzesByTopic = async (topicId: string) => {
+export const getQuizzesByTopic = async (topicId: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(topicId)) {
     throw new Error("Invalid topic ID");
   }
 
-  const quizzes = await Quiz.find({ topicId }).sort({ createdAt: -1 });
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const quizzes = await Quiz.find({ topicId, userId }).sort({ createdAt: -1 });
   return quizzes;
 };
 
 // Get single quiz by ID
-export const getQuizById = async (id: string) => {
+export const getQuizById = async (id: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid quiz ID");
   }
 
-  const quiz = await Quiz.findById(id);
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const quiz = await Quiz.findOne({ _id: id, userId });
 
   if (!quiz) {
     throw new Error("Quiz not found");
@@ -28,7 +36,7 @@ export const getQuizById = async (id: string) => {
 };
 
 // Create a new quiz
-export const createQuiz = async (data: any) => {
+export const createQuiz = async (data: any, userId: string) => {
   const {
     topicId,
     title,
@@ -48,7 +56,11 @@ export const createQuiz = async (data: any) => {
     throw new Error("Invalid topic ID");
   }
 
-  const topic = await Topic.findById(topicId);
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const topic = await Topic.findOne({ _id: topicId, userId });
   if (!topic) {
     throw new Error("Topic not found");
   }
@@ -56,6 +68,7 @@ export const createQuiz = async (data: any) => {
   // Create quiz
   const quiz = await Quiz.create({
     topicId,
+    userId,
     title,
     description,
     difficulty: difficulty || "medium",
@@ -77,12 +90,16 @@ export const createQuiz = async (data: any) => {
 };
 
 // Update quiz
-export const updateQuiz = async (id: string, data: any) => {
+export const updateQuiz = async (id: string, data: any, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid quiz ID");
   }
 
-  const quiz = await Quiz.findByIdAndUpdate(id, data, {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const quiz = await Quiz.findOneAndUpdate({ _id: id, userId }, data, {
     new: true,
     runValidators: true,
   });
@@ -95,12 +112,16 @@ export const updateQuiz = async (id: string, data: any) => {
 };
 
 // Delete quiz
-export const deleteQuiz = async (id: string) => {
+export const deleteQuiz = async (id: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid quiz ID");
   }
 
-  const quiz = await Quiz.findByIdAndDelete(id);
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const quiz = await Quiz.findOneAndDelete({ _id: id, userId });
 
   if (!quiz) {
     throw new Error("Quiz not found");

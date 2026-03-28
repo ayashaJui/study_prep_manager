@@ -10,8 +10,19 @@ export async function GET(
   try {
     await connectDB();
     const { id } = await params;
+    const userId = request.headers.get("x-user-id"); // From middleware
 
-    const topic = await topicController.getTopicById(id);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    const topic = await topicController.getTopicById(id, userId);
 
     return NextResponse.json(
       {
@@ -47,7 +58,19 @@ export async function PATCH(
     const { id } = await params;
 
     const body = await request.json();
-    const topic = await topicController.updateTopic(id, body);
+    const userId = request.headers.get("x-user-id"); // From middleware
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    const topic = await topicController.updateTopic(id, body, userId);
 
     return NextResponse.json({
       success: true,
@@ -90,8 +113,19 @@ export async function DELETE(
   try {
     await connectDB();
     const { id } = await params;
+    const userId = request.headers.get("x-user-id"); // From middleware
 
-    const topic = await topicController.deleteTopic(id);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    const topic = await topicController.deleteTopic(id, userId);
 
     return NextResponse.json({
       success: true,

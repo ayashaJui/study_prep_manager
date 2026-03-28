@@ -19,13 +19,28 @@ async function fetchAPI<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  // Get token from localStorage (only on client side)
+  let token: string | null = null;
+  if (typeof window !== "undefined") {
+    token = localStorage.getItem("auth_token");
+  }
+
   const config: RequestInit = {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
     },
   };
+
+  // Add Authorization header if token exists
+  if (token) {
+    config.headers = {
+      ...config.headers,
+      Authorization: `Bearer ${token}`,
+    };
+  }
 
   try {
     const response = await fetch(url, config);
@@ -327,5 +342,40 @@ export const searchAPI = {
 
   topics: async (query: string) => {
     return fetchAPI<any>(`/search/topics?q=${encodeURIComponent(query)}`);
+  },
+};
+
+// ============================================
+// Authentication APIs
+// ============================================
+
+export const authAPI = {
+  login: async (email: string, password: string) => {
+    return fetchAPI<any>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+  },
+
+  register: async (
+    name: string,
+    email: string,
+    password: string,
+    confirmPassword: string,
+  ) => {
+    return fetchAPI<any>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password, confirmPassword }),
+    });
+  },
+
+  logout: async () => {
+    return fetchAPI<any>("/auth/logout", {
+      method: "POST",
+    });
+  },
+
+  getMe: async () => {
+    return fetchAPI<any>("/auth/me");
   },
 };

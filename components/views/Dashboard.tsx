@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardTitle } from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
 import ProgressBar from "@/components/ui/ProgressBar";
@@ -10,57 +14,152 @@ import {
   Clock,
   Target,
 } from "lucide-react";
+import { dashboardAPI } from "@/lib/api";
+
+interface DashboardStats {
+  totalTopics: number;
+  totalFlashcards: number;
+  totalQuizzes: number;
+  averageScore: number;
+  studyStreak: number;
+  weeklyStats: {
+    flashcardsReviewed: number;
+    quizzesTaken: number;
+    notesCreated: number;
+    studyTime: number;
+  };
+}
+
+interface Activity {
+  id: string;
+  action: string;
+  topic: string;
+  time: string;
+  score?: string;
+}
+
+interface TopicProgressItem {
+  name: string;
+  progress: number;
+  status: string;
+  id: string;
+}
+
+interface Goal {
+  goal: string;
+  current: number;
+  total: number;
+}
 
 export default function Dashboard() {
-  const recentActivity = [
-    {
-      id: 1,
-      action: "Completed quiz",
-      topic: "Array Manipulation Problems",
-      time: "2 hours ago",
-      score: "85%",
-    },
-    {
-      id: 2,
-      action: "Added flashcards",
-      topic: "Binary Search Trees",
-      time: "5 hours ago",
-    },
-    {
-      id: 3,
-      action: "Created notes",
-      topic: "Graph Algorithms",
-      time: "1 day ago",
-    },
-    {
-      id: 4,
-      action: "Studied",
-      topic: "Linked Lists",
-      time: "2 days ago",
-    },
-  ];
+  const { isLoading: authLoading } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
+  const [topicProgress, setTopicProgress] = useState<TopicProgressItem[]>([]);
+  const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const topicProgress = [
-    {
-      name: "Data Structures & Algorithms",
-      progress: 65,
-      status: "in-progress" as const,
-    },
-    { name: "JavaScript", progress: 40, status: "in-progress" as const },
-    {
-      name: "Behavioral Interview",
-      progress: 25,
-      status: "in-progress" as const,
-    },
-    { name: "System Design", progress: 10, status: "not-started" as const },
-  ];
+  useEffect(() => {
+    // Fetch once auth initialization completes.
+    if (!authLoading) {
+      fetchDashboardData();
+    }
+  }, [authLoading]);
 
-  const weeklyGoals = [
-    { goal: "Complete 20 flashcards", current: 15, total: 20 },
-    { goal: "Take 3 practice quizzes", current: 2, total: 3 },
-    { goal: "Review 5 topics", current: 5, total: 5 },
-    { goal: "Create 10 new notes", current: 7, total: 10 },
-  ];
+  const fetchDashboardData = async () => {
+    try {
+      setDashboardLoading(true);
+      setError(null);
+
+      const [statsRes, activityRes, progressRes, goalsRes] = await Promise.all([
+        dashboardAPI.getStats(),
+        dashboardAPI.getRecentActivity(4),
+        dashboardAPI.getTopicProgress(),
+        dashboardAPI.getWeeklyGoals(),
+      ]);
+
+      if (statsRes.success) setStats(statsRes.data);
+      if (activityRes.success) setRecentActivity(activityRes.data || []);
+      if (progressRes.success) setTopicProgress(progressRes.data || []);
+      if (goalsRes.success) setWeeklyGoals(goalsRes.data || []);
+    } catch (err: any) {
+      console.error("Failed to fetch dashboard data:", err);
+      setError(err.message || "Failed to load dashboard data");
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+
+  // Show loading while authenticating
+  if (authLoading) {
+    return (
+      <div className="!space-y-6 md:!space-y-8">
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-24 rounded-lg animate-pulse"
+              style={{ background: "rgba(45, 55, 72, 0.5)" }}
+            />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div
+            className="h-64 rounded-lg animate-pulse lg:col-span-2"
+            style={{ background: "rgba(45, 55, 72, 0.5)" }}
+          />
+          <div
+            className="h-64 rounded-lg animate-pulse"
+            style={{ background: "rgba(45, 55, 72, 0.5)" }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (dashboardLoading) {
+    return (
+      <div className="!space-y-6 md:!space-y-8">
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-24 rounded-lg animate-pulse"
+              style={{ background: "rgba(45, 55, 72, 0.5)" }}
+            />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div
+            className="h-64 rounded-lg animate-pulse lg:col-span-2"
+            style={{ background: "rgba(45, 55, 72, 0.5)" }}
+          />
+          <div
+            className="h-64 rounded-lg animate-pulse"
+            style={{ background: "rgba(45, 55, 72, 0.5)" }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p style={{ color: "#fc8181" }}>Error: {error}</p>
+        <button
+          onClick={fetchDashboardData}
+          className="mt-4 px-4 py-2 rounded-lg"
+          style={{ background: "#667eea", color: "white" }}
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="!space-y-6 md:!space-y-8">
@@ -68,25 +167,25 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard
           icon={<BookOpen size={24} />}
-          value="12"
+          value={stats?.totalTopics.toString() || "0"}
           label="Active Topics"
           variant="default"
         />
         <StatCard
           icon={<Brain size={24} />}
-          value="156"
+          value={stats?.totalFlashcards.toString() || "0"}
           label="Flashcards"
           variant="blue"
         />
         <StatCard
           icon={<CheckCircle2 size={24} />}
-          value="23"
+          value={stats?.totalQuizzes.toString() || "0"}
           label="Quizzes Taken"
           variant="green"
         />
         <StatCard
           icon={<TrendingUp size={24} />}
-          value="78%"
+          value={`${stats?.averageScore || 0}%`}
           label="Average Score"
           variant="purple"
         />
@@ -102,36 +201,40 @@ export default function Dashboard() {
             </div>
           </CardTitle>
           <div className="!space-y-4">
-            {recentActivity.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-start justify-between !p-4 rounded-xl transition-all duration-300 hover:scale-[1.02]"
-                style={{ background: "rgba(45, 55, 72, 0.4)" }}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 !mb-1">
-                    <span
-                      className="font-semibold text-sm md:text-base"
-                      style={{ color: "#e2e8f0" }}
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-start justify-between !p-4 rounded-xl transition-all duration-300 hover:scale-[1.02]"
+                  style={{ background: "rgba(45, 55, 72, 0.4)" }}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 !mb-1">
+                      <span
+                        className="font-semibold text-sm md:text-base"
+                        style={{ color: "#e2e8f0" }}
+                      >
+                        {activity.action}
+                      </span>
+                      {activity.score && (
+                        <Badge variant="default">{activity.score}</Badge>
+                      )}
+                    </div>
+                    <p
+                      className="text-xs md:text-sm !mb-1"
+                      style={{ color: "#cbd5e0" }}
                     >
-                      {activity.action}
-                    </span>
-                    {activity.score && (
-                      <Badge variant="default">{activity.score}</Badge>
-                    )}
+                      {activity.topic}
+                    </p>
                   </div>
-                  <p
-                    className="text-xs md:text-sm !mb-1"
-                    style={{ color: "#cbd5e0" }}
-                  >
-                    {activity.topic}
-                  </p>
+                  <span className="text-xs" style={{ color: "#a0aec0" }}>
+                    {activity.time}
+                  </span>
                 </div>
-                <span className="text-xs" style={{ color: "#a0aec0" }}>
-                  {activity.time}
-                </span>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p style={{ color: "#a0aec0" }}>No recent activity yet</p>
+            )}
           </div>
         </Card>
 
@@ -144,29 +247,33 @@ export default function Dashboard() {
             </div>
           </CardTitle>
           <div className="!space-y-5">
-            {weeklyGoals.map((goal, index) => (
-              <div key={index}>
-                <div className="flex justify-between !mb-2">
-                  <span
-                    className="text-xs md:text-sm font-medium"
-                    style={{ color: "#e2e8f0" }}
-                  >
-                    {goal.goal}
-                  </span>
-                  <span
-                    className="text-xs font-semibold"
-                    style={{ color: "#667eea" }}
-                  >
-                    {goal.current}/{goal.total}
-                  </span>
+            {weeklyGoals.length > 0 ? (
+              weeklyGoals.map((goal, index) => (
+                <div key={index}>
+                  <div className="flex justify-between !mb-2">
+                    <span
+                      className="text-xs md:text-sm font-medium"
+                      style={{ color: "#e2e8f0" }}
+                    >
+                      {goal.goal}
+                    </span>
+                    <span
+                      className="text-xs font-semibold"
+                      style={{ color: "#667eea" }}
+                    >
+                      {goal.current}/{goal.total}
+                    </span>
+                  </div>
+                  <ProgressBar
+                    value={goal.current}
+                    max={goal.total}
+                    showPercentage={false}
+                  />
                 </div>
-                <ProgressBar
-                  value={goal.current}
-                  max={goal.total}
-                  showPercentage={false}
-                />
-              </div>
-            ))}
+              ))
+            ) : (
+              <p style={{ color: "#a0aec0" }}>No goals set</p>
+            )}
           </div>
         </Card>
       </div>
@@ -180,30 +287,43 @@ export default function Dashboard() {
           </div>
         </CardTitle>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {topicProgress.map((topic, index) => (
-            <div key={index}>
-              <div className="flex items-center justify-between !mb-3">
-                <div className="flex items-center gap-3">
+          {topicProgress.length > 0 ? (
+            topicProgress.map((topic) => (
+              <div key={topic.id}>
+                <div className="flex items-center justify-between !mb-3">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="font-semibold text-sm md:text-base"
+                      style={{ color: "#e2e8f0" }}
+                    >
+                      {topic.name}
+                    </span>
+                    <Badge
+                      variant={
+                        topic.status as
+                          | "default"
+                          | "not-started"
+                          | "in-progress"
+                          | "review"
+                          | "mastered"
+                      }
+                    >
+                      {topic.status.replace("-", " ")}
+                    </Badge>
+                  </div>
                   <span
-                    className="font-semibold text-sm md:text-base"
-                    style={{ color: "#e2e8f0" }}
+                    className="text-sm font-bold"
+                    style={{ color: "#667eea" }}
                   >
-                    {topic.name}
+                    {topic.progress}%
                   </span>
-                  <Badge variant={topic.status}>
-                    {topic.status.replace("-", " ")}
-                  </Badge>
                 </div>
-                <span
-                  className="text-sm font-bold"
-                  style={{ color: "#667eea" }}
-                >
-                  {topic.progress}%
-                </span>
+                <ProgressBar value={topic.progress} showPercentage={false} />
               </div>
-              <ProgressBar value={topic.progress} showPercentage={false} />
-            </div>
-          ))}
+            ))
+          ) : (
+            <p style={{ color: "#a0aec0" }}>No topics yet</p>
+          )}
         </div>
       </Card>
 
@@ -220,13 +340,18 @@ export default function Dashboard() {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              14
+              {stats?.studyStreak || 0}
             </div>
             <p className="text-base md:text-lg" style={{ color: "#cbd5e0" }}>
               Days in a row
             </p>
-            <p className="text-xs md:text-sm !mt-2" style={{ color: "#a0aec0" }}>
-              Keep it up! You're on fire 🔥
+            <p
+              className="text-xs md:text-sm !mt-2"
+              style={{ color: "#a0aec0" }}
+            >
+              {(stats?.studyStreak || 0) > 0
+                ? "Keep it up! You're on fire 🔥"
+                : "Start your study streak today!"}
             </p>
           </div>
         </Card>
@@ -242,7 +367,7 @@ export default function Dashboard() {
                 className="text-3xl md:text-4xl font-bold !mb-2"
                 style={{ color: "#667eea" }}
               >
-                28
+                {stats?.weeklyStats.flashcardsReviewed || 0}
               </div>
               <p className="text-xs md:text-sm" style={{ color: "#cbd5e0" }}>
                 Flashcards
@@ -256,7 +381,7 @@ export default function Dashboard() {
                 className="text-3xl md:text-4xl font-bold !mb-2"
                 style={{ color: "#48bb78" }}
               >
-                5
+                {stats?.weeklyStats.quizzesTaken || 0}
               </div>
               <p className="text-xs md:text-sm" style={{ color: "#cbd5e0" }}>
                 Quizzes
@@ -270,7 +395,7 @@ export default function Dashboard() {
                 className="text-3xl md:text-4xl font-bold !mb-2"
                 style={{ color: "#4299e1" }}
               >
-                12
+                {stats?.weeklyStats.notesCreated || 0}
               </div>
               <p className="text-xs md:text-sm" style={{ color: "#cbd5e0" }}>
                 Notes
@@ -284,7 +409,7 @@ export default function Dashboard() {
                 className="text-3xl md:text-4xl font-bold !mb-2"
                 style={{ color: "#9f7aea" }}
               >
-                8h
+                {stats?.weeklyStats.studyTime || 0}h
               </div>
               <p className="text-xs md:text-sm" style={{ color: "#cbd5e0" }}>
                 Study Time

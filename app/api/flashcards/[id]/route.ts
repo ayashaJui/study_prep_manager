@@ -10,8 +10,19 @@ export async function GET(
   try {
     await connectDB();
     const { id } = await params;
+    const userId = request.headers.get("x-user-id"); // From middleware
 
-    const flashcard = await flashcardController.getFlashcardById(id);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    const flashcard = await flashcardController.getFlashcardById(id, userId);
 
     return NextResponse.json(
       {
@@ -47,8 +58,23 @@ export async function PATCH(
     await connectDB();
     const { id } = await params;
     const body = await request.json();
+    const userId = request.headers.get("x-user-id"); // From middleware
 
-    const flashcard = await flashcardController.updateFlashcard(id, body);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    const flashcard = await flashcardController.updateFlashcard(
+      id,
+      body,
+      userId,
+    );
 
     return NextResponse.json(
       {
@@ -95,8 +121,19 @@ export async function DELETE(
   try {
     await connectDB();
     const { id } = await params;
+    const userId = request.headers.get("x-user-id"); // From middleware
 
-    await flashcardController.deleteFlashcard(id);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized - No user ID",
+        },
+        { status: 401 },
+      );
+    }
+
+    await flashcardController.deleteFlashcard(id, userId);
 
     return NextResponse.json(
       {

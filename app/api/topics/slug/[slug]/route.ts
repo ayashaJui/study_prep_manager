@@ -13,8 +13,9 @@ export async function GET(
 
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get("parentId");
+    const userId = request.headers.get("x-user-id") || undefined; // From middleware
 
-    const topic = await topicController.getTopicBySlug(slug, parentId);
+    const topic = await topicController.getTopicBySlug(slug, parentId, userId);
 
     return NextResponse.json(
       {

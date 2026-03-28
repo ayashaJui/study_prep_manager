@@ -96,10 +96,12 @@ const topicSchema = new Schema<ITopicDocument, ITopicModel>(
       completionPercentage: { type: Number, default: 0, min: 0, max: 100 },
     },
 
-    // User reference (optional until user system is implemented)
+    // User reference (required for data isolation)
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: [true, "Topic must belong to a user"],
+      index: true,
     },
   },
   {
@@ -108,6 +110,12 @@ const topicSchema = new Schema<ITopicDocument, ITopicModel>(
     toObject: { virtuals: true },
   },
 );
+
+// Indexes for efficient queries
+topicSchema.index({ userId: 1, parentId: 1 });
+topicSchema.index({ userId: 1, level: 1 });
+topicSchema.index({ userId: 1, createdAt: -1 });
+topicSchema.index({ userId: 1, slug: 1 });
 
 // Virtual for UI compatibility
 topicSchema.virtual("progress").get(function (this: ITopicDocument) {

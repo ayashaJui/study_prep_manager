@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
+import connectDB from "@/lib/db";
 import Flashcard from "@/models/Flashcard";
 
 export async function POST(req: NextRequest) {
@@ -17,7 +17,10 @@ export async function POST(req: NextRequest) {
       flashcards.map((fc) => ({ ...fc, topicId })),
     );
     return NextResponse.json({ success: true, flashcards: created });
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || "Import failed" },
+      { status: 500 },
+    );
   }
 }

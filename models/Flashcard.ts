@@ -92,10 +92,12 @@ const flashcardSchema = new Schema<IFlashcardDocument, IFlashcardModel>(
       batchId: String,
     },
 
-    // User reference (optional until user system is implemented)
+    // User reference (required for data isolation)
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: [true, "Flashcard must belong to a user"],
+      index: true,
     },
   },
   {
