@@ -3,6 +3,7 @@ import { decodeTokenPayload, getTokenFromRequest } from "@/lib/auth";
 
 // Protected routes that require authentication
 const protectedRoutes = [
+  "/user",
   "/api/topics",
   "/api/notes",
   "/api/flashcards",
@@ -12,6 +13,8 @@ const protectedRoutes = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isApiRoute = pathname.startsWith("/api/");
+  const requestedPath = `${pathname}${request.nextUrl.search}`;
 
   // Check if this is a protected route
   const isProtectedRoute = protectedRoutes.some((route) =>
@@ -27,6 +30,16 @@ export function middleware(request: NextRequest) {
   const token = getTokenFromRequest(request);
 
   if (!token) {
+    if (!isApiRoute) {
+      const loginUrl = new URL("/auth/login", request.url);
+
+      if (requestedPath !== "/") {
+        loginUrl.searchParams.set("redirectTo", requestedPath);
+      }
+
+      return NextResponse.redirect(loginUrl);
+    }
+
     return NextResponse.json(
       {
         success: false,
@@ -41,6 +54,16 @@ export function middleware(request: NextRequest) {
   const nowInSeconds = Math.floor(Date.now() / 1000);
 
   if (!decoded?.userId || (decoded.exp && decoded.exp < nowInSeconds)) {
+    if (!isApiRoute) {
+      const loginUrl = new URL("/auth/login", request.url);
+
+      if (requestedPath !== "/") {
+        loginUrl.searchParams.set("redirectTo", requestedPath);
+      }
+
+      return NextResponse.redirect(loginUrl);
+    }
+
     return NextResponse.json(
       {
         success: false,
@@ -63,6 +86,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/user/:path*",
     // Protected API routes
     "/api/topics/:path*",
     "/api/notes/:path*",

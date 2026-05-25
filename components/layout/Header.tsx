@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import Button from "@/components/ui/Button";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -13,10 +14,12 @@ interface HeaderProps {
 export default function Header({ onMenuToggle }: HeaderProps) {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const router = useRouter();
 
   const handleLogout = async () => {
     await logout();
     setIsDropdownOpen(false);
+    router.replace("/auth/login");
   };
 
   return (
@@ -58,7 +61,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded-lg transition-colors"
+                className="flex items-center gap-2 !px-3 !py-2 rounded-lg border border-transparent transition-all hover:border-white/30 hover:bg-white/5"
               >
                 <User size={18} />
                 <span className="hidden sm:inline text-sm">{user.name}</span>

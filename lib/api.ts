@@ -53,6 +53,18 @@ async function fetchAPI<T>(
         errorData = { message: response.statusText };
       }
 
+      if (response.status === 401 && typeof window !== "undefined") {
+        const currentPath = `${window.location.pathname}${window.location.search}`;
+        const loginUrl =
+          currentPath === "/"
+            ? "/auth/login"
+            : `/auth/login?redirectTo=${encodeURIComponent(currentPath)}`;
+
+        if (window.location.pathname !== "/auth/login") {
+          window.location.assign(loginUrl);
+        }
+      }
+
       const error: any = new Error(errorData.message || "API request failed");
       error.statusCode = response.status;
       error.data = errorData;

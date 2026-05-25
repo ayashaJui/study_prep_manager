@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import Button from "@/components/ui/Button";
@@ -35,6 +35,7 @@ const GoogleIcon = () => (
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isAuthenticated } = useAuth();
   const { showSuccess, showError } = useToast();
   const [oauthLoading, setOAuthLoading] = useState<string | null>(null);
@@ -45,16 +46,22 @@ export default function LoginPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect if already logged in
+  const redirectTo = searchParams.get("redirectTo") || "/";
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace(redirectTo);
+    }
+  }, [isAuthenticated, redirectTo, router]);
+
   if (isAuthenticated) {
-    router.push("/");
     return null;
   }
 
   const handleOAuthSignIn = async (provider: "google" | "github") => {
     try {
       setOAuthLoading(provider);
-      await signIn(provider, { redirect: true, callbackUrl: "/" });
+      await signIn(provider, { redirect: true, callbackUrl: redirectTo });
     } catch (error: any) {
       showError(`${provider} sign in failed: ${error.message}`);
     } finally {
@@ -82,7 +89,7 @@ export default function LoginPage() {
       setIsLoading(true);
       await login(formData.email, formData.password);
       showSuccess("Login successful!");
-      router.push("/");
+      router.replace(redirectTo);
     } catch (error: any) {
       showError(error.message || "Login failed");
     } finally {

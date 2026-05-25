@@ -4,15 +4,25 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Card, CardTitle } from "@/components/ui/Card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import { ArrowLeft, User as UserIcon, Save, Loader } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Loader,
+  Mail,
+  Shield,
+  Link as LinkIcon,
+} from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    isLoading: authLoading,
+    refreshUser,
+  } = useAuth();
   const { showSuccess, showError } = useToast();
 
   const [formData, setFormData] = useState({
@@ -21,11 +31,12 @@ export default function ProfilePage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push("/auth/login");
+      router.replace("/auth/login?redirectTo=/user/profile");
     }
   }, [authLoading, isAuthenticated, router]);
 
@@ -36,6 +47,7 @@ export default function ProfilePage() {
         name: user.name || "",
         avatar: user.avatar || "",
       });
+      setImageError(false);
       setIsFetching(false);
     }
   }, [user]);
@@ -46,6 +58,10 @@ export default function ProfilePage() {
       ...prev,
       [name]: value,
     }));
+
+    if (name === "avatar") {
+      setImageError(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,7 +96,7 @@ export default function ProfilePage() {
       }
 
       showSuccess("Profile updated successfully!");
-      // Optionally refresh user data
+      await refreshUser();
     } catch (error: any) {
       showError(error.message || "An error occurred");
     } finally {
@@ -90,20 +106,13 @@ export default function ProfilePage() {
 
   if (authLoading || isFetching) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center p-4"
-        style={{ background: "#0f1419" }}
-      >
-        <Card className="w-full max-w-md">
-          <div className="flex items-center justify-center gap-2">
-            <Loader
-              size={20}
-              className="animate-spin"
-              style={{ color: "#667eea" }}
-            />
-            <p style={{ color: "#cbd5e0" }}>Loading...</p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-sm rounded-2xl border border-indigo-500/20 bg-slate-900/70 backdrop-blur-xl p-6 shadow-2xl shadow-indigo-950/30">
+          <div className="flex items-center justify-center gap-3 text-slate-200">
+            <Loader size={18} className="animate-spin text-indigo-300" />
+            <p>Loading profile...</p>
           </div>
-        </Card>
+        </div>
       </div>
     );
   }
@@ -112,176 +121,222 @@ export default function ProfilePage() {
     return null;
   }
 
+  const accountType =
+    user?.provider === "credentials"
+      ? "Email and Password"
+      : user?.provider
+        ? `${user.provider.charAt(0).toUpperCase()}${user.provider.slice(1)}`
+        : "Unknown";
+
+  const initials =
+    user?.name
+      ?.split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U";
+
   return (
-    <div className="min-h-screen p-4 md:p-8" style={{ background: "#0f1419" }}>
-      <div className="max-w-2xl mx-auto">
-        {/* Back Button */}
-        <Link href="/" className="inline-flex items-center gap-2 !mb-6">
-          <Button
-            style={{
-              background: "#667eea",
-              color: "white",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            <ArrowLeft size={18} />
-            Back to Dashboard
-          </Button>
-        </Link>
-
-        {/* Profile Card */}
-        <Card>
-          <CardTitle>
-            <div className="flex items-center gap-3">
-              <UserIcon size={24} style={{ color: "#667eea" }} />
-              <h1 style={{ color: "#e2e8f0" }}>Edit Profile</h1>
-            </div>
-          </CardTitle>
-
-          <form onSubmit={handleSubmit} className="!space-y-6">
-            {/* User Info Display */}
-            <div
-              className="!p-4 rounded-lg"
-              style={{ background: "rgba(45, 55, 72, 0.4)" }}
+    <div className="min-h-screen !p-6 md:!p-12 flex justify-center">
+      <div className="w-full max-w-6xl">
+        <div className="flex items-center justify-between gap-4 !mb-8">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <Button
+              variant="secondary"
+              style={{
+                borderColor: "rgba(129, 140, 248, 0.35)",
+                color: "#e2e8f0",
+                background: "rgba(30, 41, 59, 0.4)",
+              }}
             >
-              <p className="text-sm" style={{ color: "#a0aec0" }}>
-                Email
-              </p>
-              <p className="text-lg font-medium" style={{ color: "#e2e8f0" }}>
-                {user?.email}
-              </p>
-            </div>
-
-            {/* Name Field */}
-            <div>
-              <label
-                className="block text-sm font-medium !mb-2"
-                style={{ color: "#cbd5e0" }}
-              >
-                Full Name
-              </label>
-              <Input
-                type="text"
-                name="name"
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-            </div>
-
-            {/* Avatar URL Field */}
-            <div>
-              <label
-                className="block text-sm font-medium !mb-2"
-                style={{ color: "#cbd5e0" }}
-              >
-                Avatar URL (Optional)
-              </label>
-              <Input
-                type="url"
-                name="avatar"
-                placeholder="https://example.com/avatar.jpg"
-                value={formData.avatar}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-              {formData.avatar && (
-                <div
-                  className="!mt-3 !p-3 rounded-lg"
-                  style={{ background: "rgba(45, 55, 72, 0.4)" }}
-                >
-                  <p className="text-xs" style={{ color: "#a0aec0" }}>
-                    Preview
-                  </p>
-                  <img
-                    src={formData.avatar}
-                    alt="Avatar preview"
-                    className="w-16 h-16 rounded-lg object-cover !mt-2"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Account Type */}
-            <div
-              className="!p-4 rounded-lg"
-              style={{ background: "rgba(45, 55, 72, 0.4)" }}
-            >
-              <p className="text-sm" style={{ color: "#a0aec0" }}>
-                Account Type
-              </p>
-              <p className="text-lg font-medium" style={{ color: "#e2e8f0" }}>
-                {user?.provider === "credentials"
-                  ? "Email & Password"
-                  : user?.provider
-                    ? user.provider.charAt(0).toUpperCase() +
-                      user.provider.slice(1)
-                    : "Unknown"}
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-4 !pt-4">
-              <Button
-                type="submit"
-                disabled={isLoading}
-                style={{
-                  background: isLoading ? "#667eea66" : "#667eea",
-                  color: "white",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  opacity: isLoading ? 0.7 : 1,
-                  flex: 1,
-                }}
-              >
-                <Save size={16} />
-                {isLoading ? "Saving..." : "Save Changes"}
-              </Button>
-
-              <Link href="/auth/forgot-password" className="flex-1">
-                <Button
-                  type="button"
-                  style={{
-                    background: "transparent",
-                    color: "#667eea",
-                    border: "1px solid #667eea",
-                    width: "100%",
-                  }}
-                >
-                  Change Password
-                </Button>
-              </Link>
-            </div>
-          </form>
-        </Card>
-
-        {/* Account Actions */}
-        <div className="!mt-8">
-          <Card>
-            <CardTitle>
-              <div style={{ color: "#e2e8f0" }}>Account Settings</div>
-            </CardTitle>
-            <div className="!space-y-3">
-              <p className="text-sm" style={{ color: "#cbd5e0" }}>
-                Need to secure your account?{" "}
-                <Link
-                  href="/auth/forgot-password"
-                  style={{ color: "#667eea" }}
-                  className="font-semibold hover:underline"
-                >
-                  Change your password
-                </Link>
-              </p>
-            </div>
-          </Card>
+              <ArrowLeft size={16} />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <div className="hidden md:flex items-center gap-2 text-xs text-indigo-200 rounded-full border border-indigo-400/30 bg-indigo-400/10 !px-3 !py-1.5">
+            Account Settings
+          </div>
         </div>
+
+        <section
+          className="w-full rounded-[32px] border border-slate-800/70 bg-slate-950/70 backdrop-blur-xl shadow-[0_30px_80px_rgba(15,23,42,0.55)] overflow-hidden !mt-4"
+          style={{
+            background:
+              "radial-gradient(circle at 10% 0%, rgba(99,102,241,0.18), transparent 40%), radial-gradient(circle at 90% 10%, rgba(14,165,233,0.18), transparent 45%), rgba(2,6,23,0.7)",
+          }}
+        >
+          <div className="!px-8 md:!px-14 !pt-12 !pb-14">
+            <div className="grid grid-cols-1 lg:grid-cols-5 !gap-10">
+              <aside className="lg:col-span-2">
+                <div className="rounded-3xl border border-slate-800/60 bg-slate-950/70 !p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-2xl flex items-center justify-center overflow-hidden border border-indigo-400/30 bg-slate-900">
+                      {formData.avatar && !imageError ? (
+                        <img
+                          src={formData.avatar}
+                          alt="Avatar preview"
+                          className="w-full h-full object-cover"
+                          onError={() => setImageError(true)}
+                        />
+                      ) : (
+                        <span className="text-2xl font-semibold text-indigo-200">
+                          {initials}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-semibold text-white">
+                        {formData.name || "Your Profile"}
+                      </h1>
+                      <p className="text-sm text-slate-400">
+                        Manage your details
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="!mt-6 !space-y-3">
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 !p-4">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-slate-500">
+                        <Mail size={13} />
+                        Email
+                      </div>
+                      <p className="!mt-2 text-sm text-slate-100 break-all">
+                        {user?.email}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 !p-4">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-slate-500">
+                        <Shield size={13} />
+                        Sign-in Method
+                      </div>
+                      <p className="!mt-2 text-sm text-slate-100">
+                        {accountType}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+
+              <div className="lg:col-span-3">
+                <div className="!mb-6">
+                  <h2 className="text-3xl font-semibold text-white">
+                    Profile Details
+                  </h2>
+                  <p className="text-sm text-slate-400 !mt-1">
+                    Update how your profile appears across the app.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="!space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 !gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-200 !mb-2">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        placeholder="John Doe"
+                        value={formData.name}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                        className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 !px-4 !py-3 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-200 !mb-2">
+                        Avatar Image URL
+                      </label>
+                      <div className="relative">
+                        <LinkIcon
+                          size={16}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
+                        />
+                        <input
+                          type="url"
+                          name="avatar"
+                          placeholder="https://example.com/avatar.jpg"
+                          value={formData.avatar}
+                          onChange={handleChange}
+                          disabled={isLoading}
+                          className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 !pl-10 !pr-4 !py-3 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500 !mt-2">
+                        Use a direct image link (JPG or PNG) for best results.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900/60 !p-4">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">
+                      Preview
+                    </p>
+                    <div className="!mt-4 flex items-center !gap-4">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-800 border border-slate-700 flex items-center justify-center">
+                        {formData.avatar && !imageError ? (
+                          <img
+                            src={formData.avatar}
+                            alt="Avatar preview"
+                            className="w-full h-full object-cover"
+                            onError={() => setImageError(true)}
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-indigo-200">
+                            {initials}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-100">
+                          {formData.name || "Your Name"}
+                        </p>
+                        <p className="text-xs text-slate-500">{user?.email}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 !gap-3">
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      style={{
+                        background: isLoading ? "#6366f166" : "#6366f1",
+                        color: "#ffffff",
+                      }}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader size={16} className="animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={16} />
+                          Save Changes
+                        </>
+                      )}
+                    </Button>
+                    <Link href="/auth/change-password" className="w-full">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        style={{
+                          borderColor: "rgba(129, 140, 248, 0.45)",
+                          color: "#c7d2fe",
+                          background: "rgba(99, 102, 241, 0.12)",
+                        }}
+                      >
+                        Change Password
+                      </Button>
+                    </Link>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import MainContent from "@/components/layout/MainContent";
@@ -15,8 +16,10 @@ import Button from "@/components/ui/Button";
 import { mockTopics, Topic } from "@/lib/mockData";
 import { topicAPI } from "@/lib/api";
 import { useNavigation } from "@/hooks/useNavigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 function HomeContent() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const {
     activeTopic,
     activeSubtopic,
@@ -57,11 +60,18 @@ function HomeContent() {
 
   // Fetch topics on mount
   useEffect(() => {
-    fetchTopics();
-  }, []);
+    if (!authLoading && isAuthenticated) {
+      fetchTopics();
+    }
+  }, [authLoading, isAuthenticated]);
 
   const fetchTopics = async () => {
     try {
+      if (!isAuthenticated) {
+        setTopics([]);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
 
@@ -160,6 +170,110 @@ function HomeContent() {
   };
 
   const currentSubtopic = getCurrentSubtopic();
+
+  if (!authLoading && !isAuthenticated) {
+    return (
+      <div
+        className="min-h-screen w-full flex flex-col overflow-x-hidden"
+        style={{
+          background:
+            "radial-gradient(circle at 10% 10%, rgba(14,165,233,0.15), transparent 40%), radial-gradient(circle at 90% 0%, rgba(99,102,241,0.2), transparent 40%), #0b1120",
+          fontFamily: '"Space Grotesk", "DM Sans", sans-serif',
+        }}
+      >
+        <div className="flex-1 w-full max-w-6xl !mx-auto !px-6 md:!px-12 !py-12 md:!py-20">
+          <div className="flex items-center justify-between">
+            <div className="text-slate-100 text-lg font-semibold">
+              Interview Prep Manager
+            </div>
+            <div className="hidden sm:flex items-center gap-3">
+              <Link href="/auth/login">
+                <Button
+                  variant="secondary"
+                  style={{
+                    borderColor: "rgba(148,163,184,0.35)",
+                    color: "#e2e8f0",
+                    background: "rgba(15,23,42,0.4)",
+                  }}
+                >
+                  Sign in
+                </Button>
+              </Link>
+              <Link href="/auth/register">
+                <Button
+                  style={{ background: "#6366f1", color: "#ffffff" }}
+                >
+                  Create account
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="!mt-16 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <div className="text-center lg:text-left">
+              <p className="text-xs uppercase tracking-[0.35em] text-slate-400">
+                Focused Study Hub
+              </p>
+              <h1 className="!mt-4 text-4xl md:text-5xl font-semibold text-white leading-tight">
+                Organize your study flow with notes, quizzes, and flashcards.
+              </h1>
+              <p className="!mt-4 text-base md:text-lg text-slate-300">
+                Keep all your interview prep in one place. Track progress,
+                revisit weak topics, and stay consistent.
+              </p>
+
+              <div className="!mt-8 flex flex-wrap gap-3 justify-center lg:justify-start">
+                <Link href="/auth/register">
+                  <Button style={{ background: "#6366f1", color: "#ffffff" }}>
+                    Get started
+                  </Button>
+                </Link>
+                <Link href="/auth/login">
+                  <Button
+                    variant="secondary"
+                    style={{
+                      borderColor: "rgba(148,163,184,0.35)",
+                      color: "#e2e8f0",
+                      background: "rgba(15,23,42,0.4)",
+                    }}
+                  >
+                    I already have an account
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-800/70 bg-slate-950/70 backdrop-blur-xl shadow-[0_30px_80px_rgba(15,23,42,0.6)] !p-6 md:!p-8">
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  "Track progress",
+                  "Import notes",
+                  "Quiz yourself",
+                  "Daily streaks",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl border border-slate-800 bg-slate-900/70 !p-4 text-sm text-slate-200"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+              <div className="!mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 !p-4">
+                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                  Why it works
+                </p>
+                <p className="!mt-2 text-sm text-slate-300">
+                  Structured focus keeps you consistent and confident before
+                  interviews.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleAddTopic = async () => {
     if (!newTopicName.trim()) return;
