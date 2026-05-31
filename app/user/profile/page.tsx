@@ -74,13 +74,11 @@ export default function ProfilePage() {
 
     try {
       setIsLoading(true);
-      const token = localStorage.getItem("auth_token");
-
       const response = await fetch("/api/auth/profile", {
         method: "PUT",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: formData.name.trim(),

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import * as flashcardController from "@/controllers/flashcardController";
+import { requireAuth } from "@/lib/serverAuth";
 
 // GET /api/flashcards?topicId={id} - Get all flashcards for a topic
 export async function GET(request: NextRequest) {
@@ -9,14 +10,12 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const topicId = searchParams.get("topicId");
-    const userId = request.headers.get("x-user-id"); // From middleware
-
-    if (!userId) {
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err: any) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized - No user ID",
-        },
+        { success: false, message: err.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -62,14 +61,12 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const userId = request.headers.get("x-user-id"); // From middleware
-
-    if (!userId) {
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err: any) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized - No user ID",
-        },
+        { success: false, message: err.message || "Unauthorized" },
         { status: 401 },
       );
     }

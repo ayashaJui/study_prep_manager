@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import type { KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
@@ -14,17 +16,22 @@ import Modal from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { mockTopics, Topic } from "@/lib/mockData";
-import { topicAPI } from "@/lib/api";
+import { topicAPI, searchAPI } from "@/lib/api";
+import SearchBox from "@/components/ui/SearchBox";
 import { useNavigation } from "@/hooks/useNavigation";
 import { useAuth } from "@/contexts/AuthContext";
 
 function HomeContent() {
+  const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const {
     activeTopic,
     activeSubtopic,
     subtopicPath,
     activeTab,
+    selectedNoteId,
+    selectedFlashcardId,
+    selectedQuizId,
     setActiveTab,
     navigateToDashboard,
     navigateToTopic,
@@ -39,6 +46,19 @@ function HomeContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const resultItemRefs = useRef<Array<HTMLLIElement | null>>([]);
+
+  const toId = (value: any) => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value?.toString === "function") return value.toString();
+    return String(value);
+  };
 
   // Initialize sidebar visibility based on screen size
   useEffect(() => {
@@ -64,6 +84,121 @@ function HomeContent() {
       fetchTopics();
     }
   }, [authLoading, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    if (searchQuery.trim().length < 2) {
+      setSearchResults(null);
+      setSearchError(null);
+      return;
+    }
+
+    setSearchLoading(true);
+    setSearchError(null);
+
+    const handle = window.setTimeout(async () => {
+      try {
+        const response = await searchAPI.search(searchQuery.trim(), 10);
+        setSearchResults(response.data || response);
+      } catch (err: any) {
+        setSearchError(err.message || "Search failed");
+        setSearchResults(null);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => window.clearTimeout(handle);
+  }, [searchQuery, isAuthenticated]);
+
+  const searchItems = useMemo(() => {
+    if (!searchResults) return [] as Array<{
+      kind: "topic" | "note" | "flashcard" | "quiz";
+      id: string;
+      topicId: string;
+      tab: string;
+      extra?: Record<string, string>;
+      label: string;
+    }>;
+
+    const items: Array<{
+      kind: "topic" | "note" | "flashcard" | "quiz";
+      id: string;
+      topicId: string;
+      tab: string;
+      extra?: Record<string, string>;
+      label: string;
+    }> = [];
+
+    (searchResults.topics || []).forEach((item: any) => {
+      items.push({
+        kind: "topic",
+        id: toId(item._id),
+        topicId: toId(item.slug || item._id),
+        tab: "overview",
+        label: item.name || "Untitled topic",
+      });
+    });
+
+    (searchResults.notes || []).forEach((item: any) => {
+      items.push({
+        kind: "note",
+        id: toId(item._id),
+        topicId: toId(item.topicId),
+        tab: "notes",
+        extra: { note: toId(item._id) },
+        label: item.title || item.content?.slice(0, 40) || "Untitled note",
+      });
+    });
+
+    (searchResults.flashcards || []).forEach((item: any) => {
+      items.push({
+        kind: "flashcard",
+        id: toId(item._id),
+        topicId: toId(item.topicId),
+        tab: "flashcards",
+        extra: { flashcard: toId(item._id) },
+        label: item.front || "Untitled flashcard",
+      });
+    });
+
+    (searchResults.quizzes || []).forEach((item: any) => {
+      items.push({
+        kind: "quiz",
+        id: toId(item._id),
+        topicId: toId(item.topicId),
+        tab: "quizzes",
+        extra: { quiz: toId(item._id) },
+        label: item.title || "Untitled quiz",
+      });
+    });
+
+    return items;
+  }, [searchResults]);
+
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setHighlightIndex(-1);
+      return;
+    }
+
+    if (searchItems.length === 0) {
+      setHighlightIndex(-1);
+      return;
+    }
+
+    setHighlightIndex((current) =>
+      current >= 0 && current < searchItems.length ? current : 0,
+    );
+  }, [searchItems, searchQuery]);
+
+  useEffect(() => {
+    if (highlightIndex < 0) return;
+    const target = resultItemRefs.current[highlightIndex];
+    if (!target) return;
+    target.scrollIntoView({ block: "nearest" });
+  }, [highlightIndex, searchItems.length]);
 
   const fetchTopics = async () => {
     try {
@@ -171,6 +306,78 @@ function HomeContent() {
 
   const currentSubtopic = getCurrentSubtopic();
 
+  const navigateToTopicTab = (
+    topicId: string,
+    tab: string,
+    extra?: Record<string, string>,
+  ) => {
+    if (!topicId) return;
+    const params = new URLSearchParams({ topic: topicId, tab });
+    if (extra) {
+      Object.entries(extra).forEach(([key, value]) => {
+        if (value) params.set(key, value);
+      });
+    }
+    router.push(`/?${params.toString()}`);
+    setActiveTab(tab);
+  };
+
+  const handleSearchNavigate = (
+    topicId: string,
+    tab: string,
+    extra?: Record<string, string>,
+  ) => {
+    navigateToTopicTab(topicId, tab, extra);
+    handleSearchClear();
+  };
+
+  const handleSearchClear = () => {
+    setSearchQuery("");
+    setSearchResults(null);
+    setSearchError(null);
+    setSearchLoading(false);
+    setHighlightIndex(-1);
+  };
+
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (searchItems.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setHighlightIndex((current) => (current + 1) % searchItems.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setHighlightIndex((current) =>
+        current <= 0 ? searchItems.length - 1 : current - 1,
+      );
+      return;
+    }
+
+    if (event.key === "Enter") {
+      if (highlightIndex < 0) return;
+      event.preventDefault();
+      const target = searchItems[highlightIndex];
+      if (!target) return;
+      handleSearchNavigate(target.topicId, target.tab, target.extra);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handleSearchClear();
+    }
+  };
+
+  const topicCount = (searchResults?.topics || []).length;
+  const noteCount = (searchResults?.notes || []).length;
+  const flashcardCount = (searchResults?.flashcards || []).length;
+  const setResultItemRef = (index: number) => (element: HTMLLIElement | null) => {
+    resultItemRefs.current[index] = element;
+  };
+
   if (!authLoading && !isAuthenticated) {
     return (
       <div
@@ -200,9 +407,7 @@ function HomeContent() {
                 </Button>
               </Link>
               <Link href="/auth/register">
-                <Button
-                  style={{ background: "#6366f1", color: "#ffffff" }}
-                >
+                <Button style={{ background: "#6366f1", color: "#ffffff" }}>
                   Create account
                 </Button>
               </Link>
@@ -362,6 +567,233 @@ function HomeContent() {
           />
         </MobileMenu>
         <MainContent>
+          <div className="!mb-6">
+            <SearchBox
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search topics, notes, flashcards, quizzes..."
+              onClear={handleSearchClear}
+              onKeyDown={handleSearchKeyDown}
+            />
+
+            {searchLoading && (
+              <p className="text-xs" style={{ color: "#a0aec0" }}>
+                Searching...
+              </p>
+            )}
+
+            {searchError && (
+              <p className="text-xs" style={{ color: "#fc8181" }}>
+                {searchError}
+              </p>
+            )}
+
+            {searchResults && !searchLoading && !searchError && (
+              <div
+                className="rounded-lg border !p-3 !mt-3 max-h-[420px] overflow-y-auto"
+                style={{ borderColor: "#334155", background: "#0f172a" }}
+              >
+                <p className="text-xs uppercase" style={{ color: "#94a3b8" }}>
+                  Search results
+                </p>
+                <div className="!mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <p
+                      className="text-sm font-semibold"
+                      style={{ color: "#e2e8f0" }}
+                    >
+                      Topics
+                    </p>
+                    <ul className="!mt-2 !space-y-2">
+                      {(searchResults.topics || []).map(
+                        (item: any, idx: number) => (
+                        <li
+                          key={item._id}
+                          className="text-sm cursor-pointer"
+                          ref={setResultItemRef(idx)}
+                          style={{
+                            color: "#cbd5e0",
+                            background:
+                              highlightIndex === idx
+                                ? "rgba(148, 163, 184, 0.15)"
+                                : "transparent",
+                            borderRadius: "6px",
+                            padding: "4px 6px",
+                          }}
+                          onMouseEnter={() => setHighlightIndex(idx)}
+                          onClick={() =>
+                            handleSearchNavigate(
+                              toId(item.slug || item._id),
+                              "overview",
+                            )
+                          }
+                        >
+                          {item.name}
+                        </li>
+                      ),
+                      )}
+                      {(searchResults.topics || []).length === 0 && (
+                        <li className="text-xs" style={{ color: "#64748b" }}>
+                          No topics
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <p
+                      className="text-sm font-semibold"
+                      style={{ color: "#e2e8f0" }}
+                    >
+                      Notes
+                    </p>
+                    <ul className="!mt-2 !space-y-2">
+                      {(searchResults.notes || []).map(
+                        (item: any, idx: number) => (
+                        <li
+                          key={item._id}
+                          className="text-sm cursor-pointer"
+                          ref={setResultItemRef(topicCount + idx)}
+                          style={{
+                            color: "#cbd5e0",
+                            background:
+                              selectedNoteId === toId(item._id)
+                                ? "rgba(148, 163, 184, 0.15)"
+                                : highlightIndex === topicCount + idx
+                                  ? "rgba(148, 163, 184, 0.15)"
+                                  : "transparent",
+                            borderRadius: "6px",
+                            padding: "4px 6px",
+                          }}
+                          onMouseEnter={() =>
+                            setHighlightIndex(topicCount + idx)
+                          }
+                          onClick={() =>
+                            handleSearchNavigate(toId(item.topicId), "notes", {
+                              note: toId(item._id),
+                            })
+                          }
+                        >
+                          {item.title || item.content?.slice(0, 40)}
+                        </li>
+                      ),
+                      )}
+                      {(searchResults.notes || []).length === 0 && (
+                        <li className="text-xs" style={{ color: "#64748b" }}>
+                          No notes
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <p
+                      className="text-sm font-semibold"
+                      style={{ color: "#e2e8f0" }}
+                    >
+                      Flashcards
+                    </p>
+                    <ul className="!mt-2 !space-y-2">
+                      {(searchResults.flashcards || []).map(
+                        (item: any, idx: number) => (
+                        <li
+                          key={item._id}
+                          className="text-sm cursor-pointer"
+                          ref={setResultItemRef(topicCount + noteCount + idx)}
+                          style={{
+                            color: "#cbd5e0",
+                            background:
+                              selectedFlashcardId === toId(item._id)
+                                ? "rgba(148, 163, 184, 0.15)"
+                                : highlightIndex ===
+                                    topicCount + noteCount + idx
+                                  ? "rgba(148, 163, 184, 0.15)"
+                                  : "transparent",
+                            borderRadius: "6px",
+                            padding: "4px 6px",
+                          }}
+                          onMouseEnter={() =>
+                            setHighlightIndex(topicCount + noteCount + idx)
+                          }
+                          onClick={() =>
+                            handleSearchNavigate(
+                              toId(item.topicId),
+                              "flashcards",
+                              { flashcard: toId(item._id) },
+                            )
+                          }
+                        >
+                          {item.front}
+                        </li>
+                      ),
+                      )}
+                      {(searchResults.flashcards || []).length === 0 && (
+                        <li className="text-xs" style={{ color: "#64748b" }}>
+                          No flashcards
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <p
+                      className="text-sm font-semibold"
+                      style={{ color: "#e2e8f0" }}
+                    >
+                      Quizzes
+                    </p>
+                    <ul className="!mt-2 !space-y-2">
+                      {(searchResults.quizzes || []).map(
+                        (item: any, idx: number) => (
+                        <li
+                          key={item._id}
+                          className="text-sm cursor-pointer"
+                          ref={setResultItemRef(
+                            topicCount + noteCount + flashcardCount + idx,
+                          )}
+                          style={{
+                            color: "#cbd5e0",
+                            background:
+                              selectedQuizId === toId(item._id)
+                                ? "rgba(148, 163, 184, 0.15)"
+                                : highlightIndex ===
+                                    topicCount + noteCount + flashcardCount + idx
+                                  ? "rgba(148, 163, 184, 0.15)"
+                                  : "transparent",
+                            borderRadius: "6px",
+                            padding: "4px 6px",
+                          }}
+                          onMouseEnter={() =>
+                            setHighlightIndex(
+                              topicCount + noteCount + flashcardCount + idx,
+                            )
+                          }
+                          onClick={() =>
+                            handleSearchNavigate(
+                              toId(item.topicId),
+                              "quizzes",
+                              {
+                                quiz: toId(item._id),
+                              },
+                            )
+                          }
+                        >
+                          {item.title}
+                        </li>
+                      ),
+                      )}
+                      {(searchResults.quizzes || []).length === 0 && (
+                        <li className="text-xs" style={{ color: "#64748b" }}>
+                          No quizzes
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <Breadcrumb items={breadcrumbItems} />
 
           {!activeTopic ? (
@@ -384,6 +816,9 @@ function HomeContent() {
               topicId={currentTopic?.id}
               onSubtopicAdded={fetchTopics}
               topic={currentTopic}
+              selectedNoteId={selectedNoteId}
+              selectedFlashcardId={selectedFlashcardId}
+              selectedQuizId={selectedQuizId}
             />
           )}
         </MainContent>

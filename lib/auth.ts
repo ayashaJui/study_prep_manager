@@ -1,8 +1,20 @@
 import jwt from "jsonwebtoken";
 import bcryptjs from "bcryptjs";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const RAW_JWT_SECRET = process.env.JWT_SECRET;
+if (process.env.NODE_ENV === "production" && !RAW_JWT_SECRET) {
+  throw new Error(
+    "Missing JWT_SECRET environment variable. Set JWT_SECRET in production.",
+  );
+}
+if (!RAW_JWT_SECRET) {
+  // Development fallback but warn loudly
+  // eslint-disable-next-line no-console
+  console.warn(
+    "Warning: JWT_SECRET is not set — using insecure default for development only.",
+  );
+}
+const JWT_SECRET = RAW_JWT_SECRET || "dev-insecure-default-change-me";
 const JWT_EXPIRY = "7d";
 
 // Generate JWT token
@@ -10,6 +22,18 @@ export const generateToken = (userId: string): string => {
   return jwt.sign({ userId }, JWT_SECRET, {
     expiresIn: JWT_EXPIRY,
   });
+};
+
+// Verify token and return payload (helper for cookie-based tokens)
+export const verifyTokenSignature = (
+  token: string,
+): { userId: string } | null => {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded as { userId: string };
+  } catch (error) {
+    return null;
+  }
 };
 
 // Verify JWT token
@@ -96,10 +120,12 @@ export const setAuthCookie = (response: Response, token: string): Response => {
   // In production, always use Secure flag for HTTPS
   const isProduction = process.env.NODE_ENV === "production";
   const secureFlagSuffix = isProduction ? "; Secure" : "";
+  const sameSite = isProduction ? "Strict" : "Lax";
+  const maxAge = isProduction ? 60 * 60 * 24 : 60 * 60 * 24 * 7; // 1d prod, 7d dev
 
   response.headers.append(
     "Set-Cookie",
-    `auth_token=${token}; Path=/; HttpOnly${secureFlagSuffix}; SameSite=Lax; Max-Age=604800`,
+    `auth_token=${token}; Path=/; HttpOnly${secureFlagSuffix}; SameSite=${sameSite}; Max-Age=${maxAge}`,
   );
   return response;
 };
@@ -110,10 +136,11 @@ export const clearAuthCookie = (response: Response): Response => {
   // In production, always use Secure flag for HTTPS
   const isProduction = process.env.NODE_ENV === "production";
   const secureFlagSuffix = isProduction ? "; Secure" : "";
+  const sameSite = isProduction ? "Strict" : "Lax";
 
   response.headers.append(
     "Set-Cookie",
-    `auth_token=; Path=/; HttpOnly${secureFlagSuffix}; SameSite=Lax; Max-Age=0`,
+    `auth_token=; Path=/; HttpOnly${secureFlagSuffix}; SameSite=${sameSite}; Max-Age=0`,
   );
   return response;
 };

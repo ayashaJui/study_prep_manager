@@ -15,10 +15,11 @@ export interface AppError {
  */
 export function parseError(error: any): AppError {
   // Network errors
-  if (error.message?.includes('fetch') || error.message?.includes('network')) {
+  if (error.message?.includes("fetch") || error.message?.includes("network")) {
     return {
-      message: 'Network error. Please check your internet connection and try again.',
-      code: 'NETWORK_ERROR',
+      message:
+        "Network error. Please check your internet connection and try again.",
+      code: "NETWORK_ERROR",
       statusCode: 0,
       originalError: error,
     };
@@ -29,71 +30,75 @@ export function parseError(error: any): AppError {
     switch (error.statusCode) {
       case 400:
         return {
-          message: error.message || 'Invalid request. Please check your input.',
-          code: 'BAD_REQUEST',
+          message: error.message || "Invalid request. Please check your input.",
+          code: "BAD_REQUEST",
           statusCode: 400,
           originalError: error,
         };
       case 401:
         return {
-          message: 'You are not authorized. Please log in again.',
-          code: 'UNAUTHORIZED',
+          message: "You are not authorized. Please log in again.",
+          code: "UNAUTHORIZED",
           statusCode: 401,
           originalError: error,
         };
       case 403:
         return {
-          message: 'Access denied. You do not have permission to perform this action.',
-          code: 'FORBIDDEN',
+          message:
+            "Access denied. You do not have permission to perform this action.",
+          code: "FORBIDDEN",
           statusCode: 403,
           originalError: error,
         };
       case 404:
         return {
-          message: error.message || 'Resource not found. It may have been deleted.',
-          code: 'NOT_FOUND',
+          message:
+            error.message || "Resource not found. It may have been deleted.",
+          code: "NOT_FOUND",
           statusCode: 404,
           originalError: error,
         };
       case 409:
         return {
-          message: error.message || 'Conflict. This resource already exists.',
-          code: 'CONFLICT',
+          message: error.message || "Conflict. This resource already exists.",
+          code: "CONFLICT",
           statusCode: 409,
           originalError: error,
         };
       case 422:
         return {
-          message: error.message || 'Validation failed. Please check your input.',
-          code: 'VALIDATION_ERROR',
+          message:
+            error.message || "Validation failed. Please check your input.",
+          code: "VALIDATION_ERROR",
           statusCode: 422,
           originalError: error,
         };
       case 429:
         return {
-          message: 'Too many requests. Please slow down and try again later.',
-          code: 'RATE_LIMIT',
+          message: "Too many requests. Please slow down and try again later.",
+          code: "RATE_LIMIT",
           statusCode: 429,
           originalError: error,
         };
       case 500:
         return {
-          message: 'Server error. Please try again later.',
-          code: 'SERVER_ERROR',
+          message: "Server error. Please try again later.",
+          code: "SERVER_ERROR",
           statusCode: 500,
           originalError: error,
         };
       case 503:
         return {
-          message: 'Service temporarily unavailable. Please try again later.',
-          code: 'SERVICE_UNAVAILABLE',
+          message: "Service temporarily unavailable. Please try again later.",
+          code: "SERVICE_UNAVAILABLE",
           statusCode: 503,
           originalError: error,
         };
       default:
         return {
-          message: error.message || 'An unexpected error occurred. Please try again.',
-          code: 'UNKNOWN_ERROR',
+          message:
+            error.message || "An unexpected error occurred. Please try again.",
+          code: "UNKNOWN_ERROR",
           statusCode: error.statusCode,
           originalError: error,
         };
@@ -101,26 +106,29 @@ export function parseError(error: any): AppError {
   }
 
   // Validation errors
-  if (error.message?.includes('validation') || error.name === 'ValidationError') {
+  if (
+    error.message?.includes("validation") ||
+    error.name === "ValidationError"
+  ) {
     return {
-      message: error.message || 'Validation failed. Please check your input.',
-      code: 'VALIDATION_ERROR',
+      message: error.message || "Validation failed. Please check your input.",
+      code: "VALIDATION_ERROR",
       originalError: error,
     };
   }
 
   // MongoDB errors
-  if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+  if (error.name === "MongoError" || error.name === "MongoServerError") {
     if (error.code === 11000) {
       return {
-        message: 'This item already exists. Please use a different name.',
-        code: 'DUPLICATE_KEY',
+        message: "This item already exists. Please use a different name.",
+        code: "DUPLICATE_KEY",
         originalError: error,
       };
     }
     return {
-      message: 'Database error. Please try again later.',
-      code: 'DATABASE_ERROR',
+      message: "Database error. Please try again later.",
+      code: "DATABASE_ERROR",
       originalError: error,
     };
   }
@@ -129,15 +137,15 @@ export function parseError(error: any): AppError {
   if (error.message) {
     return {
       message: error.message,
-      code: 'ERROR',
+      code: "ERROR",
       originalError: error,
     };
   }
 
   // Unknown error
   return {
-    message: 'An unexpected error occurred. Please try again.',
-    code: 'UNKNOWN_ERROR',
+    message: "An unexpected error occurred. Please try again.",
+    code: "UNKNOWN_ERROR",
     originalError: error,
   };
 }
@@ -147,10 +155,10 @@ export function parseError(error: any): AppError {
  */
 export function handleError(error: any, context?: string): AppError {
   const parsedError = parseError(error);
-  
+
   // Log to console in development
-  if (process.env.NODE_ENV === 'development') {
-    console.error(`Error${context ? ` in ${context}` : ''}:`, {
+  if (process.env.NODE_ENV === "development") {
+    console.error(`Error${context ? ` in ${context}` : ""}:`, {
       message: parsedError.message,
       code: parsedError.code,
       statusCode: parsedError.statusCode,
@@ -168,11 +176,13 @@ export function showErrorNotification(message: string) {
   // This will be called from components that have access to useToast
   // For backward compatibility, we keep this function but it will be replaced
   // by direct useToast() calls in components
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     // Dispatch custom event that ToastProvider can listen to
-    window.dispatchEvent(new CustomEvent('show-toast', {
-      detail: { message, type: 'error' }
-    }));
+    window.dispatchEvent(
+      new CustomEvent("show-toast", {
+        detail: { message, type: "error" },
+      }),
+    );
   }
 }
 
@@ -180,9 +190,11 @@ export function showErrorNotification(message: string) {
  * Show success notification to user
  */
 export function showSuccessNotification(message: string) {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('show-toast', {
-      detail: { message, type: 'success' }
-    }));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("show-toast", {
+        detail: { message, type: "success" },
+      }),
+    );
   }
 }

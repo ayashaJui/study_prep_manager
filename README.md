@@ -10,7 +10,8 @@ A comprehensive, hierarchical study management system designed for interview pre
 - **OAuth Support**: Sign in with Google or GitHub accounts
 - **Password Reset**: Forgot password functionality with secure email recovery
 - **User Profiles**: Manage profile information including name and avatar
-- **Protected Routes**: API endpoints protected with JWT authentication
+- **Protected Routes**: API endpoints protected with JWT authentication and proxy checks
+- **Rate Limiting**: Throttles login, registration, and password reset attempts
 
 ### Core Functionality
 
@@ -20,6 +21,8 @@ A comprehensive, hierarchical study management system designed for interview pre
 - **Quizzes**: Build customizable quizzes with multiple-choice questions, multi-answer support, and detailed explanations
 - **Progress Tracking**: Monitor learning progress across topics and study sessions
 - **Topic Management**: Create, edit, and organize topics with difficulty levels and tags
+- **Public Sharing**: Publish read-only topic links for easy sharing
+- **Study Streaks**: Track daily learning streaks from study sessions
 
 ### Import & Export
 
@@ -39,8 +42,10 @@ A comprehensive, hierarchical study management system designed for interview pre
   - Front/back format with rich text support
   - Difficulty tracking
   - Tag organization
+  - SM-2 style review scheduling and confidence updates
   - Study mode for efficient learning
 - **Search & Filter**: Find content quickly across your study materials
+- **Global Search**: Search across topics, notes, flashcards, and quizzes from one box
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
 
 ## 🚀 Getting Started
@@ -85,6 +90,12 @@ JWT_SECRET=your-super-secret-jwt-key
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-nextauth-secret
 
+# App URL (used in password reset links)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Optional: override API base URL for the client
+NEXT_PUBLIC_API_URL=/api
+
 # OAuth (optional - for Google/GitHub sign-in)
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
@@ -92,6 +103,7 @@ GITHUB_CLIENT_ID=your-github-client-id
 GITHUB_CLIENT_SECRET=your-github-client-secret
 
 # Email (optional - for password reset)
+# Gmail SMTP: app password required in production
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASSWORD=your-app-specific-password
 ```
@@ -139,8 +151,10 @@ interview_prep/
 │   │   ├── quizzes/
 │   │   ├── notes/
 │   │   └── topics/
+│   │   └── public/         # Public topic API
 │   ├── layout.tsx         # Root layout
 │   └── page.tsx           # Dashboard page
+│   └── public/             # Public read-only pages
 ├── components/            # React components
 │   ├── features/          # Feature components (FlashcardGrid, QuizList, etc.)
 │   ├── layout/            # Layout components (Header, Sidebar, etc.)
@@ -150,10 +164,14 @@ interview_prep/
 │   ├── Quiz.ts
 │   ├── Flashcard.ts
 │   └── Note.ts
+│   └── StudySession.ts
 ├── lib/                  # Utility functions and services
 │   ├── api.ts           # API service layer
 │   ├── db.ts            # MongoDB connection
 │   └── errorHandler.ts
+├── proxy.ts              # Route protection (JWT check)
+├── scripts/              # Database utilities
+├── tests/                # Vitest tests
 ├── hooks/               # Custom React hooks
 ├── contexts/            # React contexts (Toast notifications)
 ├── types/               # TypeScript type definitions
@@ -176,6 +194,8 @@ interview_prep/
 2. Prepare your file in the specified format (templates available)
 3. Upload and validate
 4. Review imported items before confirmation
+
+Note: Import endpoints are available at `/api/flashcards/import` and `/api/quizzes/import`.
 
 ### Study Mode
 
@@ -220,8 +240,19 @@ Supports separators: comma (,), pipe (|), or tab
 - `GET /api/topics` - List all topics
 - `POST /api/topics` - Create topic
 - `GET /api/topics/[id]` - Get topic details
+- `GET /api/topics/slug/[slug]` - Get topic by slug (optional parentId query)
 - `PATCH /api/topics/[id]` - Update topic
 - `DELETE /api/topics/[id]` - Delete topic
+- `POST /api/topics/[id]/share` - Publish topic and get share link
+- `DELETE /api/topics/[id]/share` - Unpublish topic
+
+### Public Topics
+
+- `GET /api/public/topics/[shareId]` - Get public topic payload (read-only)
+
+### Search
+
+- `GET /api/search?query=...` - Global search across topics, notes, flashcards, quizzes
 
 ### Flashcards
 
@@ -230,15 +261,40 @@ Supports separators: comma (,), pipe (|), or tab
 - `POST /api/flashcards/import` - Bulk import flashcards
 - `PATCH /api/flashcards/[id]` - Update flashcard
 - `DELETE /api/flashcards/[id]` - Delete flashcard
+- `POST /api/flashcards/[id]/review` - Review flashcard and schedule next review
 
 ### Quizzes
 
 - `GET /api/quizzes?topicId=[id]` - List quizzes
 - `POST /api/quizzes` - Create quiz
 - `POST /api/quizzes/import` - Bulk import quizzes
-- `POST /api/quizzes/[id]/submit` - Submit quiz answers
 - `PATCH /api/quizzes/[id]` - Update quiz
 - `DELETE /api/quizzes/[id]` - Delete quiz
+
+### Study Sessions
+
+- `GET /api/study-sessions` - List study sessions
+- `POST /api/study-sessions` - Create study session
+- `GET /api/study-sessions/streak` - Get current streak
+
+### Dashboard
+
+- `GET /api/dashboard/stats` - Summary counts and averages
+- `GET /api/dashboard/activity?limit=10` - Recent activity feed
+- `GET /api/dashboard/progress` - Topic progress overview
+- `GET /api/dashboard/goals` - Weekly goals
+
+## ✅ Running Tests
+
+```bash
+npm test
+```
+
+## 🧰 Useful Scripts
+
+- `npm run lint` - Lint the codebase
+- `npm run db:clear` - Clear the MongoDB database (development only)
+- `npm run db:seed` - Seed sample data for all core features
 
 ## 📦 Building for Production
 
@@ -246,6 +302,12 @@ Supports separators: comma (,), pipe (|), or tab
 npm run build
 npm run start
 ```
+
+## 🔒 Deployment Notes
+
+- Set `JWT_SECRET`, `NEXTAUTH_SECRET`, and `MONGODB_URI` in production.
+- If using password reset, `EMAIL_USER` and `EMAIL_PASSWORD` are required in production.
+- Gmail SMTP requires an app password (not your regular Gmail password).
 
 ## 📄 License
 

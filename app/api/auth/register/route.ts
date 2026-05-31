@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { hashPassword, generateToken, setAuthCookie } from "@/lib/auth";
+import { getClientIp, rateLimit } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +38,26 @@ export async function POST(request: NextRequest) {
           message: "Password must be at least 6 characters",
         },
         { status: 400 },
+      );
+    }
+
+    const ip = getClientIp(request as Request);
+    const rate = rateLimit({
+      key: `auth:register:${ip}:${email.toLowerCase()}`,
+      limit: 3,
+      windowMs: 60_000,
+    });
+    if (!rate.ok) {
+      const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Too many registration attempts. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": retryAfter.toString() },
+        },
       );
     }
 

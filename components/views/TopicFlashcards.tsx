@@ -23,11 +23,13 @@ interface Flashcard {
 interface TopicFlashcardsProps {
   topicId: string;
   topicName: string;
+  initialFlashcardId?: string;
 }
 
 export default function TopicFlashcards({
   topicId,
   topicName,
+  initialFlashcardId,
 }: TopicFlashcardsProps) {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,12 @@ export default function TopicFlashcards({
     isOpen: boolean;
     flashcardId: string | null;
   }>({ isOpen: false, flashcardId: null });
+  const [isStudyModeOpen, setIsStudyModeOpen] = useState(false);
+  const [studyQueue, setStudyQueue] = useState<Flashcard[]>([]);
+  const [studyIndex, setStudyIndex] = useState(0);
+  const [isStudyFlipped, setIsStudyFlipped] = useState(false);
+  const [studyStartedAt, setStudyStartedAt] = useState<number | null>(null);
+  const [isReviewing, setIsReviewing] = useState(false);
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
@@ -53,6 +61,12 @@ export default function TopicFlashcards({
       fetchFlashcards();
     }
   }, [topicId]);
+
+  useEffect(() => {
+    if (initialFlashcardId && flashcards.length > 0) {
+      handleEditFlashcard(initialFlashcardId);
+    }
+  }, [initialFlashcardId, flashcards]);
 
   const fetchFlashcards = async () => {
     try {
@@ -173,6 +187,69 @@ export default function TopicFlashcards({
     }
   };
 
+  const openStudyMode = () => {
+    if (!flashcards.length) {
+      showError("No flashcards available for study mode");
+      return;
+    }
+
+    setStudyQueue(flashcards);
+    setStudyIndex(0);
+    setIsStudyFlipped(false);
+    setStudyStartedAt(Date.now());
+    setIsStudyModeOpen(true);
+  };
+
+  const closeStudyMode = () => {
+    setIsStudyModeOpen(false);
+    setIsReviewing(false);
+  };
+
+  const advanceStudyCard = () => {
+    const nextIndex = studyIndex + 1;
+    if (nextIndex >= studyQueue.length) {
+      setIsStudyModeOpen(false);
+      showSuccess("Study session complete");
+      return;
+    }
+
+    setStudyIndex(nextIndex);
+    setIsStudyFlipped(false);
+    setStudyStartedAt(Date.now());
+  };
+
+  const handleReview = async (quality: number) => {
+    const current = studyQueue[studyIndex];
+    if (!current) return;
+
+    const duration = studyStartedAt
+      ? Math.max(1, Math.round((Date.now() - studyStartedAt) / 1000))
+      : 0;
+
+    let shouldAdvance = false;
+    try {
+      setIsReviewing(true);
+      const updated = await flashcardsAPI.review(
+        current._id,
+        quality,
+        duration,
+      );
+      setFlashcards((prev) =>
+        prev.map((f) => (f._id === updated._id ? updated : f)),
+      );
+      shouldAdvance = true;
+    } catch (error: any) {
+      showError(error.message || "Failed to submit review");
+    } finally {
+      setIsReviewing(false);
+      if (shouldAdvance) advanceStudyCard();
+    }
+  };
+
+  const handleSkip = () => {
+    advanceStudyCard();
+  };
+
   if (loading) {
     return (
       <Card>
@@ -212,7 +289,7 @@ export default function TopicFlashcards({
         </CardTitle>
 
         <div className="!mb-6 flex gap-4 flex-wrap">
-          <Button variant="secondary">
+          <Button variant="secondary" onClick={openStudyMode}>
             <Play size={16} />
             Study Mode
           </Button>
@@ -492,6 +569,68 @@ export default function TopicFlashcards({
           type="flashcards"
         />
       )}
+
+      <Modal
+        isOpen={isStudyModeOpen}
+        onClose={closeStudyMode}
+        title={`Study Mode - ${topicName}`}
+      >
+        {studyQueue.length === 0 ? (
+          <div className="text-slate-400">No flashcards available.</div>
+        ) : (
+          <div className="!space-y-4">
+            <div className="flex items-center justify-between text-sm text-slate-400">
+              <span>
+                Card {studyIndex + 1} of {studyQueue.length}
+              </span>
+              <span>{isStudyFlipped ? "Answer" : "Question"}</span>
+            </div>
+
+            <div
+              className="rounded-lg border border-slate-700 bg-slate-900/60 !p-6 text-center min-h-[160px] flex items-center justify-center"
+              onClick={() => setIsStudyFlipped((prev) => !prev)}
+            >
+              <div className="text-lg text-slate-100 whitespace-pre-wrap">
+                {isStudyFlipped
+                  ? studyQueue[studyIndex].back
+                  : studyQueue[studyIndex].front}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-between">
+              <Button variant="secondary" onClick={handleSkip}>
+                Skip
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setIsStudyFlipped((prev) => !prev)}
+              >
+                {isStudyFlipped ? "Show Question" : "Show Answer"}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[
+                { value: 0, label: "Again" },
+                { value: 1, label: "Hard" },
+                { value: 2, label: "Difficult" },
+                { value: 3, label: "Okay" },
+                { value: 4, label: "Good" },
+                { value: 5, label: "Easy" },
+              ].map((option) => (
+                <Button
+                  key={option.value}
+                  variant="secondary"
+                  onClick={() => handleReview(option.value)}
+                  disabled={!isStudyFlipped || isReviewing}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
   );
 }

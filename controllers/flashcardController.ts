@@ -39,14 +39,18 @@ export const getFlashcardById = async (id: string, userId: string) => {
 
 // Create a new flashcard
 export const createFlashcard = async (data: any) => {
-  const { topicId, front, back, tags, difficulty } = data;
+  const { topicId, front, back, tags, difficulty, userId } = data;
 
   // Validate topic exists
   if (!mongoose.Types.ObjectId.isValid(topicId)) {
     throw new Error("Invalid topic ID");
   }
 
-  const topic = await Topic.findById(topicId);
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const topic = await Topic.findOne({ _id: topicId, userId });
   if (!topic) {
     throw new Error("Topic not found");
   }
@@ -58,6 +62,7 @@ export const createFlashcard = async (data: any) => {
     back,
     tags: tags || [],
     difficulty: difficulty || "medium",
+    userId,
   });
 
   // Update topic stats
@@ -119,5 +124,71 @@ export const deleteFlashcard = async (id: string, userId: string) => {
     $inc: { "stats.flashcardsCount": -1 },
   });
 
+  return flashcard;
+};
+
+export const reviewFlashcard = async (
+  id: string,
+  quality: number,
+  userId: string,
+) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid flashcard ID");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  if (!Number.isInteger(quality) || quality < 0 || quality > 5) {
+    throw new Error("Invalid quality score");
+  }
+
+  const flashcard = await Flashcard.findOne({ _id: id, userId });
+  if (!flashcard) {
+    throw new Error("Flashcard not found");
+  }
+
+  const currentEase = flashcard.easeFactor || 2.5;
+  const currentInterval = flashcard.intervalDays || 0;
+  const currentReps = flashcard.reviewCount || 0;
+
+  let newEase =
+    currentEase + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+  newEase = Math.min(3.5, Math.max(1.3, newEase));
+
+  let newReps = currentReps;
+  let newInterval = currentInterval;
+
+  if (quality < 3) {
+    newReps = 0;
+    newInterval = 1;
+  } else {
+    newReps = currentReps + 1;
+    if (newReps === 1) {
+      newInterval = 1;
+    } else if (newReps === 2) {
+      newInterval = 6;
+    } else {
+      newInterval = Math.round(currentInterval * newEase);
+    }
+  }
+
+  const confidence = quality >= 4 ? "easy" : quality === 3 ? "medium" : "hard";
+  const status =
+    quality < 3 ? "learning" : newReps >= 5 ? "mastered" : "review";
+
+  const nextReview = new Date();
+  nextReview.setDate(nextReview.getDate() + Math.max(1, newInterval));
+
+  flashcard.easeFactor = newEase;
+  flashcard.intervalDays = newInterval;
+  flashcard.reviewCount = newReps;
+  flashcard.lastReviewed = new Date();
+  flashcard.nextReview = nextReview;
+  flashcard.confidence = confidence;
+  flashcard.status = status;
+
+  await flashcard.save();
   return flashcard;
 };

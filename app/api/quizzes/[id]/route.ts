@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import * as quizController from "@/controllers/quizController";
+import { requireAuth } from "@/lib/serverAuth";
 
 // GET /api/quizzes/[id] - Get single quiz
 export async function GET(
@@ -10,14 +11,12 @@ export async function GET(
   try {
     await connectDB();
     const { id } = await params;
-    const userId = request.headers.get("x-user-id"); // From middleware
-
-    if (!userId) {
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err: any) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized - No user ID",
-        },
+        { success: false, message: err.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -58,14 +57,12 @@ export async function PATCH(
     await connectDB();
     const { id } = await params;
     const body = await request.json();
-    const userId = request.headers.get("x-user-id"); // From middleware
-
-    if (!userId) {
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err: any) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized - No user ID",
-        },
+        { success: false, message: err.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -117,14 +114,12 @@ export async function DELETE(
   try {
     await connectDB();
     const { id } = await params;
-    const userId = request.headers.get("x-user-id"); // From middleware
-
-    if (!userId) {
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err: any) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized - No user ID",
-        },
+        { success: false, message: err.message || "Unauthorized" },
         { status: 401 },
       );
     }

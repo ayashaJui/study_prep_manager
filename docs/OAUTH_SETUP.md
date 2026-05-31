@@ -232,6 +232,7 @@ npm run dev
 - Rotate secrets regularly
 - Use HTTPS in production
 - Enable HTTPS redirect in OAuth apps
+- Use Gmail app passwords for SMTP (do not use your primary password)
 
 ❌ **DON'T:**
 

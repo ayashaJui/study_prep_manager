@@ -3,19 +3,30 @@ import connectDB from "@/lib/db";
 import User from "@/models/User";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import { getClientIp, rateLimit } from "@/lib/rateLimit";
 
-// Configure email transporter (using Gmail for demo - change to your provider)
+// Configure email transporter (using Gmail SMTP)
+const emailUser = process.env.EMAIL_USER;
+const emailPass = process.env.EMAIL_PASSWORD;
+const isProduction = process.env.NODE_ENV === "production";
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER || "your-email@gmail.com",
-    pass: process.env.EMAIL_PASSWORD || "your-app-password",
+    user: emailUser,
+    pass: emailPass,
   },
 });
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
+
+    if (isProduction && (!emailUser || !emailPass)) {
+      throw new Error(
+        "Missing EMAIL_USER or EMAIL_PASSWORD. Set Gmail SMTP credentials in production.",
+      );
+    }
 
     const { email } = await request.json();
 
@@ -26,6 +37,26 @@ export async function POST(request: NextRequest) {
           message: "Email is required",
         },
         { status: 400 },
+      );
+    }
+
+    const ip = getClientIp(request as Request);
+    const rate = rateLimit({
+      key: `auth:forgot:${ip}:${email.toLowerCase()}`,
+      limit: 5,
+      windowMs: 60_000,
+    });
+    if (!rate.ok) {
+      const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Too many requests. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": retryAfter.toString() },
+        },
       );
     }
 
@@ -56,10 +87,11 @@ export async function POST(request: NextRequest) {
     await user.save();
 
     // Send email
-    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/auth/reset-password?token=${resetToken}`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const resetLink = `${appUrl}/auth/reset-password?token=${resetToken}`;
 
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailUser,
       to: user.email,
       subject: "Password Reset Request",
       html: `

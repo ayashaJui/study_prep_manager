@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { topicController } from "@/controllers/topicController";
+import { tryGetUserIdFromToken } from "@/lib/serverAuth";
 
 // GET /api/topics/slug/[slug] - Get a topic by slug
 export async function GET(
@@ -13,7 +14,7 @@ export async function GET(
 
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get("parentId");
-    const userId = request.headers.get("x-user-id") || undefined; // From middleware
+    const userId = tryGetUserIdFromToken(request as Request) || undefined;
 
     const topic = await topicController.getTopicBySlug(slug, parentId, userId);
 

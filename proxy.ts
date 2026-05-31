@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeTokenPayload, getTokenFromRequest } from "@/lib/auth";
+import { jwtVerify } from "jose";
+import { getTokenFromRequest } from "@/lib/auth";
 
 // Protected routes that require authentication
 const protectedRoutes = [
@@ -11,7 +12,7 @@ const protectedRoutes = [
   "/api/dashboard",
 ];
 
-export function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isApiRoute = pathname.startsWith("/api/");
   const requestedPath = `${pathname}${request.nextUrl.search}`;
@@ -21,7 +22,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith(route),
   );
 
-  // Skip middleware for public routes
+  // Skip proxy for public routes
   if (!isProtectedRoute) {
     return NextResponse.next();
   }
@@ -49,11 +50,24 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // Edge-safe token validation: decode payload and check expiry/userId.
-  const decoded = decodeTokenPayload(token);
-  const nowInSeconds = Math.floor(Date.now() / 1000);
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Unauthorized - Missing JWT secret",
+      },
+      { status: 401 },
+    );
+  }
 
-  if (!decoded?.userId || (decoded.exp && decoded.exp < nowInSeconds)) {
+  try {
+    const secret = new TextEncoder().encode(jwtSecret);
+    const { payload } = await jwtVerify(token, secret);
+    if (!payload?.userId) {
+      throw new Error("Invalid token payload");
+    }
+  } catch {
     if (!isApiRoute) {
       const loginUrl = new URL("/auth/login", request.url);
 
@@ -73,15 +87,12 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // Add userId to request headers for use in API routes
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-user-id", decoded.userId);
+  // Do NOT inject `x-user-id` here. Token signature verification must be
+  // performed server-side inside API route handlers where Node APIs are
+  // available. Proxy only performs a lightweight presence/expiry check
+  // to handle redirects for pages and public routes.
 
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  return NextResponse.next();
 }
 
 export const config = {

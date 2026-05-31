@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 
 interface User {
   id: string;
@@ -41,25 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem("auth_token");
+      // Prefer server-set HttpOnly cookie. Attempt to fetch current user.
+      const response = await fetch("/api/auth/me");
 
-      if (token) {
-        setToken(token);
-        // Fetch user data
-        const response = await fetch("/api/auth/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.data.user);
-        } else {
-          // Token is invalid, clear it
-          localStorage.removeItem("auth_token");
-          setToken(null);
-        }
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.data.user);
+      } else {
+        // No valid session / token
+        setUser(null);
+        setToken(null);
       }
     } catch (error) {
       console.error("Auth check failed:", error);
@@ -86,9 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       const newToken = data.data.token;
 
+      // Server sets HttpOnly cookie; keep token in memory only
       setToken(newToken);
       setUser(data.data.user);
-      localStorage.setItem("auth_token", newToken);
     } catch (error: any) {
       console.error("Login error:", error);
       throw error;
@@ -118,9 +115,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       const newToken = data.data.token;
 
+      // Server sets HttpOnly cookie; keep token in memory only
       setToken(newToken);
       setUser(data.data.user);
-      localStorage.setItem("auth_token", newToken);
     } catch (error: any) {
       console.error("Registration error:", error);
       throw error;
@@ -129,25 +126,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      // Call logout; cookie will be cleared server-side
       await fetch("/api/auth/logout", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
       setUser(null);
       setToken(null);
-      localStorage.removeItem("auth_token");
+      // client state cleared; rely on server-side cookie clearing
     }
   };
 
   const refreshUser = async () => {
-    if (token) {
-      await checkAuth();
-    }
+    await checkAuth();
   };
 
   const value: AuthContextType = {
@@ -161,11 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

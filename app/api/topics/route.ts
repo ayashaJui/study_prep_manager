@@ -1,26 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { topicController } from "@/controllers/topicController";
+import { requireAuth } from "@/lib/serverAuth";
 
 // GET /api/topics - Get all topics or filter by parentId
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err: any) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: err.message || "Unauthorized",
+        },
+        { status: 401 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get("parentId");
-    const userId = request.headers.get("x-user-id") || undefined; // From middleware
-
-    // Get topics for this user only
-    let query: any = { userId };
-
-    if (parentId) {
-      if (parentId === "null" || parentId === "root") {
-        query.parentId = null;
-      } else {
-        query.parentId = parentId;
-      }
-    }
 
     const topics = await topicController.getAllTopics(parentId, userId);
 
@@ -50,19 +52,22 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const userId = request.headers.get("x-user-id"); // From middleware
 
-    if (!userId) {
+    // Server-side verify token and get userId
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err: any) {
       return NextResponse.json(
         {
           success: false,
-          message: "Unauthorized - No user ID",
+          message: err.message || "Unauthorized",
         },
         { status: 401 },
       );
     }
 
-    // Add userId to the topic data
+    // Add verified userId to the topic data
     body.userId = userId;
 
     const topic = await topicController.createTopic(body);

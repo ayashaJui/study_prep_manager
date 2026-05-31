@@ -16,7 +16,7 @@ declare module "next-auth" {
   }
 }
 
-const handler = NextAuth({
+export const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
@@ -114,6 +114,8 @@ const handler = NextAuth({
     error: "/auth/error",
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
+
+const handler = NextAuth(authOptions as any);
 
 export { handler as GET, handler as POST };

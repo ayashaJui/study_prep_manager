@@ -17,6 +17,8 @@ interface TopicOverviewProps {
     progress: number;
     completedSubtopics: number;
     totalSubtopics: number;
+    isPublic?: boolean;
+    shareId?: string | null;
   };
   subtopics: Array<{
     id: string;
@@ -33,6 +35,11 @@ interface TopicOverviewProps {
   };
   onSubtopicSelect?: (id: string) => void;
   onAddSubtopic?: () => void;
+  shareUrl?: string | null;
+  isPublishing?: boolean;
+  onPublish?: () => void;
+  onUnpublish?: () => void;
+  onCopyShareUrl?: () => void;
 }
 
 export default function TopicOverview({
@@ -41,12 +48,70 @@ export default function TopicOverview({
   stats,
   onSubtopicSelect,
   onAddSubtopic,
+  shareUrl,
+  isPublishing,
+  onPublish,
+  onUnpublish,
+  onCopyShareUrl,
 }: TopicOverviewProps) {
   return (
     <Card>
       <CardTitle action={<Badge variant={topic.status}>{topic.status}</Badge>}>
         {topic.name}
       </CardTitle>
+
+      {topic.isPublic && shareUrl ? (
+        <div className="!mt-4 !mb-2 flex flex-col gap-2">
+          <div className="text-xs uppercase tracking-wide text-slate-400">
+            Public Link
+          </div>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center">
+            <input
+              type="text"
+              value={shareUrl}
+              readOnly
+              className="w-full flex-1 rounded-md border border-slate-700 bg-slate-900/60 !px-3 !py-2 text-sm text-slate-200"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={onCopyShareUrl}
+                disabled={!onCopyShareUrl}
+              >
+                Copy
+              </Button>
+              <a
+                href={shareUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-md border border-slate-600 !px-3 !py-2 text-sm text-slate-200 hover:bg-slate-700/50"
+              >
+                Open
+              </a>
+              {onUnpublish && (
+                <Button
+                  variant="secondary"
+                  onClick={onUnpublish}
+                  disabled={isPublishing}
+                >
+                  {isPublishing ? "Working..." : "Unpublish"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="!mt-4 !mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-400">
+            Publish this topic to generate a public link.
+          </p>
+          {onPublish && (
+            <Button onClick={onPublish} disabled={isPublishing}>
+              {isPublishing ? "Working..." : "Publish"}
+            </Button>
+          )}
+        </div>
+      )}
 
       <CardSection
         title="Subtopics"

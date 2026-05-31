@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { hashPassword } from "@/lib/auth";
 import crypto from "crypto";
+import { getClientIp, rateLimit } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,6 +41,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const ip = getClientIp(request as Request);
+    const rate = rateLimit({
+      key: `auth:reset:${ip}`,
+      limit: 5,
+      windowMs: 60_000,
+    });
+    if (!rate.ok) {
+      const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Too many requests. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": retryAfter.toString() },
+        },
+      );
+    }
+
     // Hash the token to find user
     const resetTokenHash = crypto
       .createHash("sha256")
@@ -74,7 +95,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: "Password reset successfully. Please login with your new password.",
+        message:
+          "Password reset successfully. Please login with your new password.",
       },
       { status: 200 },
     );

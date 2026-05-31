@@ -19,12 +19,6 @@ async function fetchAPI<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Get token from localStorage (only on client side)
-  let token: string | null = null;
-  if (typeof window !== "undefined") {
-    token = localStorage.getItem("auth_token");
-  }
-
   const config: RequestInit = {
     ...options,
     credentials: "include",
@@ -33,14 +27,7 @@ async function fetchAPI<T>(
       ...options.headers,
     },
   };
-
-  // Add Authorization header if token exists
-  if (token) {
-    config.headers = {
-      ...config.headers,
-      Authorization: `Bearer ${token}`,
-    };
-  }
+  // No client-side token; rely on HttpOnly cookie sent via `credentials: include`.
 
   try {
     const response = await fetch(url, config);
@@ -115,6 +102,18 @@ export const topicAPI = {
     return fetchAPI<any>(`/topics/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
+    });
+  },
+
+  publish: async (id: string) => {
+    return fetchAPI<any>(`/topics/${id}/share`, {
+      method: "POST",
+    });
+  },
+
+  unpublish: async (id: string) => {
+    return fetchAPI<any>(`/topics/${id}/share`, {
+      method: "DELETE",
     });
   },
 
@@ -229,6 +228,14 @@ export const flashcardsAPI = {
     return response.data || response;
   },
 
+  review: async (id: string, quality: number, duration?: number) => {
+    const response = await fetchAPI<any>(`/flashcards/${id}/review`, {
+      method: "POST",
+      body: JSON.stringify({ quality, duration }),
+    });
+    return response.data || response;
+  },
+
   delete: async (id: string) => {
     const response = await fetchAPI<any>(`/flashcards/${id}`, {
       method: "DELETE",
@@ -282,7 +289,6 @@ export const quizzesAPI = {
     });
     return response.data || response;
   },
-
   submit: async (id: string, answers: any[]) => {
     return fetchAPI<any>(`/quizzes/${id}/submit`, {
       method: "POST",
@@ -296,6 +302,18 @@ export const quizzesAPI = {
       body: JSON.stringify({ topicId, quizzes }),
     });
     return response.data || response;
+  },
+};
+
+// ============================================
+// Search API
+// ============================================
+
+export const searchAPI = {
+  search: async (query: string, limit?: number) => {
+    const params = new URLSearchParams({ query });
+    if (limit) params.set("limit", limit.toString());
+    return fetchAPI<any>(`/search?${params.toString()}`);
   },
 };
 
@@ -340,20 +358,6 @@ export const studySessionsAPI = {
 
   getStreak: async () => {
     return fetchAPI<any>("/study-sessions/streak");
-  },
-};
-
-// ============================================
-// Search API
-// ============================================
-
-export const searchAPI = {
-  global: async (query: string) => {
-    return fetchAPI<any>(`/search?q=${encodeURIComponent(query)}`);
-  },
-
-  topics: async (query: string) => {
-    return fetchAPI<any>(`/search/topics?q=${encodeURIComponent(query)}`);
   },
 };
 

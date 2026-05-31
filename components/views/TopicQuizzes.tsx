@@ -29,11 +29,13 @@ interface Quiz {
 interface TopicQuizzesProps {
   topicId: string;
   topicName: string;
+  initialQuizId?: string;
 }
 
 export default function TopicQuizzes({
   topicId,
   topicName,
+  initialQuizId,
 }: TopicQuizzesProps) {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,12 @@ export default function TopicQuizzes({
       fetchQuizzes();
     }
   }, [topicId]);
+
+  useEffect(() => {
+    if (initialQuizId && quizzes.length > 0) {
+      setActiveQuizId(initialQuizId);
+    }
+  }, [initialQuizId, quizzes]);
 
   const fetchQuizzes = async () => {
     try {

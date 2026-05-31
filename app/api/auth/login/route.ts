@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { comparePassword, generateToken, setAuthCookie } from "@/lib/auth";
+import { getClientIp, rateLimit } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,6 +18,26 @@ export async function POST(request: NextRequest) {
           message: "Please provide email and password",
         },
         { status: 400 },
+      );
+    }
+
+    const ip = getClientIp(request as Request);
+    const rate = rateLimit({
+      key: `auth:login:${ip}:${email.toLowerCase()}`,
+      limit: 5,
+      windowMs: 60_000,
+    });
+    if (!rate.ok) {
+      const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Too many login attempts. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": retryAfter.toString() },
+        },
       );
     }
 

@@ -56,13 +56,11 @@ export default function ChangePasswordPage() {
 
     try {
       setIsLoading(true);
-      const token = localStorage.getItem("auth_token");
-
       const response = await fetch("/api/auth/change-password", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
         },
         body: JSON.stringify({
           currentPassword: formData.currentPassword,
@@ -79,7 +77,11 @@ export default function ChangePasswordPage() {
       }
 
       showSuccess("Password updated successfully!");
-      setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
       router.push("/user/profile");
     } catch (error: any) {
       showError(error.message || "An error occurred");

@@ -1,5 +1,41 @@
 # Database Utility Scripts
 
+## Seed Sample Data
+
+This script seeds sample data for every core feature (topics, subtopics, notes,
+flashcards, quizzes, and study sessions).
+
+### Usage
+
+```bash
+npm run db:seed
+```
+
+### Optional: Clear Sample Data
+
+```bash
+npm run db:seed -- --clear
+```
+
+### Sample Account
+
+- Email: `sample.user@example.com`
+- Password: `SamplePass123!`
+
+You can override the defaults using environment variables:
+
+```bash
+SAMPLE_USER_EMAIL=you@example.com
+SAMPLE_USER_PASSWORD=ChangeMe123!
+SAMPLE_USER_NAME="Your Name"
+```
+
+### What it does
+
+- Creates a sample user (or reuses it if it exists)
+- Adds topics, subtopics, notes, flashcards, quizzes, and study sessions
+- Updates topic stats counts
+
 ## Clear Database
 
 This script clears all data from your MongoDB database.

@@ -18,6 +18,8 @@ export interface IFlashcard {
   confidence: "easy" | "medium" | "hard";
   lastReviewed?: Date;
   nextReview?: Date;
+  easeFactor?: number;
+  intervalDays?: number;
   reviewCount: number;
   importSource?: IImportSource;
   userId?: mongoose.Types.ObjectId;
@@ -75,6 +77,17 @@ const flashcardSchema = new Schema<IFlashcardDocument, IFlashcardModel>(
     },
     lastReviewed: Date,
     nextReview: Date,
+    easeFactor: {
+      type: Number,
+      default: 2.5,
+      min: 1.3,
+      max: 3.5,
+    },
+    intervalDays: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     reviewCount: {
       type: Number,
       default: 0,

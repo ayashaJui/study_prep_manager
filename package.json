@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:clear": "node scripts/clear-database.js"
+    "test": "vitest run",
+    "db:clear": "node scripts/clear-database.js",
+    "db:seed": "node scripts/seed-sample-data.js"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -15,6 +17,7 @@
     "@types/nodemailer": "^7.0.11",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
+    "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.563.0",
     "mongoose": "^9.1.5",
@@ -37,6 +40,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.7"
   }
 }

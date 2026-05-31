@@ -8,12 +8,20 @@ export function useNavigation() {
   const [activeTopic, setActiveTopic] = useState<string | undefined>();
   const [subtopicPath, setSubtopicPath] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [selectedNoteId, setSelectedNoteId] = useState<string | undefined>();
+  const [selectedFlashcardId, setSelectedFlashcardId] = useState<
+    string | undefined
+  >();
+  const [selectedQuizId, setSelectedQuizId] = useState<string | undefined>();
 
   // Sync state with URL params
   useEffect(() => {
     const topic = searchParams.get("topic");
     const subtopicsParam = searchParams.get("subtopics");
     const tab = searchParams.get("tab");
+    const noteId = searchParams.get("note");
+    const flashcardId = searchParams.get("flashcard");
+    const quizId = searchParams.get("quiz");
 
     if (topic) setActiveTopic(topic);
     if (subtopicsParam) {
@@ -22,6 +30,9 @@ export function useNavigation() {
       setSubtopicPath([]);
     }
     if (tab) setActiveTab(tab);
+    setSelectedNoteId(noteId || undefined);
+    setSelectedFlashcardId(flashcardId || undefined);
+    setSelectedQuizId(quizId || undefined);
   }, [searchParams]);
 
   const navigateToDashboard = () => {
@@ -57,6 +68,9 @@ export function useNavigation() {
     activeSubtopic: subtopicPath[0], // For backward compatibility
     subtopicPath,
     activeTab,
+    selectedNoteId,
+    selectedFlashcardId,
+    selectedQuizId,
     setActiveTab,
     navigateToDashboard,
     navigateToTopic,

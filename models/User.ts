@@ -89,7 +89,7 @@ const userSchema = new Schema<IUserDocument, IUserModel>(
 );
 
 // Index for email uniqueness
-userSchema.index({ email: 1 }, { unique: true });
+// `unique: true` on the schema already creates the index.
 userSchema.index({ googleId: 1 }, { sparse: true });
 userSchema.index({ githubId: 1 }, { sparse: true });
 

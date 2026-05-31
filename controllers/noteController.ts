@@ -41,8 +41,9 @@ export const noteController = {
     content: string;
     title?: string;
     tags?: string[];
+    userId?: string;
   }) {
-    const { topicId, content, title, tags } = data;
+    const { topicId, content, title, tags, userId } = data;
 
     // Validation
     if (!content || content.trim().length === 0) {
@@ -59,12 +60,17 @@ export const noteController = {
       throw new Error("Topic not found");
     }
 
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      throw new Error("Invalid user ID");
+    }
+
     // Create note
     const note = await Note.create({
       topicId,
       content: content.trim(),
       title: title?.trim(),
       tags: tags || [],
+      userId,
     });
 
     // Update topic stats

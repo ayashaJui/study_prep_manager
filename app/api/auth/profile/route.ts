@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
-import { verifyToken } from "@/lib/auth";
+import { requireAuth } from "@/lib/serverAuth";
 
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    const userId = request.headers.get("x-user-id");
-
-    if (!userId) {
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err: any) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
+        { success: false, message: err.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -62,14 +60,12 @@ export async function PUT(request: NextRequest) {
   try {
     await connectDB();
 
-    const userId = request.headers.get("x-user-id");
-
-    if (!userId) {
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err: any) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
+        { success: false, message: err.message || "Unauthorized" },
         { status: 401 },
       );
     }

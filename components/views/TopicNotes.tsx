@@ -23,9 +23,14 @@ interface Note {
 interface TopicNotesProps {
   topicId: string;
   topicName: string;
+  initialNoteId?: string;
 }
 
-export default function TopicNotes({ topicId, topicName }: TopicNotesProps) {
+export default function TopicNotes({
+  topicId,
+  topicName,
+  initialNoteId,
+}: TopicNotesProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNoteContent, setNewNoteContent] = useState("");
   const [loading, setLoading] = useState(true);
@@ -47,6 +52,12 @@ export default function TopicNotes({ topicId, topicName }: TopicNotesProps) {
       fetchNotes();
     }
   }, [topicId]);
+
+  useEffect(() => {
+    if (initialNoteId) {
+      setSelectedNoteId(initialNoteId);
+    }
+  }, [initialNoteId]);
 
   const fetchNotes = async () => {
     try {

@@ -18,6 +18,8 @@ export interface ITopic {
   status: "not-started" | "in-progress" | "review" | "mastered";
   tags: string[];
   favorite: boolean;
+  isPublic?: boolean;
+  shareId?: string | null;
   lastReviewed?: Date;
   stats: ITopicStats;
   userId?: mongoose.Types.ObjectId;
@@ -85,6 +87,14 @@ const topicSchema = new Schema<ITopicDocument, ITopicModel>(
     favorite: {
       type: Boolean,
       default: false,
+    },
+    isPublic: {
+      type: Boolean,
+      default: false,
+    },
+    shareId: {
+      type: String,
+      default: null,
     },
     lastReviewed: Date,
 
@@ -177,11 +187,10 @@ topicSchema.pre("save", async function () {
 
 // Indexes
 topicSchema.index({ slug: 1, parentId: 1 });
-topicSchema.index({ userId: 1, slug: 1 });
-topicSchema.index({ userId: 1, parentId: 1 });
 topicSchema.index({ userId: 1, path: 1 });
 topicSchema.index({ userId: 1, tags: 1 });
 topicSchema.index({ createdAt: -1 });
+topicSchema.index({ shareId: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.Topic ||
   mongoose.model<ITopicDocument, ITopicModel>("Topic", topicSchema);

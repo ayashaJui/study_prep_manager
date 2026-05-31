@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Tabs from "@/components/ui/Tabs";
 import TopicOverview from "@/components/views/TopicOverview";
 import TopicNotes from "@/components/views/TopicNotes";
@@ -14,6 +14,7 @@ import Modal from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { topicAPI } from "@/lib/api";
+import { useToast } from "@/contexts/ToastContext";
 import {
   mockSubtopics,
   mockNotes,
@@ -28,6 +29,9 @@ interface TopicContentProps {
   topicId?: string; // Current topic ID
   onSubtopicAdded?: () => void; // Callback to refresh parent data
   topic?: any; // Current topic data from API
+  selectedNoteId?: string;
+  selectedFlashcardId?: string;
+  selectedQuizId?: string;
 }
 
 export default function TopicContent({
@@ -37,7 +41,11 @@ export default function TopicContent({
   topicId,
   onSubtopicAdded,
   topic,
+  selectedNoteId,
+  selectedFlashcardId,
+  selectedQuizId,
 }: TopicContentProps) {
+  const { showSuccess, showError } = useToast();
   const [isAddSubtopicModalOpen, setIsAddSubtopicModalOpen] = useState(false);
   const [newSubtopicName, setNewSubtopicName] = useState("");
   const [newSubtopicDescription, setNewSubtopicDescription] = useState("");
@@ -52,6 +60,26 @@ export default function TopicContent({
   const [isImportFlashcardsOpen, setIsImportFlashcardsOpen] = useState(false);
   const [isImportQuizOpen, setIsImportQuizOpen] = useState(false);
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  const buildShareUrl = (id: string) => {
+    if (typeof window === "undefined") {
+      return `/public/topic/${id}`;
+    }
+    return `${window.location.origin}/public/topic/${id}`;
+  };
+
+  useEffect(() => {
+    if (!topic) return;
+    const nextShareId = topic.shareId || null;
+    const nextIsPublic = Boolean(topic.isPublic && nextShareId);
+    setShareId(nextShareId);
+    setIsPublic(nextIsPublic);
+    setShareUrl(nextShareId ? buildShareUrl(nextShareId) : null);
+  }, [topic]);
 
   const handleAddSubtopic = async () => {
     if (!newSubtopicName.trim() || !topicId) return;
@@ -86,6 +114,53 @@ export default function TopicContent({
       alert(err.message || "Failed to create subtopic. Please try again.");
     } finally {
       setIsCreatingSubtopic(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!topicId) return;
+    try {
+      setIsPublishing(true);
+      const response = await topicAPI.publish(topicId);
+      const data = response.data || response;
+      const nextShareId = data.shareId || null;
+      const nextShareUrl =
+        data.publicUrl || (nextShareId ? buildShareUrl(nextShareId) : null);
+
+      setShareId(nextShareId);
+      setShareUrl(nextShareUrl);
+      setIsPublic(Boolean(nextShareId));
+      showSuccess("Topic published. Share link is ready.");
+    } catch (err: any) {
+      showError(err.message || "Failed to publish topic");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!topicId) return;
+    try {
+      setIsPublishing(true);
+      await topicAPI.unpublish(topicId);
+      setShareId(null);
+      setShareUrl(null);
+      setIsPublic(false);
+      showSuccess("Topic unpublished.");
+    } catch (err: any) {
+      showError(err.message || "Failed to unpublish topic");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleCopyShareUrl = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showSuccess("Share link copied to clipboard.");
+    } catch (err: any) {
+      showError(err.message || "Failed to copy link");
     }
   };
 
@@ -148,6 +223,8 @@ export default function TopicContent({
     completedSubtopics: subtopics.filter((s: any) => s.status === "mastered")
       .length,
     totalSubtopics: subtopics.length,
+    isPublic,
+    shareId,
   };
 
   const formattedSubtopics = subtopics.map((sub: any) => ({
@@ -178,6 +255,11 @@ export default function TopicContent({
           stats={stats}
           onSubtopicSelect={onSubtopicSelect}
           onAddSubtopic={() => setIsAddSubtopicModalOpen(true)}
+          shareUrl={shareUrl}
+          isPublishing={isPublishing}
+          onPublish={handlePublish}
+          onUnpublish={handleUnpublish}
+          onCopyShareUrl={handleCopyShareUrl}
         />
       )}
 
@@ -185,6 +267,7 @@ export default function TopicContent({
         <TopicNotes
           topicId={topicId || ""}
           topicName={topic?.name || "Topic"}
+          initialNoteId={selectedNoteId}
         />
       )}
 
@@ -192,11 +275,16 @@ export default function TopicContent({
         <TopicFlashcards
           topicId={topicId || ""}
           topicName={topic?.name || "Topic"}
+          initialFlashcardId={selectedFlashcardId}
         />
       )}
 
       {activeTab === "quizzes" && topicId && (
-        <TopicQuizzes topicId={topicId} topicName={topic?.name || "Topic"} />
+        <TopicQuizzes
+          topicId={topicId}
+          topicName={topic?.name || "Topic"}
+          initialQuizId={selectedQuizId}
+        />
       )}
 
       <Modal
