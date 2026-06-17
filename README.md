@@ -1,4 +1,4 @@
-# Interview & Study Prep Manager
+# StudyNest
 
 A comprehensive, hierarchical study management system designed for interview preparation and continuous learning. Organize unlimited nested topics with integrated notes, flashcards, quizzes, and advanced study tools.
 
@@ -16,7 +16,7 @@ A comprehensive, hierarchical study management system designed for interview pre
 ### Core Functionality
 
 - **Hierarchical Organization**: Create unlimited nested topics and subtopics for organizing study material
-- **Notes & Summaries**: Write and organize detailed notes with markdown support
+- **Notes & Summaries**: Write notes in Markdown with a Medium-style reading view — titles, cover images, inline images/GIFs, and an estimated reading time
 - **Flashcards**: Create interactive flashcards with spaced repetition support
 - **Quizzes**: Build customizable quizzes with multiple-choice questions, multi-answer support, and detailed explanations
 - **Progress Tracking**: Monitor learning progress across topics and study sessions
@@ -62,7 +62,7 @@ A comprehensive, hierarchical study management system designed for interview pre
 
 ```bash
 git clone <repository-url>
-cd interview_prep
+cd studynest
 ```
 
 2. Install dependencies:
@@ -81,7 +81,7 @@ cp .env.local.example .env.local
 
 ```
 # MongoDB
-MONGODB_URI=mongodb://localhost:27017/interview_prep
+MONGODB_URI=mongodb://localhost:27017/studynest
 
 # JWT Authentication
 JWT_SECRET=your-super-secret-jwt-key
@@ -144,7 +144,7 @@ All study data is automatically linked to your user account and protected by aut
 ## 📁 Project Structure
 
 ```
-interview_prep/
+studynest/
 ├── app/                    # Next.js app directory
 │   ├── api/               # API routes for CRUD operations
 │   │   ├── flashcards/

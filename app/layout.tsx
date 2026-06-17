@@ -4,7 +4,7 @@ import { ToastProvider } from "@/contexts/ToastContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
-  title: "Interview & Study Prep Manager",
+  title: "StudyNest",
   description:
     "Organize topics, notes, flashcards, and quizzes for your interview preparation",
 };

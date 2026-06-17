@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Input, Textarea } from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
+import Badge from "@/components/ui/Badge";
 import FlashcardGrid from "@/components/features/FlashcardGrid";
 import ImportFromFile from "@/components/views/ImportFromFile";
 import { flashcardsAPI } from "@/lib/api";
@@ -18,6 +19,8 @@ interface Flashcard {
   tags: string[];
   difficulty: string;
   createdAt: string;
+  nextReview?: string;
+  status?: string;
 }
 
 interface TopicFlashcardsProps {
@@ -54,7 +57,22 @@ export default function TopicFlashcards({
   const [isStudyFlipped, setIsStudyFlipped] = useState(false);
   const [studyStartedAt, setStudyStartedAt] = useState<number | null>(null);
   const [isReviewing, setIsReviewing] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { showSuccess, showError } = useToast();
+
+  const allTags = Array.from(new Set(flashcards.flatMap((f) => f.tags || [])));
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+  };
+
+  const filteredFlashcards = flashcards.filter(
+    (f) =>
+      selectedTags.length === 0 ||
+      selectedTags.every((t) => (f.tags || []).includes(t)),
+  );
 
   useEffect(() => {
     if (topicId) {
@@ -193,7 +211,17 @@ export default function TopicFlashcards({
       return;
     }
 
-    setStudyQueue(flashcards);
+    const now = Date.now();
+    const dueCards = flashcards.filter(
+      (f) => !f.nextReview || new Date(f.nextReview).getTime() <= now,
+    );
+
+    if (dueCards.length) {
+      setStudyQueue(dueCards);
+    } else {
+      showSuccess("No cards due yet — studying the full deck instead");
+      setStudyQueue(flashcards);
+    }
     setStudyIndex(0);
     setIsStudyFlipped(false);
     setStudyStartedAt(Date.now());
@@ -299,11 +327,29 @@ export default function TopicFlashcards({
           </Button>
         </div>
 
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 !mb-6">
+            {allTags.map((tag) => (
+              <Badge
+                key={tag}
+                variant={selectedTags.includes(tag) ? "default" : undefined}
+                className={
+                  selectedTags.includes(tag) ? "" : "!bg-slate-700/60"
+                }
+                onClick={() => toggleTag(tag)}
+              >
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+
         <FlashcardGrid
-          flashcards={flashcards.map((fc) => ({
+          flashcards={filteredFlashcards.map((fc) => ({
             id: fc._id,
             front: fc.front,
             back: fc.back,
+            tags: fc.tags,
           }))}
           onEdit={handleEditFlashcard}
           onDelete={handleDeleteFlashcard}

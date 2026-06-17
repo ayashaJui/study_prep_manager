@@ -61,9 +61,9 @@ export async function GET(request: NextRequest) {
         .lean(),
       Note.find({
         userId,
-        $or: [{ title: regex }, { content: regex }, { tags: regex }],
+        $or: [{ content: regex }, { tags: regex }],
       })
-        .select("title content topicId")
+        .select("content topicId")
         .sort({ createdAt: -1 })
         .limit(limit)
         .lean(),

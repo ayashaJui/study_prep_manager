@@ -1,3 +1,5 @@
+import Badge from "@/components/ui/Badge";
+
 interface Quiz {
   id: string;
   title: string;
@@ -5,6 +7,7 @@ interface Quiz {
   date: string;
   lastScore?: string;
   description: string;
+  tags?: string[];
 }
 
 interface QuizListProps {
@@ -76,6 +79,15 @@ export default function QuizList({
           <div className="text-sm text-slate-300 leading-relaxed">
             {quiz.description}
           </div>
+          {!!quiz.tags?.length && (
+            <div className="flex flex-wrap gap-2 !mt-3">
+              {quiz.tags.map((tag) => (
+                <Badge key={tag} className="!bg-slate-700/60">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>

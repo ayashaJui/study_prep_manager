@@ -391,7 +391,7 @@ function HomeContent() {
         <div className="flex-1 w-full max-w-6xl !mx-auto !px-6 md:!px-12 !py-12 md:!py-20">
           <div className="flex items-center justify-between">
             <div className="text-slate-100 text-lg font-semibold">
-              Interview Prep Manager
+              StudyNest
             </div>
             <div className="hidden sm:flex items-center gap-3">
               <Link href="/auth/login">

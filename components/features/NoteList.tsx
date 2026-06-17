@@ -1,11 +1,18 @@
-import { Edit2, Trash2, BookOpen } from "lucide-react";
+import { Edit2, Trash2, BookOpen, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import {
+  deriveNoteTitle,
+  estimateReadingMinutes,
+  stripLeadingHeading,
+} from "@/lib/noteUtils";
+import Badge from "@/components/ui/Badge";
 
 interface Note {
   id: string;
   content: string;
   date: string;
+  tags?: string[];
 }
 
 interface NoteListProps {
@@ -24,17 +31,22 @@ export default function NoteList({
   return (
     <div className="!space-y-3 md:!space-y-4">
       {notes.map((note) => {
-        // Truncate content for preview (first 300 characters)
         const content = note.content || "";
+        const title = deriveNoteTitle(content);
+        const body = stripLeadingHeading(content);
+        // Truncate content for preview (first 300 characters)
         const preview =
-          content.length > 300 ? content.substring(0, 300) + "..." : content;
-        const showReadMore = content.length > 300;
+          body.length > 300 ? body.substring(0, 300) + "..." : body;
+        const readingMinutes = estimateReadingMinutes(content);
 
         return (
           <div
             key={note.id}
             className="bg-slate-800/80 backdrop-blur-sm !p-5 rounded-xl border-l-4 border-purple-500 hover:shadow-lg hover:shadow-purple-500/10 transition-all"
           >
+            <h3 className="text-base font-semibold text-slate-100 !mb-2">
+              {title}
+            </h3>
             <div
               className="prose prose-slate dark:prose-invert prose-sm max-w-none"
               style={
@@ -71,6 +83,16 @@ export default function NoteList({
               </ReactMarkdown>
             </div>
 
+            {!!note.tags?.length && (
+              <div className="flex flex-wrap gap-2 !mt-3">
+                {note.tags.map((tag) => (
+                  <Badge key={tag} className="!bg-slate-700/60">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
             {onReadMore && (
               <button
                 onClick={() => onReadMore(note.id)}
@@ -82,7 +104,13 @@ export default function NoteList({
             )}
 
             <div className="flex justify-between items-center !mt-3 text-xs text-slate-500">
-              <span>Added on {note.date}</span>
+              <div className="flex items-center gap-3">
+                <span>Added on {note.date}</span>
+                <span className="flex items-center gap-1">
+                  <Clock size={12} />
+                  {readingMinutes} min read
+                </span>
+              </div>
               <div className="flex gap-2">
                 {onEdit && (
                   <button

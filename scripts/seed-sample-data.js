@@ -67,7 +67,6 @@ const noteSchema = new mongoose.Schema(
       required: true,
     },
     content: { type: String, required: true },
-    title: String,
     tags: [String],
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -377,43 +376,43 @@ async function seed() {
   const notes = await Note.insertMany([
     {
       topicId: algorithms._id,
-      title: "Algorithm Cheatsheet",
-      content: "Big-O, traversal patterns, and common pitfalls.",
+      content:
+        "# Algorithm Cheatsheet\n\nBig-O, traversal patterns, and common pitfalls.",
       tags: ["summary"],
       userId,
     },
     {
       topicId: arraysTopic._id,
-      title: "Sliding Window",
-      content: "Track a moving window with two pointers for O(n) scans.",
+      content:
+        "# Sliding Window\n\nTrack a moving window with two pointers for O(n) scans.",
       tags: ["arrays"],
       userId,
     },
     {
       topicId: systemDesign._id,
-      title: "Service Sizing",
-      content: "Estimate QPS, storage, and throughput to size services.",
+      content:
+        "# Service Sizing\n\nEstimate QPS, storage, and throughput to size services.",
       tags: ["planning"],
       userId,
     },
     {
       topicId: cachingTopic._id,
-      title: "Cache Invalidation",
-      content: "Write-through vs write-back and eviction strategies.",
+      content:
+        "# Cache Invalidation\n\nWrite-through vs write-back and eviction strategies.",
       tags: ["cache"],
       userId,
     },
     {
       topicId: starTopic._id,
-      title: "STAR Outline",
-      content: "Situation, Task, Action, Result structure for stories.",
+      content:
+        "# STAR Outline\n\nSituation, Task, Action, Result structure for stories.",
       tags: ["behavioral"],
       userId,
     },
     {
       topicId: leadershipTopic._id,
-      title: "Leadership Examples",
-      content: "Examples that show ownership and mentoring.",
+      content:
+        "# Leadership Examples\n\nExamples that show ownership and mentoring.",
       tags: ["behavioral"],
       userId,
     },

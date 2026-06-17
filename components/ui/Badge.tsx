@@ -4,12 +4,14 @@ interface BadgeProps {
   variant?: "default" | "not-started" | "in-progress" | "review" | "mastered";
   children: ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
 export default function Badge({
   variant = "default",
   children,
   className = "",
+  onClick,
 }: BadgeProps) {
   const styles = {
     default: {
@@ -34,11 +36,23 @@ export default function Badge({
     },
   };
 
+  const badgeClassName = `inline-block !px-2.5 !py-1 rounded-sm text-xs font-semibold uppercase ${onClick ? "cursor-pointer" : ""} ${className}`;
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={badgeClassName}
+        style={styles[variant]}
+      >
+        {children}
+      </button>
+    );
+  }
+
   return (
-    <span
-      className={`inline-block !px-2.5 !py-1 rounded-sm text-xs font-semibold uppercase ${className}`}
-      style={styles[variant]}
-    >
+    <span className={badgeClassName} style={styles[variant]}>
       {children}
     </span>
   );

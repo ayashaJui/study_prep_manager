@@ -1,12 +1,27 @@
 "use client";
 
-import { X, Calendar, ArrowLeft, Edit2 } from "lucide-react";
-import { useState } from "react";
+import {
+  X,
+  Calendar,
+  Clock,
+  ArrowLeft,
+  Edit2,
+  Image as ImageIcon,
+  Upload,
+} from "lucide-react";
+import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
+import { uploadAPI } from "@/lib/api";
+import { useToast } from "@/contexts/ToastContext";
+import {
+  deriveNoteTitle,
+  estimateReadingMinutes,
+  stripLeadingHeading,
+} from "@/lib/noteUtils";
 
 interface NoteArticleProps {
   note: {
@@ -15,7 +30,7 @@ interface NoteArticleProps {
     date: string;
   };
   onClose: () => void;
-  onSave?: (id: string, content: string) => void;
+  onSave?: (id: string, content: string) => void | Promise<void>;
 }
 
 export default function NoteArticle({
@@ -25,7 +40,12 @@ export default function NoteArticle({
 }: NoteArticleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(note.content || "");
+  const [imageUrlInput, setImageUrlInput] = useState("");
+  const [showImageInsert, setShowImageInsert] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingInline, setUploadingInline] = useState(false);
+  const inlineFileInputRef = useRef<HTMLInputElement>(null);
+  const { showError } = useToast();
 
   const handleSave = async () => {
     if (!onSave) return;
@@ -43,8 +63,46 @@ export default function NoteArticle({
 
   const handleCancel = () => {
     setEditedContent(note.content || "");
+    setShowImageInsert(false);
     setIsEditing(false);
   };
+
+  const insertImageMarkdown = (url: string) => {
+    const markdown = `![](${url})`;
+    setEditedContent((prev) =>
+      prev.trim().length > 0 ? `${prev}\n\n${markdown}\n` : `${markdown}\n`,
+    );
+  };
+
+  const handleInsertImageUrl = () => {
+    if (!imageUrlInput.trim()) return;
+    insertImageMarkdown(imageUrlInput.trim());
+    setImageUrlInput("");
+    setShowImageInsert(false);
+  };
+
+  const handleInlineFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setUploadingInline(true);
+    try {
+      const url = await uploadAPI.uploadImage(file);
+      insertImageMarkdown(url);
+      setShowImageInsert(false);
+    } catch (error: any) {
+      showError(error.message || "Failed to upload image");
+    } finally {
+      setUploadingInline(false);
+    }
+  };
+
+  const readingMinutes = estimateReadingMinutes(note.content || "");
+  const title = deriveNoteTitle(note.content || "");
+  const bodyContent = stripLeadingHeading(note.content || "");
 
   return (
     <Card>
@@ -83,10 +141,18 @@ export default function NoteArticle({
                 </Button>
               </>
             )}
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-              <Calendar size={16} />
-              <span>{note.date}</span>
-            </div>
+            {!isEditing && (
+              <div className="flex items-center gap-3 text-sm text-slate-400">
+                <span className="flex items-center gap-2">
+                  <Calendar size={16} />
+                  {note.date}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Clock size={16} />
+                  {readingMinutes} min read
+                </span>
+              </div>
+            )}
             <button
               onClick={onClose}
               className="!p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800"
@@ -96,9 +162,60 @@ export default function NoteArticle({
           </div>
         </div>
 
-        {/* Article Content */}
-        <article className="!pb-8">
-          {isEditing ? (
+        {isEditing ? (
+          <div className="!pb-4">
+            <div className="!mb-2 flex items-center justify-between">
+              <label className="block font-medium text-sm text-slate-200">
+                Content (Markdown — start with a heading to give the note a
+                title)
+              </label>
+              <Button
+                type="button"
+                variant="secondary"
+                className="!px-2 !py-1 text-xs"
+                onClick={() => setShowImageInsert((v) => !v)}
+              >
+                <ImageIcon size={14} />
+                Insert image / GIF
+              </Button>
+            </div>
+
+            {showImageInsert && (
+              <div className="flex gap-3 !mb-3 !p-3 rounded-lg border border-slate-700/50 bg-slate-800/60">
+                <input
+                  type="text"
+                  placeholder="Paste an image or GIF URL..."
+                  value={imageUrlInput}
+                  onChange={(e) => setImageUrlInput(e.target.value)}
+                  className="flex-1 !px-3 !py-2 border rounded-lg text-sm bg-slate-700/50 text-slate-100 border-slate-600 placeholder:text-slate-400 focus:outline-none focus:border-purple-500"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleInsertImageUrl}
+                  disabled={!imageUrlInput.trim()}
+                >
+                  Insert
+                </Button>
+                <input
+                  ref={inlineFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  className="hidden"
+                  onChange={handleInlineFileChange}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => inlineFileInputRef.current?.click()}
+                  disabled={uploadingInline}
+                >
+                  <Upload size={16} />
+                  {uploadingInline ? "Uploading..." : "Upload file"}
+                </Button>
+              </div>
+            )}
+
             <Textarea
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
@@ -106,9 +223,14 @@ export default function NoteArticle({
               className="!p-4 font-mono text-sm"
               placeholder="Write your note in Markdown..."
             />
-          ) : (
+          </div>
+        ) : (
+          <article className="!pb-8 max-w-2xl !mx-auto">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-100 !mb-6 leading-tight">
+              {title}
+            </h1>
             <div
-              className="prose prose-slate dark:prose-invert max-w-none"
+              className="prose prose-slate dark:prose-invert lg:prose-lg max-w-none"
               style={
                 {
                   "--tw-prose-bullets": "#a78bfa",
@@ -168,13 +290,17 @@ export default function NoteArticle({
                 div :global(table) {
                   margin: 1.5rem 0 !important;
                 }
+                div :global(img) {
+                  border-radius: 0.75rem !important;
+                  margin: 1.5rem 0 !important;
+                }
               `}</style>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {note.content || ""}
+                {bodyContent || ""}
               </ReactMarkdown>
             </div>
-          )}
-        </article>
+          </article>
+        )}
       </div>
     </Card>
   );

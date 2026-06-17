@@ -4,7 +4,6 @@ import mongoose, { Document, Schema, Model } from "mongoose";
 export interface INote {
   topicId: mongoose.Types.ObjectId;
   content: string;
-  title?: string;
   tags: string[];
   userId?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -29,12 +28,6 @@ const noteSchema = new Schema<INoteDocument, INoteModel>(
       required: true,
       minlength: [1, "Content cannot be empty"],
     },
-    title: {
-      type: String,
-      trim: true,
-      maxlength: [300, "Title cannot exceed 300 characters"],
-    },
-
     // Organization
     tags: [
       {

@@ -5,7 +5,13 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { comparePassword } from "@/lib/auth";
-import { DefaultSession } from "next-auth";
+import {
+  DefaultSession,
+  type Account,
+  type Session,
+  type User as NextAuthUser,
+} from "next-auth";
+import type { JWT } from "next-auth/jwt";
 
 // Extend the built-in session type
 declare module "next-auth" {
@@ -13,6 +19,13 @@ declare module "next-auth" {
     user: DefaultSession["user"] & {
       id: string;
     };
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    provider?: string;
   }
 }
 
@@ -66,7 +79,13 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({
+      user,
+      account,
+    }: {
+      user: NextAuthUser;
+      account: Account | null;
+    }) {
       if (account?.provider === "github" || account?.provider === "google") {
         await connectDB();
 
@@ -95,14 +114,22 @@ export const authOptions = {
 
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({
+      token,
+      user,
+      account,
+    }: {
+      token: JWT;
+      user?: NextAuthUser;
+      account?: Account | null;
+    }) {
       if (user) {
         token.id = user.id;
         token.provider = account?.provider || "credentials";
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user) {
         session.user.id = token.id as string;
       }

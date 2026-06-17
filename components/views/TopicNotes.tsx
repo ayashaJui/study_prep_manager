@@ -8,13 +8,13 @@ import { Textarea } from "@/components/ui/Input";
 import NoteList from "@/components/features/NoteList";
 import NoteArticle from "@/components/views/NoteArticle";
 import Modal from "@/components/ui/Modal";
+import Badge from "@/components/ui/Badge";
 import { notesAPI } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 
 interface Note {
   _id: string;
   content: string;
-  title?: string;
   tags: string[];
   createdAt: string;
   updatedAt: string;
@@ -36,6 +36,7 @@ export default function TopicNotes({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
     isOpen: boolean;
     noteId: string | null;
@@ -45,6 +46,20 @@ export default function TopicNotes({
   const selectedNote = Array.isArray(notes)
     ? notes.find((n) => n._id === selectedNoteId)
     : undefined;
+
+  const allTags = Array.from(new Set(notes.flatMap((n) => n.tags || [])));
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+  };
+
+  const filteredNotes = notes.filter(
+    (n) =>
+      selectedTags.length === 0 ||
+      selectedTags.every((t) => (n.tags || []).includes(t)),
+  );
 
   // Fetch notes on mount
   useEffect(() => {
@@ -157,7 +172,7 @@ export default function TopicNotes({
         </label>
         <Textarea
           rows={5}
-          placeholder="Write your note here... (Supports Markdown)"
+          placeholder="Write your note here... (Supports Markdown — start with a heading to give it a title)"
           className="!p-2"
           value={newNoteContent}
           onChange={(e) => setNewNoteContent(e.target.value)}
@@ -174,14 +189,32 @@ export default function TopicNotes({
         </div>
       </div>
 
-      <CardSection title={`All Notes (${notes.length})`}>
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap gap-2 !mb-6">
+          {allTags.map((tag) => (
+            <Badge
+              key={tag}
+              variant={selectedTags.includes(tag) ? "default" : undefined}
+              className={
+                selectedTags.includes(tag) ? "" : "!bg-slate-700/60"
+              }
+              onClick={() => toggleTag(tag)}
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      <CardSection title={`All Notes (${filteredNotes.length})`}>
         <NoteList
-          notes={notes.map((note) => ({
+          notes={filteredNotes.map((note) => ({
             id: note._id || "",
             content: note.content || "",
             date: note.createdAt
               ? new Date(note.createdAt).toLocaleDateString()
               : new Date().toLocaleDateString(),
+            tags: note.tags,
           }))}
           onDelete={handleDeleteNote}
           onReadMore={(id) => {

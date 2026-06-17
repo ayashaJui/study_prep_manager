@@ -39,11 +39,10 @@ export const noteController = {
   async createNote(data: {
     topicId: string;
     content: string;
-    title?: string;
     tags?: string[];
     userId?: string;
   }) {
-    const { topicId, content, title, tags, userId } = data;
+    const { topicId, content, tags, userId } = data;
 
     // Validation
     if (!content || content.trim().length === 0) {
@@ -68,7 +67,6 @@ export const noteController = {
     const note = await Note.create({
       topicId,
       content: content.trim(),
-      title: title?.trim(),
       tags: tags || [],
       userId,
     });
@@ -86,7 +84,6 @@ export const noteController = {
     id: string,
     data: {
       content?: string;
-      title?: string;
       tags?: string[];
     },
     userId: string,

@@ -198,6 +198,31 @@ export const notesAPI = {
 };
 
 // ============================================
+// Upload API
+// ============================================
+
+export const uploadAPI = {
+  uploadImage: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`${API_BASE_URL}/upload`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Failed to upload image");
+    }
+
+    return result.data.url as string;
+  },
+};
+
+// ============================================
 // Flashcards APIs
 // ============================================
 

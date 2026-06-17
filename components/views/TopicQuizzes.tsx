@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
 import QuizList from "@/components/features/QuizList";
 import Modal from "@/components/ui/Modal";
+import Badge from "@/components/ui/Badge";
 import AddQuizForm from "@/components/views/AddQuizForm";
 import TakeQuiz from "@/components/views/TakeQuiz";
 import ImportFromFile from "@/components/views/ImportFromFile";
@@ -47,7 +48,16 @@ export default function TopicQuizzes({
     isOpen: boolean;
     quizId: string | null;
   }>({ isOpen: false, quizId: null });
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { showSuccess, showError } = useToast();
+
+  const allTags = Array.from(new Set(quizzes.flatMap((q) => q.tags || [])));
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+  };
 
   useEffect(() => {
     if (topicId) {
@@ -193,13 +203,20 @@ export default function TopicQuizzes({
     );
   }
 
-  const formattedQuizzes = quizzes.map((quiz) => ({
+  const filteredQuizzes = quizzes.filter(
+    (q) =>
+      selectedTags.length === 0 ||
+      selectedTags.every((t) => (q.tags || []).includes(t)),
+  );
+
+  const formattedQuizzes = filteredQuizzes.map((quiz) => ({
     id: quiz._id,
     title: quiz.title,
     source: quiz.source || "Custom",
     date: new Date(quiz.createdAt).toLocaleDateString(),
     lastScore: quiz.lastScore,
     description: quiz.description || `${quiz.questions.length} questions`,
+    tags: quiz.tags,
   }));
 
   // If taking a quiz, show TakeQuiz component
@@ -249,6 +266,23 @@ export default function TopicQuizzes({
         >
           Quizzes - {topicName}
         </CardTitle>
+
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 !mb-6">
+            {allTags.map((tag) => (
+              <Badge
+                key={tag}
+                variant={selectedTags.includes(tag) ? "default" : undefined}
+                className={
+                  selectedTags.includes(tag) ? "" : "!bg-slate-700/60"
+                }
+                onClick={() => toggleTag(tag)}
+              >
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
 
         <QuizList
           quizzes={formattedQuizzes}

@@ -45,7 +45,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           </div>
           <div>
             <h1 className="text-lg md:text-xl font-bold">
-              Interview & Study Prep Manager
+              StudyNest
             </h1>
             <p className="text-xs opacity-90 hidden md:block">
               Organize topics, notes, flashcards, and quizzes
