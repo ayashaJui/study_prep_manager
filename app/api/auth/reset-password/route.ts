@@ -4,6 +4,7 @@ import User from "@/models/User";
 import { hashPassword } from "@/lib/auth";
 import crypto from "crypto";
 import { getClientIp, rateLimit } from "@/lib/rateLimit";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,12 +101,13 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    console.error("Reset password error:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Reset password error:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to reset password",
+        message: err.message || "Failed to reset password",
       },
       { status: 500 },
     );

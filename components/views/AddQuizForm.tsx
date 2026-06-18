@@ -14,28 +14,21 @@ interface Question {
   explanation?: string;
 }
 
+export interface QuizFormData {
+  title: string;
+  description: string;
+  source: string;
+  difficulty: "easy" | "medium" | "hard";
+  type: "multiple-choice" | "true-false" | "mixed";
+  timeLimit?: number;
+  tags: string[];
+  questions: Question[];
+}
+
 interface AddQuizFormProps {
   onClose: () => void;
-  onSave: (quiz: {
-    title: string;
-    description: string;
-    source: string;
-    difficulty: "easy" | "medium" | "hard";
-    type: "multiple-choice" | "true-false" | "mixed";
-    timeLimit?: number;
-    tags: string[];
-    questions: Question[];
-  }) => void;
-  initialData?: {
-    title: string;
-    description: string;
-    source: string;
-    difficulty: "easy" | "medium" | "hard";
-    type: "multiple-choice" | "true-false" | "mixed";
-    timeLimit?: number;
-    tags: string[];
-    questions: Question[];
-  };
+  onSave: (quiz: QuizFormData) => void;
+  initialData?: QuizFormData;
 }
 
 export default function AddQuizForm({
@@ -89,7 +82,11 @@ export default function AddQuizForm({
     }
   };
 
-  const updateQuestion = (id: string, field: string, value: any) => {
+  const updateQuestion = (
+    id: string,
+    field: keyof Question,
+    value: Question[keyof Question],
+  ) => {
     setQuestions(
       questions.map((q) => (q.id === id ? { ...q, [field]: value } : q)),
     );
@@ -215,7 +212,11 @@ export default function AddQuizForm({
                   </label>
                   <select
                     value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as any)}
+                    onChange={(e) =>
+                      setDifficulty(
+                        e.target.value as "easy" | "medium" | "hard",
+                      )
+                    }
                     className="w-full !px-4 !py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="easy">Easy</option>
@@ -230,7 +231,14 @@ export default function AddQuizForm({
                   </label>
                   <select
                     value={type}
-                    onChange={(e) => setType(e.target.value as any)}
+                    onChange={(e) =>
+                      setType(
+                        e.target.value as
+                          | "multiple-choice"
+                          | "true-false"
+                          | "mixed",
+                      )
+                    }
                     className="w-full !px-4 !py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="multiple-choice">Multiple Choice</option>

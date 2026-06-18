@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import StudySession from "@/models/StudySession";
 import { requireAuth } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 const getDayKey = (value: Date) => {
   const day = new Date(
@@ -17,9 +18,10 @@ export async function GET(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -48,7 +50,7 @@ export async function GET(request: NextRequest) {
     yesterday.setUTCDate(yesterday.getUTCDate() - 1);
     const yesterdayKey = getDayKey(yesterday);
 
-    let currentKey = dayList[0];
+    const currentKey = dayList[0];
     if (currentKey !== todayKey && currentKey !== yesterdayKey) {
       return NextResponse.json(
         { success: true, data: { streak: 0, lastStudyDate: currentKey } },
@@ -74,11 +76,12 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch study streak",
+        message: err.message || "Failed to fetch study streak",
       },
       { status: 500 },
     );

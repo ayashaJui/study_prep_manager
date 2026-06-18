@@ -13,15 +13,24 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { mockNotes, mockFlashcards, mockQuizzes } from "@/lib/mockData";
 import { topicAPI } from "@/lib/api";
 
+interface SubtopicSummary {
+  id: string;
+  name: string;
+  description?: string;
+  flashcardsCount?: number;
+  quizzesCount?: number;
+  notesCount?: number;
+}
+
 interface SubtopicContentProps {
   subtopic: {
     id: string; // MongoDB ObjectId as string
     name: string;
-    description: string;
+    description?: string;
     notes?: number;
     flashcards?: number;
     quizzes?: number;
-    subtopics?: any[]; // Nested subtopics
+    subtopics?: SubtopicSummary[]; // Nested subtopics
     status?: "not-started" | "in-progress" | "review" | "mastered";
     flashcardsCount?: number;
     quizzesCount?: number;
@@ -88,9 +97,13 @@ export default function SubtopicContent({
           onSubtopicAdded();
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to create subtopic:", err);
-      alert(err.message || "Failed to create subtopic. Please try again.");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to create subtopic. Please try again.",
+      );
     } finally {
       setIsCreating(false);
     }
@@ -119,9 +132,9 @@ export default function SubtopicContent({
             id: subtopic.id,
             name: subtopic.name,
             status: subtopic.status || "in-progress",
-            summary: subtopic.description,
+            summary: subtopic.description || "",
           }}
-          subSubtopics={subSubtopics.map((s: any) => ({
+          subSubtopics={subSubtopics.map((s) => ({
             id: s.id,
             name: s.name,
             description: s.description || "",

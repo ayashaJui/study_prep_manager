@@ -12,7 +12,7 @@ export interface INote {
 
 export interface INoteDocument extends INote, Document {}
 
-export interface INoteModel extends Model<INoteDocument> {}
+export type INoteModel = Model<INoteDocument>;
 
 const noteSchema = new Schema<INoteDocument, INoteModel>(
   {

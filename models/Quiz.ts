@@ -60,7 +60,7 @@ export interface IQuizDocument extends IQuiz, Document {
   attemptsCount: number; // virtual
 }
 
-export interface IQuizModel extends Model<IQuizDocument> {}
+export type IQuizModel = Model<IQuizDocument>;
 
 const questionSchema = new Schema<IQuizQuestion>(
   {

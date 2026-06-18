@@ -4,6 +4,7 @@ import Topic from "@/models/Topic";
 import Note from "@/models/Note";
 import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function GET(
   request: NextRequest,
@@ -52,11 +53,12 @@ export async function GET(
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch public topic",
+        message: err.message || "Failed to fetch public topic",
       },
       { status: 500 },
     );

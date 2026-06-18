@@ -75,10 +75,10 @@ export default function SubtopicDetail({
       } else {
         throw new Error(response.message || "Failed to update summary");
       }
-    } catch (err: any) {
+    } catch (err) {
       // Global error handler already logged the error
-      showError(err.message);
-      
+      showError(err instanceof Error ? err.message : "Failed to update summary");
+
       // Reset to original value on error
       setEditedSummary(subtopic.summary);
     } finally {
@@ -159,7 +159,7 @@ export default function SubtopicDetail({
           />
         ) : (
           <div className="text-center !py-8 text-slate-400">
-            <p>No subtopics yet. Click "Add Subtopic" to create one.</p>
+            <p>No subtopics yet. Click &quot;Add Subtopic&quot; to create one.</p>
           </div>
         )}
       </CardSection>

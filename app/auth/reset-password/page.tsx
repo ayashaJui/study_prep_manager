@@ -81,8 +81,8 @@ function ResetPasswordContent() {
 
       showSuccess("Password reset successfully!");
       router.push("/auth/login");
-    } catch (error: any) {
-      showError(error.message || "An error occurred");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }

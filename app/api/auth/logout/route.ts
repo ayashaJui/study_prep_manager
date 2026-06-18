@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clearAuthCookie } from "@/lib/auth";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,12 +14,13 @@ export async function POST(request: NextRequest) {
 
     // Clear auth cookie
     return clearAuthCookie(response);
-  } catch (error: any) {
-    console.error("Logout error:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Logout error:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Logout failed",
+        message: err.message || "Logout failed",
       },
       { status: 500 },
     );

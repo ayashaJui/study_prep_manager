@@ -8,6 +8,7 @@ import { comparePassword } from "@/lib/auth";
 import {
   DefaultSession,
   type Account,
+  type NextAuthOptions,
   type Session,
   type User as NextAuthUser,
 } from "next-auth";
@@ -29,7 +30,7 @@ declare module "next-auth/jwt" {
   }
 }
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
@@ -143,6 +144,6 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-const handler = NextAuth(authOptions as any);
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

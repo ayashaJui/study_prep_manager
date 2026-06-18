@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export function useNavigation() {
@@ -14,8 +14,13 @@ export function useNavigation() {
   >();
   const [selectedQuizId, setSelectedQuizId] = useState<string | undefined>();
 
-  // Sync state with URL params
-  useEffect(() => {
+  // Sync state with URL params (adjusting state during render, per
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+  const searchParamsKey = searchParams.toString();
+  const [lastSyncedKey, setLastSyncedKey] = useState<string | null>(null);
+  if (lastSyncedKey !== searchParamsKey) {
+    setLastSyncedKey(searchParamsKey);
+
     const topic = searchParams.get("topic");
     const subtopicsParam = searchParams.get("subtopics");
     const tab = searchParams.get("tab");
@@ -24,16 +29,12 @@ export function useNavigation() {
     const quizId = searchParams.get("quiz");
 
     if (topic) setActiveTopic(topic);
-    if (subtopicsParam) {
-      setSubtopicPath(subtopicsParam.split(","));
-    } else {
-      setSubtopicPath([]);
-    }
+    setSubtopicPath(subtopicsParam ? subtopicsParam.split(",") : []);
     if (tab) setActiveTab(tab);
     setSelectedNoteId(noteId || undefined);
     setSelectedFlashcardId(flashcardId || undefined);
     setSelectedQuizId(quizId || undefined);
-  }, [searchParams]);
+  }
 
   const navigateToDashboard = () => {
     router.push("/");

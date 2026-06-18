@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X, CheckCircle, AlertCircle, Info, XCircle } from "lucide-react";
 
 export type ToastType = "success" | "error" | "info" | "warning";
@@ -20,6 +20,13 @@ interface ToastProps {
 function Toast({ toast, onClose }: ToastProps) {
   const [isExiting, setIsExiting] = useState(false);
 
+  const handleClose = useCallback(() => {
+    setIsExiting(true);
+    setTimeout(() => {
+      onClose(toast.id);
+    }, 300); // Match animation duration
+  }, [onClose, toast.id]);
+
   useEffect(() => {
     const duration = toast.duration || 5000;
     const timer = setTimeout(() => {
@@ -27,14 +34,7 @@ function Toast({ toast, onClose }: ToastProps) {
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [toast]);
-
-  const handleClose = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      onClose(toast.id);
-    }, 300); // Match animation duration
-  };
+  }, [toast, handleClose]);
 
   const icons = {
     success: <CheckCircle size={20} className="text-green-400" />,

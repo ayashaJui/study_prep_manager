@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Server sets HttpOnly cookie; keep token in memory only
       setToken(newToken);
       setUser(data.data.user);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Login error:", error);
       throw error;
     }
@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Server sets HttpOnly cookie; keep token in memory only
       setToken(newToken);
       setUser(data.data.user);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Registration error:", error);
       throw error;
     }

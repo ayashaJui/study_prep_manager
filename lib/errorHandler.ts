@@ -7,15 +7,31 @@ export interface AppError {
   message: string;
   code?: string;
   statusCode?: number;
-  originalError?: any;
+  originalError?: unknown;
+}
+
+/**
+ * Shape of errors thrown by API routes/controllers (plain Error, Mongoose
+ * ValidationError/duplicate-key error, or a custom error with a statusCode).
+ * Catch blocks narrow `unknown` to this via `as ApiError` before reading fields.
+ */
+export interface ApiError extends Error {
+  statusCode?: number;
+  code?: number;
+  errors?: Record<string, { message: string }>;
 }
 
 /**
  * Parse and format errors into user-friendly messages
  */
-export function parseError(error: any): AppError {
+export function parseError(error: unknown): AppError {
+  const err = error as Partial<ApiError> & { [key: string]: unknown };
+
   // Network errors
-  if (error.message?.includes("fetch") || error.message?.includes("network")) {
+  if (
+    typeof err.message === "string" &&
+    (err.message.includes("fetch") || err.message.includes("network"))
+  ) {
     return {
       message:
         "Network error. Please check your internet connection and try again.",
@@ -26,11 +42,11 @@ export function parseError(error: any): AppError {
   }
 
   // API errors
-  if (error.statusCode) {
-    switch (error.statusCode) {
+  if (err.statusCode) {
+    switch (err.statusCode) {
       case 400:
         return {
-          message: error.message || "Invalid request. Please check your input.",
+          message: err.message || "Invalid request. Please check your input.",
           code: "BAD_REQUEST",
           statusCode: 400,
           originalError: error,
@@ -53,14 +69,14 @@ export function parseError(error: any): AppError {
       case 404:
         return {
           message:
-            error.message || "Resource not found. It may have been deleted.",
+            err.message || "Resource not found. It may have been deleted.",
           code: "NOT_FOUND",
           statusCode: 404,
           originalError: error,
         };
       case 409:
         return {
-          message: error.message || "Conflict. This resource already exists.",
+          message: err.message || "Conflict. This resource already exists.",
           code: "CONFLICT",
           statusCode: 409,
           originalError: error,
@@ -68,7 +84,7 @@ export function parseError(error: any): AppError {
       case 422:
         return {
           message:
-            error.message || "Validation failed. Please check your input.",
+            err.message || "Validation failed. Please check your input.",
           code: "VALIDATION_ERROR",
           statusCode: 422,
           originalError: error,
@@ -97,9 +113,9 @@ export function parseError(error: any): AppError {
       default:
         return {
           message:
-            error.message || "An unexpected error occurred. Please try again.",
+            err.message || "An unexpected error occurred. Please try again.",
           code: "UNKNOWN_ERROR",
-          statusCode: error.statusCode,
+          statusCode: err.statusCode,
           originalError: error,
         };
     }
@@ -107,19 +123,19 @@ export function parseError(error: any): AppError {
 
   // Validation errors
   if (
-    error.message?.includes("validation") ||
-    error.name === "ValidationError"
+    (typeof err.message === "string" && err.message.includes("validation")) ||
+    err.name === "ValidationError"
   ) {
     return {
-      message: error.message || "Validation failed. Please check your input.",
+      message: err.message || "Validation failed. Please check your input.",
       code: "VALIDATION_ERROR",
       originalError: error,
     };
   }
 
   // MongoDB errors
-  if (error.name === "MongoError" || error.name === "MongoServerError") {
-    if (error.code === 11000) {
+  if (err.name === "MongoError" || err.name === "MongoServerError") {
+    if (err.code === 11000) {
       return {
         message: "This item already exists. Please use a different name.",
         code: "DUPLICATE_KEY",
@@ -134,9 +150,9 @@ export function parseError(error: any): AppError {
   }
 
   // Generic error with message
-  if (error.message) {
+  if (err.message) {
     return {
-      message: error.message,
+      message: err.message,
       code: "ERROR",
       originalError: error,
     };
@@ -153,7 +169,7 @@ export function parseError(error: any): AppError {
 /**
  * Handle error and show notification
  */
-export function handleError(error: any, context?: string): AppError {
+export function handleError(error: unknown, context?: string): AppError {
   const parsedError = parseError(error);
 
   // Log to console in development

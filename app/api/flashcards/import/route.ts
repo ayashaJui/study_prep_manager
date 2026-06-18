@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import Flashcard from "@/models/Flashcard";
 import Topic from "@/models/Topic";
 import { requireAuth } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,9 +12,10 @@ export async function POST(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -42,9 +44,10 @@ export async function POST(request: NextRequest) {
       { success: true, data: created },
       { status: 201 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     return NextResponse.json(
-      { success: false, message: error.message || "Import failed" },
+      { success: false, message: err.message || "Import failed" },
       { status: 500 },
     );
   }

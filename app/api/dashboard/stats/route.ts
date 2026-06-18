@@ -4,6 +4,7 @@ import Topic from "@/models/Topic";
 import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
 import Note from "@/models/Note";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,12 +71,13 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    console.error("Error fetching dashboard stats:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Error fetching dashboard stats:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch dashboard stats",
+        message: err.message || "Failed to fetch dashboard stats",
       },
       { status: 500 },
     );

@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { requireAuth } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -12,9 +13,10 @@ export async function POST(request: NextRequest) {
   try {
     try {
       await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -63,11 +65,12 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to upload file",
+        message: err.message || "Failed to upload file",
       },
       { status: 500 },
     );

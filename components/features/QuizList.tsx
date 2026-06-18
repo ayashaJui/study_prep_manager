@@ -5,7 +5,7 @@ interface Quiz {
   title: string;
   source: string;
   date: string;
-  lastScore?: string;
+  lastScore?: string | null;
   description: string;
   tags?: string[];
 }

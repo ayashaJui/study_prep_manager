@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import * as flashcardController from "@/controllers/flashcardController";
 import StudySession from "@/models/StudySession";
 import { requireAuth } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 // POST /api/flashcards/[id]/review
 export async function POST(
@@ -17,9 +18,10 @@ export async function POST(
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -44,18 +46,19 @@ export async function POST(
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     const status =
-      error.message === "Flashcard not found"
+      err.message === "Flashcard not found"
         ? 404
-        : error.message.includes("Invalid")
+        : err.message.includes("Invalid")
           ? 400
           : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to review flashcard",
+        message: err.message || "Failed to review flashcard",
       },
       { status },
     );

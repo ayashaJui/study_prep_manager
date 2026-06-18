@@ -3,12 +3,11 @@ import { getServerSession } from "next-auth/next";
 import type { Session } from "next-auth";
 import { authOptions } from "../[...nextauth]/route";
 import { generateToken, setAuthCookie } from "@/lib/auth";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = (await getServerSession(
-      authOptions as any,
-    )) as Session | null;
+    const session = (await getServerSession(authOptions)) as Session | null;
 
     if (!session || !session.user || !session.user.id) {
       return NextResponse.json(
@@ -27,12 +26,13 @@ export async function GET(request: NextRequest) {
 
     // Set HttpOnly cookie for compatibility with serverAuth that checks cookies
     return setAuthCookie(response, token);
-  } catch (error: any) {
-    console.error("Exchange session error:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Exchange session error:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to exchange session",
+        message: err.message || "Failed to exchange session",
       },
       { status: 500 },
     );

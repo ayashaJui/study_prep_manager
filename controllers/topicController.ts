@@ -4,7 +4,10 @@ import mongoose from "mongoose";
 export const topicController = {
   // Get all topics or filter by parentId
   async getAllTopics(parentId?: string | null, userId?: string) {
-    const query: any = {};
+    const query: {
+      userId?: mongoose.Types.ObjectId;
+      parentId?: string | null;
+    } = {};
 
     // Always filter by userId
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
@@ -51,7 +54,11 @@ export const topicController = {
       throw new Error("Slug is required");
     }
 
-    const query: any = { slug: slug.trim().toLowerCase() };
+    const query: {
+      slug: string;
+      userId?: mongoose.Types.ObjectId;
+      parentId?: string | null;
+    } = { slug: slug.trim().toLowerCase() };
 
     // Always filter by userId if provided
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {

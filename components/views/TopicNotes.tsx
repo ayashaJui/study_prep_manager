@@ -79,8 +79,8 @@ export default function TopicNotes({
       setLoading(true);
       const data = await notesAPI.getAll(topicId);
       setNotes(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      showError(error.message || "Failed to load notes");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Failed to load notes");
       setNotes([]);
     } finally {
       setLoading(false);
@@ -102,8 +102,8 @@ export default function TopicNotes({
       setNotes([newNote, ...notes]);
       setNewNoteContent("");
       showSuccess("Note added successfully");
-    } catch (error: any) {
-      showError(error.message || "Failed to add note");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Failed to add note");
     } finally {
       setSaving(false);
     }
@@ -121,8 +121,8 @@ export default function TopicNotes({
       setNotes(notes.filter((n) => n._id !== deleteConfirmModal.noteId));
       showSuccess("Note deleted successfully");
       setDeleteConfirmModal({ isOpen: false, noteId: null });
-    } catch (error: any) {
-      showError(error.message || "Failed to delete note");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Failed to delete note");
       setDeleteConfirmModal({ isOpen: false, noteId: null });
     }
   };
@@ -132,8 +132,8 @@ export default function TopicNotes({
       const updatedNote = await notesAPI.update(id, { content });
       setNotes(notes.map((n) => (n._id === id ? updatedNote : n)));
       showSuccess("Note updated successfully");
-    } catch (error: any) {
-      showError(error.message || "Failed to update note");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Failed to update note");
       throw error;
     }
   };

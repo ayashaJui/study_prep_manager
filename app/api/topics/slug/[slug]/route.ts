@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { topicController } from "@/controllers/topicController";
 import { tryGetUserIdFromToken } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 // GET /api/topics/slug/[slug] - Get a topic by slug
 export async function GET(
@@ -25,17 +26,18 @@ export async function GET(
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    const status = error.message.includes("not found")
+  } catch (error) {
+    const err = error as ApiError;
+    const status = err.message.includes("not found")
       ? 404
-      : error.message.includes("Invalid") || error.message.includes("required")
+      : err.message.includes("Invalid") || err.message.includes("required")
         ? 400
         : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch topic",
+        message: err.message || "Failed to fetch topic",
       },
       { status },
     );

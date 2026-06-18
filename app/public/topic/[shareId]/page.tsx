@@ -1,29 +1,53 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Card, CardTitle } from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
 import { usePathname } from "next/navigation";
+
+interface PublicNote {
+  id: string;
+  title?: string;
+  content?: string;
+}
+
+interface PublicFlashcard {
+  id: string;
+  front: string;
+  back?: string;
+}
+
+interface PublicQuiz {
+  id: string;
+  title: string;
+  questionsCount: number;
+}
+
+interface PublicTopicData {
+  topic: { name: string; description?: string };
+  notes: PublicNote[];
+  flashcards: PublicFlashcard[];
+  quizzes: PublicQuiz[];
+}
 
 export default function PublicTopicPage() {
   const pathname = usePathname();
   const parts = pathname.split("/");
   const shareId = parts[parts.length - 1];
-  const [data, setData] = useState<any | null>(null);
+  const [data, setData] = useState<PublicTopicData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!shareId) return;
-    setLoading(true);
     fetch(`/api/public/topics/${shareId}`)
       .then((r) => r.json())
       .then((res) => {
         if (!res.success) throw new Error(res.message || "Not found");
         setData(res.data);
       })
-      .catch((err) => setError(err.message || "Failed to load"))
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load"),
+      )
       .finally(() => setLoading(false));
   }, [shareId]);
 
@@ -51,7 +75,7 @@ export default function PublicTopicPage() {
               <p className="text-sm text-slate-400">No notes</p>
             ) : (
               <ul className="!space-y-2">
-                {notes.map((n: any) => (
+                {notes.map((n) => (
                   <li key={n.id} className="text-sm text-slate-200">
                     <div className="font-semibold">{n.title || "Untitled"}</div>
                     <div className="text-xs text-slate-400">
@@ -69,7 +93,7 @@ export default function PublicTopicPage() {
               <p className="text-sm text-slate-400">No flashcards</p>
             ) : (
               <ul className="!space-y-2">
-                {flashcards.map((f: any) => (
+                {flashcards.map((f) => (
                   <li key={f.id} className="text-sm text-slate-200">
                     <div className="font-semibold">{f.front}</div>
                     <div className="text-xs text-slate-400">
@@ -87,7 +111,7 @@ export default function PublicTopicPage() {
               <p className="text-sm text-slate-400">No quizzes</p>
             ) : (
               <ul className="!space-y-2">
-                {quizzes.map((q: any) => (
+                {quizzes.map((q) => (
                   <li key={q.id} className="text-sm text-slate-200">
                     <div className="font-semibold">{q.title}</div>
                     <div className="text-xs text-slate-400">

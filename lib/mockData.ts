@@ -1,7 +1,15 @@
+export type TopicStatus = "not-started" | "in-progress" | "review" | "mastered";
+
 export interface Topic {
   id: string;
   name: string;
   slug?: string;
+  description?: string;
+  status?: TopicStatus;
+  progress?: number;
+  notesCount?: number;
+  flashcardsCount?: number;
+  quizzesCount?: number;
   subtopics: Subtopic[];
 }
 
@@ -9,7 +17,12 @@ export interface Subtopic {
   id: string;
   name: string;
   slug?: string;
-  count: number;
+  description?: string;
+  status?: TopicStatus;
+  notesCount?: number;
+  flashcardsCount?: number;
+  quizzesCount?: number;
+  count?: number;
   subtopics?: Subtopic[]; // Support nested subtopics
 }
 

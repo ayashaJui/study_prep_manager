@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { hashPassword, generateToken, setAuthCookie } from "@/lib/auth";
 import { getClientIp, rateLimit } from "@/lib/rateLimit";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,12 +108,13 @@ export async function POST(request: NextRequest) {
 
     // Set auth cookie
     return setAuthCookie(response, token);
-  } catch (error: any) {
-    console.error("Registration error:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Registration error:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Registration failed",
+        message: err.message || "Registration failed",
       },
       { status: 500 },
     );

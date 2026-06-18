@@ -32,7 +32,7 @@ export interface ITopicDocument extends ITopic, Document {
   subtopics: ITopicDocument[]; // virtual
 }
 
-export interface ITopicModel extends Model<ITopicDocument> {}
+export type ITopicModel = Model<ITopicDocument>;
 
 const topicSchema = new Schema<ITopicDocument, ITopicModel>(
   {
@@ -156,7 +156,7 @@ topicSchema.pre("save", async function () {
 topicSchema.pre("save", async function () {
   if (this.isModified("name") || !this.slug) {
     // Generate base slug from name
-    let baseSlug = this.name
+    const baseSlug = this.name
       .toLowerCase()
       .trim()
       .replace(/[^\w\s-]/g, "") // Remove special chars
@@ -167,7 +167,12 @@ topicSchema.pre("save", async function () {
     let slug = baseSlug;
     let counter = 1;
 
-    const query: any = {
+    const query: {
+      slug: string;
+      parentId?: mongoose.Types.ObjectId;
+      _id: { $ne: mongoose.Types.ObjectId };
+      userId?: mongoose.Types.ObjectId;
+    } = {
       slug: slug,
       parentId: this.parentId,
       _id: { $ne: this._id },

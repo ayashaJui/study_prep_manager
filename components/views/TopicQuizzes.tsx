@@ -7,11 +7,21 @@ import { Card, CardTitle } from "@/components/ui/Card";
 import QuizList from "@/components/features/QuizList";
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
-import AddQuizForm from "@/components/views/AddQuizForm";
+import AddQuizForm, { QuizFormData } from "@/components/views/AddQuizForm";
 import TakeQuiz from "@/components/views/TakeQuiz";
 import ImportFromFile from "@/components/views/ImportFromFile";
 import { quizzesAPI } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
+
+interface QuizQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: number | number[];
+  explanation?: string;
+  points?: number;
+  tags?: string[];
+}
 
 interface Quiz {
   _id: string;
@@ -22,9 +32,9 @@ interface Quiz {
   type: string;
   timeLimit?: number;
   tags?: string[];
-  questions: any[];
+  questions: QuizQuestion[];
   createdAt: string;
-  lastScore?: string;
+  lastScore?: string | null;
 }
 
 interface TopicQuizzesProps {
@@ -76,15 +86,15 @@ export default function TopicQuizzes({
       setLoading(true);
       const data = await quizzesAPI.getAll(topicId);
       setQuizzes(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      showError(error.message || "Failed to load quizzes");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Failed to load quizzes");
       setQuizzes([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateQuiz = async (quizData: any) => {
+  const handleCreateQuiz = async (quizData: QuizFormData) => {
     try {
       const quiz = await quizzesAPI.create({
         topicId,
@@ -93,8 +103,8 @@ export default function TopicQuizzes({
       setQuizzes([quiz, ...quizzes]);
       setIsAddQuizModalOpen(false);
       showSuccess("Quiz created successfully");
-    } catch (error: any) {
-      showError(error.message || "Failed to create quiz");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Failed to create quiz");
     }
   };
 
@@ -113,7 +123,7 @@ export default function TopicQuizzes({
     fetchQuizzes();
   };
 
-  const handleUpdateQuiz = async (quizData: any) => {
+  const handleUpdateQuiz = async (quizData: QuizFormData) => {
     if (!editingQuizId) return;
 
     try {
@@ -123,8 +133,8 @@ export default function TopicQuizzes({
       );
       setEditingQuizId(null);
       showSuccess("Quiz updated successfully");
-    } catch (error: any) {
-      showError(error.message || "Failed to update quiz");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Failed to update quiz");
     }
   };
 
@@ -140,8 +150,8 @@ export default function TopicQuizzes({
       setQuizzes(quizzes.filter((q) => q._id !== deleteConfirmModal.quizId));
       showSuccess("Quiz deleted successfully");
       setDeleteConfirmModal({ isOpen: false, quizId: null });
-    } catch (error: any) {
-      showError(error.message || "Failed to delete quiz");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Failed to delete quiz");
       setDeleteConfirmModal({ isOpen: false, quizId: null });
     }
   };
@@ -164,8 +174,8 @@ export default function TopicQuizzes({
       const formattedQuizzes = result.quizzes.map((q, idx) => ({
         title: `Imported Quiz ${idx + 1}`,
         description: "Imported from file",
-        difficulty: "medium",
-        type: "multiple-choice",
+        difficulty: "medium" as const,
+        type: "multiple-choice" as const,
         questions: [
           {
             id: `q-${idx}`,
@@ -187,8 +197,10 @@ export default function TopicQuizzes({
       setIsImportModalOpen(false);
       await fetchQuizzes();
       showSuccess(`Imported ${formattedQuizzes.length} quiz(zes)`);
-    } catch (error: any) {
-      showError(error.message || "Failed to import quizzes");
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : "Failed to import quizzes",
+      );
     }
   };
 
@@ -321,7 +333,7 @@ export default function TopicQuizzes({
                   | "mixed",
                 timeLimit: editQuiz.timeLimit,
                 tags: editQuiz.tags || [],
-                questions: editQuiz.questions.map((q: any) => ({
+                questions: editQuiz.questions.map((q) => ({
                   id: q.id,
                   question: q.question,
                   options: q.options,

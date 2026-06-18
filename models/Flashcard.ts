@@ -29,7 +29,7 @@ export interface IFlashcard {
 
 export interface IFlashcardDocument extends IFlashcard, Document {}
 
-export interface IFlashcardModel extends Model<IFlashcardDocument> {}
+export type IFlashcardModel = Model<IFlashcardDocument>;
 
 const flashcardSchema = new Schema<IFlashcardDocument, IFlashcardModel>(
   {

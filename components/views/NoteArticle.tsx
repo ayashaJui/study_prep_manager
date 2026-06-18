@@ -93,8 +93,8 @@ export default function NoteArticle({
       const url = await uploadAPI.uploadImage(file);
       insertImageMarkdown(url);
       setShowImageInsert(false);
-    } catch (error: any) {
-      showError(error.message || "Failed to upload image");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Failed to upload image");
     } finally {
       setUploadingInline(false);
     }

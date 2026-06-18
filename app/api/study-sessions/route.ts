@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import StudySession from "@/models/StudySession";
 import { requireAuth } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 // GET /api/study-sessions?limit=10&page=1
 export async function GET(request: NextRequest) {
@@ -11,9 +12,10 @@ export async function GET(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -44,11 +46,12 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch study sessions",
+        message: err.message || "Failed to fetch study sessions",
       },
       { status: 500 },
     );
@@ -63,9 +66,10 @@ export async function POST(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -86,11 +90,12 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to create study session",
+        message: err.message || "Failed to create study session",
       },
       { status: 500 },
     );

@@ -12,12 +12,14 @@ import ImportFromFile from "@/components/views/ImportFromFile";
 import { flashcardsAPI } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 
+type FlashcardDifficulty = "easy" | "medium" | "hard";
+
 interface Flashcard {
   _id: string;
   front: string;
   back: string;
   tags: string[];
-  difficulty: string;
+  difficulty: FlashcardDifficulty;
   createdAt: string;
   nextReview?: string;
   status?: string;
@@ -38,7 +40,11 @@ export default function TopicFlashcards({
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [newFlashcard, setNewFlashcard] = useState({
+  const [newFlashcard, setNewFlashcard] = useState<{
+    front: string;
+    back: string;
+    difficulty: FlashcardDifficulty;
+  }>({
     front: "",
     back: "",
     difficulty: "medium",
@@ -91,8 +97,10 @@ export default function TopicFlashcards({
       setLoading(true);
       const data = await flashcardsAPI.getAll(topicId);
       setFlashcards(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      showError(error.message || "Failed to load flashcards");
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : "Failed to load flashcards",
+      );
       setFlashcards([]);
     } finally {
       setLoading(false);
@@ -117,8 +125,10 @@ export default function TopicFlashcards({
       setNewFlashcard({ front: "", back: "", difficulty: "medium" });
       setIsAddModalOpen(false);
       showSuccess("Flashcard created successfully");
-    } catch (error: any) {
-      showError(error.message || "Failed to create flashcard");
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : "Failed to create flashcard",
+      );
     } finally {
       setSaving(false);
     }
@@ -153,8 +163,10 @@ export default function TopicFlashcards({
       );
       setEditingFlashcard(null);
       showSuccess("Flashcard updated successfully");
-    } catch (error: any) {
-      showError(error.message || "Failed to update flashcard");
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : "Failed to update flashcard",
+      );
     } finally {
       setSaving(false);
     }
@@ -174,8 +186,10 @@ export default function TopicFlashcards({
       );
       showSuccess("Flashcard deleted successfully");
       setDeleteConfirmModal({ isOpen: false, flashcardId: null });
-    } catch (error: any) {
-      showError(error.message || "Failed to delete flashcard");
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : "Failed to delete flashcard",
+      );
       setDeleteConfirmModal({ isOpen: false, flashcardId: null });
     }
   };
@@ -192,7 +206,7 @@ export default function TopicFlashcards({
       const formattedFlashcards = result.flashcards.map((fc) => ({
         front: fc.front,
         back: fc.back,
-        difficulty: "medium",
+        difficulty: "medium" as const,
         tags: ["imported"],
       }));
 
@@ -200,8 +214,10 @@ export default function TopicFlashcards({
       setIsImportModalOpen(false);
       await fetchFlashcards();
       showSuccess(`Imported ${formattedFlashcards.length} flashcard(s)`);
-    } catch (error: any) {
-      showError(error.message || "Failed to import flashcards");
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : "Failed to import flashcards",
+      );
     }
   };
 
@@ -266,8 +282,10 @@ export default function TopicFlashcards({
         prev.map((f) => (f._id === updated._id ? updated : f)),
       );
       shouldAdvance = true;
-    } catch (error: any) {
-      showError(error.message || "Failed to submit review");
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : "Failed to submit review",
+      );
     } finally {
       setIsReviewing(false);
       if (shouldAdvance) advanceStudyCard();
@@ -417,7 +435,7 @@ export default function TopicFlashcards({
                   Difficulty Level
                 </label>
                 <div className="grid grid-cols-3 gap-3">
-                  {["easy", "medium", "hard"].map((level) => (
+                  {(["easy", "medium", "hard"] as const).map((level) => (
                     <button
                       key={level}
                       type="button"
@@ -528,7 +546,7 @@ export default function TopicFlashcards({
                   Difficulty Level
                 </label>
                 <div className="grid grid-cols-3 gap-3">
-                  {["easy", "medium", "hard"].map((level) => (
+                  {(["easy", "medium", "hard"] as const).map((level) => (
                     <button
                       key={level}
                       type="button"

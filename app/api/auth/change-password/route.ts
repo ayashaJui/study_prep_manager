@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { comparePassword, getTokenFromRequest, hashPassword, verifyToken } from "@/lib/auth";
 import { getClientIp, rateLimit } from "@/lib/rateLimit";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function POST(request: NextRequest) {
   try {
@@ -101,12 +102,13 @@ export async function POST(request: NextRequest) {
       { success: true, message: "Password updated successfully" },
       { status: 200 },
     );
-  } catch (error: any) {
-    console.error("Change password error:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Change password error:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to change password",
+        message: err.message || "Failed to change password",
       },
       { status: 500 },
     );

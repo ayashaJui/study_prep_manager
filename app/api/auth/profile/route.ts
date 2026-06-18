@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { requireAuth } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,9 +11,10 @@ export async function GET(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -44,12 +46,13 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    console.error("Get profile error:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Get profile error:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch profile",
+        message: err.message || "Failed to fetch profile",
       },
       { status: 500 },
     );
@@ -63,9 +66,10 @@ export async function PUT(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -117,12 +121,13 @@ export async function PUT(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    console.error("Update profile error:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Update profile error:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to update profile",
+        message: err.message || "Failed to update profile",
       },
       { status: 500 },
     );

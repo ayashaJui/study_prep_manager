@@ -83,8 +83,8 @@ export default function ChangePasswordPage() {
         confirmPassword: "",
       });
       router.push("/user/profile");
-    } catch (error: any) {
-      showError(error.message || "An error occurred");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { topicController } from "@/controllers/topicController";
 import { requireAuth } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 // GET /api/topics - Get all topics or filter by parentId
 export async function GET(request: NextRequest) {
@@ -11,11 +12,12 @@ export async function GET(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
         {
           success: false,
-          message: err.message || "Unauthorized",
+          message: e.message || "Unauthorized",
         },
         { status: 401 },
       );
@@ -35,11 +37,12 @@ export async function GET(request: NextRequest) {
         status: 200,
       },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch topics",
+        message: err.message || "Failed to fetch topics",
       },
       { status: 500 },
     );
@@ -57,11 +60,12 @@ export async function POST(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
         {
           success: false,
-          message: err.message || "Unauthorized",
+          message: e.message || "Unauthorized",
         },
         { status: 401 },
       );
@@ -80,21 +84,22 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     // Handle validation errors
-    if (error.name === "ValidationError") {
+    if (err.name === "ValidationError") {
       return NextResponse.json(
         {
           success: false,
           message: "Validation error",
-          errors: Object.values(error.errors).map((e: any) => e.message),
+          errors: Object.values(err.errors ?? {}).map((e) => e.message),
         },
         { status: 400 },
       );
     }
 
     // Handle duplicate key errors
-    if (error.code === 11000) {
+    if (err.code === 11000) {
       return NextResponse.json(
         {
           success: false,
@@ -105,16 +110,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle custom errors
-    const status = error.message.includes("not found")
+    const status = err.message.includes("not found")
       ? 404
-      : error.message.includes("Invalid") || error.message.includes("required")
+      : err.message.includes("Invalid") || err.message.includes("required")
         ? 400
         : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to create topic",
+        message: err.message || "Failed to create topic",
       },
       { status },
     );

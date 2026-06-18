@@ -83,9 +83,11 @@ export default function Dashboard() {
       if (activityRes.success) setRecentActivity(activityRes.data || []);
       if (progressRes.success) setTopicProgress(progressRes.data || []);
       if (goalsRes.success) setWeeklyGoals(goalsRes.data || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to fetch dashboard data:", err);
-      setError(err.message || "Failed to load dashboard data");
+      setError(
+        err instanceof Error ? err.message : "Failed to load dashboard data",
+      );
     } finally {
       setDashboardLoading(false);
     }

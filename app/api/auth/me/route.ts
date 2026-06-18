@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { verifyToken, getTokenFromRequest } from "@/lib/auth";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,12 +62,13 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    console.error("Get user error:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Get user error:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch user",
+        message: err.message || "Failed to fetch user",
       },
       { status: 500 },
     );

@@ -4,6 +4,7 @@ import User from "@/models/User";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { getClientIp, rateLimit } from "@/lib/rateLimit";
+import { ApiError } from "@/lib/errorHandler";
 
 // Configure email transporter (using Gmail SMTP)
 const emailUser = process.env.EMAIL_USER;
@@ -112,12 +113,13 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    console.error("Forgot password error:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Forgot password error:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to process password reset",
+        message: err.message || "Failed to process password reset",
       },
       { status: 500 },
     );

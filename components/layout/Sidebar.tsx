@@ -16,7 +16,7 @@ interface Subtopic {
   id: string;
   name: string;
   slug?: string;
-  count: number;
+  count?: number;
 }
 
 interface SidebarProps {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import * as flashcardController from "@/controllers/flashcardController";
 import { requireAuth } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 // GET /api/flashcards?topicId={id} - Get all flashcards for a topic
 export async function GET(request: NextRequest) {
@@ -13,9 +14,10 @@ export async function GET(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -42,13 +44,14 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    const status = error.message.includes("Invalid") ? 400 : 500;
+  } catch (error) {
+    const err = error as ApiError;
+    const status = err.message.includes("Invalid") ? 400 : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch flashcards",
+        message: err.message || "Failed to fetch flashcards",
       },
       { status },
     );
@@ -64,9 +67,10 @@ export async function POST(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -84,28 +88,29 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 },
     );
-  } catch (error: any) {
-    if (error.name === "ValidationError") {
+  } catch (error) {
+    const err = error as ApiError;
+    if (err.name === "ValidationError") {
       return NextResponse.json(
         {
           success: false,
           message: "Validation error",
-          errors: Object.values(error.errors).map((e: any) => e.message),
+          errors: Object.values(err.errors ?? {}).map((e) => e.message),
         },
         { status: 400 },
       );
     }
 
-    const status = error.message.includes("not found")
+    const status = err.message.includes("not found")
       ? 404
-      : error.message.includes("Invalid") || error.message.includes("required")
+      : err.message.includes("Invalid") || err.message.includes("required")
         ? 400
         : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to create flashcard",
+        message: err.message || "Failed to create flashcard",
       },
       { status },
     );

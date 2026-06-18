@@ -76,8 +76,9 @@ export default function LoginPage() {
         redirect: true,
         callbackUrl: `${window.location.origin}/auth/oauth-callback?redirectTo=${encodeURIComponent(redirectTo)}`,
       });
-    } catch (error: any) {
-      showError(`${provider} sign in failed: ${error.message}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      showError(`${provider} sign in failed: ${message}`);
     } finally {
       setOAuthLoading(null);
     }
@@ -104,8 +105,8 @@ export default function LoginPage() {
       await login(formData.email, formData.password);
       showSuccess("Login successful!");
       router.replace(redirectTo);
-    } catch (error: any) {
-      showError(error.message || "Login failed");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -226,7 +227,7 @@ export default function LoginPage() {
 
         <div className="text-center">
           <p style={{ color: "#cbd5e0" }}>
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/auth/register"
               className="font-semibold hover:underline"

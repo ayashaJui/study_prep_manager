@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Topic from "@/models/Topic";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,12 +26,13 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    console.error("Error fetching topic progress:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Error fetching topic progress:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch topic progress",
+        message: err.message || "Failed to fetch topic progress",
       },
       { status: 500 },
     );

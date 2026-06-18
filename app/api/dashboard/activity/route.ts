@@ -4,6 +4,9 @@ import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
 import Note from "@/models/Note";
 import Topic from "@/models/Topic";
+import { ApiError } from "@/lib/errorHandler";
+
+type PopulatedTopicRef = { name?: string } | null | undefined;
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,21 +36,21 @@ export async function GET(request: NextRequest) {
       ...recentNotes.map((note) => ({
         id: note._id,
         action: "Created notes",
-        topic: (note.topicId as any)?.name || "Unknown Topic",
+        topic: (note.topicId as PopulatedTopicRef)?.name || "Unknown Topic",
         time: getTimeAgo(note.updatedAt),
         timestamp: note.updatedAt,
       })),
       ...recentFlashcards.map((fc) => ({
         id: fc._id,
         action: "Added flashcards",
-        topic: (fc.topicId as any)?.name || "Unknown Topic",
+        topic: (fc.topicId as PopulatedTopicRef)?.name || "Unknown Topic",
         time: getTimeAgo(fc.updatedAt),
         timestamp: fc.updatedAt,
       })),
       ...recentQuizzes.map((quiz) => ({
         id: quiz._id,
         action: quiz.lastScore ? "Completed quiz" : "Created quiz",
-        topic: (quiz.topicId as any)?.name || "Unknown Topic",
+        topic: (quiz.topicId as PopulatedTopicRef)?.name || "Unknown Topic",
         time: getTimeAgo(quiz.updatedAt),
         timestamp: quiz.updatedAt,
         score: quiz.lastScore ? `${quiz.lastScore}%` : undefined,
@@ -67,12 +70,13 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    console.error("Error fetching recent activity:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Error fetching recent activity:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch recent activity",
+        message: err.message || "Failed to fetch recent activity",
       },
       { status: 500 },
     );

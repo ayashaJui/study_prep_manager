@@ -1,6 +1,32 @@
-import Flashcard from "@/models/Flashcard";
+import Flashcard, { IFlashcard } from "@/models/Flashcard";
 import Topic from "@/models/Topic";
 import mongoose from "mongoose";
+
+interface CreateFlashcardData {
+  topicId: string;
+  front: string;
+  back: string;
+  tags?: string[];
+  difficulty?: IFlashcard["difficulty"];
+  userId: string;
+}
+
+type UpdateFlashcardData = Partial<
+  Pick<
+    IFlashcard,
+    | "front"
+    | "back"
+    | "tags"
+    | "difficulty"
+    | "status"
+    | "confidence"
+    | "lastReviewed"
+    | "nextReview"
+    | "easeFactor"
+    | "intervalDays"
+    | "reviewCount"
+  >
+>;
 
 // Get all flashcards for a topic
 export const getFlashcardsByTopic = async (topicId: string, userId: string) => {
@@ -38,7 +64,7 @@ export const getFlashcardById = async (id: string, userId: string) => {
 };
 
 // Create a new flashcard
-export const createFlashcard = async (data: any) => {
+export const createFlashcard = async (data: CreateFlashcardData) => {
   const { topicId, front, back, tags, difficulty, userId } = data;
 
   // Validate topic exists
@@ -76,7 +102,7 @@ export const createFlashcard = async (data: any) => {
 // Update flashcard
 export const updateFlashcard = async (
   id: string,
-  data: any,
+  data: UpdateFlashcardData,
   userId: string,
 ) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {

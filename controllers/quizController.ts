@@ -1,6 +1,37 @@
-import Quiz from "@/models/Quiz";
+import Quiz, { IQuiz, IQuizQuestion } from "@/models/Quiz";
 import Topic from "@/models/Topic";
 import mongoose from "mongoose";
+
+interface CreateQuizData {
+  topicId: string;
+  title: string;
+  description?: string;
+  difficulty?: IQuiz["difficulty"];
+  type?: IQuiz["type"];
+  timeLimit?: number;
+  tags?: string[];
+  questions?: IQuizQuestion[];
+  shuffleQuestions?: boolean;
+  shuffleOptions?: boolean;
+  showAnswersImmediately?: boolean;
+}
+
+type UpdateQuizData = Partial<
+  Pick<
+    IQuiz,
+    | "title"
+    | "description"
+    | "source"
+    | "difficulty"
+    | "type"
+    | "timeLimit"
+    | "tags"
+    | "questions"
+    | "shuffleQuestions"
+    | "shuffleOptions"
+    | "showAnswersImmediately"
+  >
+>;
 
 // Get all quizzes for a topic
 export const getQuizzesByTopic = async (topicId: string, userId: string) => {
@@ -36,7 +67,7 @@ export const getQuizById = async (id: string, userId: string) => {
 };
 
 // Create a new quiz
-export const createQuiz = async (data: any, userId: string) => {
+export const createQuiz = async (data: CreateQuizData, userId: string) => {
   const {
     topicId,
     title,
@@ -90,7 +121,11 @@ export const createQuiz = async (data: any, userId: string) => {
 };
 
 // Update quiz
-export const updateQuiz = async (id: string, data: any, userId: string) => {
+export const updateQuiz = async (
+  id: string,
+  data: UpdateQuizData,
+  userId: string,
+) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new Error("Invalid quiz ID");
   }

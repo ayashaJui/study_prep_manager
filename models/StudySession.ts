@@ -11,7 +11,7 @@ export interface IStudySession {
 
 export interface IStudySessionDocument extends IStudySession, Document {}
 
-export interface IStudySessionModel extends Model<IStudySessionDocument> {}
+export type IStudySessionModel = Model<IStudySessionDocument>;
 
 const studySessionSchema = new Schema<
   IStudySessionDocument,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ComponentProps } from "react";
 import Tabs from "@/components/ui/Tabs";
 import TopicOverview from "@/components/views/TopicOverview";
 import TopicNotes from "@/components/views/TopicNotes";
@@ -21,6 +21,35 @@ import {
   mockFlashcards,
   mockQuizzes,
 } from "@/lib/mockData";
+import { QuizFormData } from "@/components/views/AddQuizForm";
+
+type TopicStatus = "not-started" | "in-progress" | "review" | "mastered";
+
+interface TopicSubtopic {
+  id?: string;
+  _id?: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  status?: TopicStatus;
+  flashcardsCount?: number;
+  quizzesCount?: number;
+  notesCount?: number;
+}
+
+interface TopicData {
+  id?: string;
+  _id?: string;
+  name?: string;
+  status?: TopicStatus;
+  progress?: number;
+  shareId?: string | null;
+  isPublic?: boolean;
+  notesCount?: number;
+  flashcardsCount?: number;
+  quizzesCount?: number;
+  subtopics?: TopicSubtopic[];
+}
 
 interface TopicContentProps {
   activeTab: string;
@@ -28,7 +57,7 @@ interface TopicContentProps {
   onSubtopicSelect: (id: string) => void;
   topicId?: string; // Current topic ID
   onSubtopicAdded?: () => void; // Callback to refresh parent data
-  topic?: any; // Current topic data from API
+  topic?: TopicData; // Current topic data from API
   selectedNoteId?: string;
   selectedFlashcardId?: string;
   selectedQuizId?: string;
@@ -109,9 +138,13 @@ export default function TopicContent({
           onSubtopicAdded();
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to create subtopic:", err);
-      alert(err.message || "Failed to create subtopic. Please try again.");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to create subtopic. Please try again.",
+      );
     } finally {
       setIsCreatingSubtopic(false);
     }
@@ -131,8 +164,8 @@ export default function TopicContent({
       setShareUrl(nextShareUrl);
       setIsPublic(Boolean(nextShareId));
       showSuccess("Topic published. Share link is ready.");
-    } catch (err: any) {
-      showError(err.message || "Failed to publish topic");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to publish topic");
     } finally {
       setIsPublishing(false);
     }
@@ -147,8 +180,8 @@ export default function TopicContent({
       setShareUrl(null);
       setIsPublic(false);
       showSuccess("Topic unpublished.");
-    } catch (err: any) {
-      showError(err.message || "Failed to unpublish topic");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to unpublish topic");
     } finally {
       setIsPublishing(false);
     }
@@ -159,8 +192,8 @@ export default function TopicContent({
     try {
       await navigator.clipboard.writeText(shareUrl);
       showSuccess("Share link copied to clipboard.");
-    } catch (err: any) {
-      showError(err.message || "Failed to copy link");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to copy link");
     }
   };
 
@@ -177,18 +210,22 @@ export default function TopicContent({
     setIsAddFlashcardModalOpen(false);
   };
 
-  const handleAddQuiz = (quiz: any) => {
+  const handleAddQuiz = (quiz: QuizFormData) => {
     console.log("Add quiz:", quiz);
     setIsAddQuizModalOpen(false);
   };
 
-  const handleGenerateFromFile = (result: any) => {
+  const handleGenerateFromFile: ComponentProps<
+    typeof GenerateFromFile
+  >["onGenerate"] = (result) => {
     console.log("Generated content:", result);
     setIsGenerateFlashcardsOpen(false);
     setIsGenerateQuizOpen(false);
   };
 
-  const handleImportFromFile = (result: any) => {
+  const handleImportFromFile: ComponentProps<typeof ImportFromFile>["onImport"] = (
+    result,
+  ) => {
     console.log("Imported content:", result);
     setIsImportFlashcardsOpen(false);
     setIsImportQuizOpen(false);
@@ -220,15 +257,16 @@ export default function TopicContent({
     name: topic?.name || "Topic",
     status: topic?.status || "not-started",
     progress: topic?.progress || 0,
-    completedSubtopics: subtopics.filter((s: any) => s.status === "mastered")
-      .length,
+    completedSubtopics: subtopics.filter(
+      (s: TopicSubtopic) => s.status === "mastered",
+    ).length,
     totalSubtopics: subtopics.length,
     isPublic,
     shareId,
   };
 
-  const formattedSubtopics = subtopics.map((sub: any) => ({
-    id: sub.id || sub._id,
+  const formattedSubtopics = subtopics.map((sub: TopicSubtopic) => ({
+    id: sub.id || sub._id || "",
     name: sub.name,
     slug: sub.slug,
     description: sub.description || "",

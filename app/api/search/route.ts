@@ -5,6 +5,7 @@ import Topic from "@/models/Topic";
 import Note from "@/models/Note";
 import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
+import { ApiError } from "@/lib/errorHandler";
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -17,9 +18,10 @@ export async function GET(request: NextRequest) {
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -99,11 +101,12 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Search failed",
+        message: err.message || "Search failed",
       },
       { status: 500 },
     );

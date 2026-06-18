@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
 import Note from "@/models/Note";
+import { ApiError } from "@/lib/errorHandler";
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,12 +57,13 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    console.error("Error fetching weekly goals:", error);
+  } catch (error) {
+    const err = error as ApiError;
+    console.error("Error fetching weekly goals:", err);
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch weekly goals",
+        message: err.message || "Failed to fetch weekly goals",
       },
       { status: 500 },
     );

@@ -15,8 +15,8 @@ import SubtopicContent from "@/components/views/SubtopicContent";
 import Modal from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { mockTopics, Topic } from "@/lib/mockData";
-import { topicAPI, searchAPI } from "@/lib/api";
+import { mockTopics, Topic, Subtopic } from "@/lib/mockData";
+import { topicAPI, searchAPI, ApiTopic, SearchResults } from "@/lib/api";
 import SearchBox from "@/components/ui/SearchBox";
 import { useNavigation } from "@/hooks/useNavigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,16 +47,17 @@ function HomeContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(
+    null,
+  );
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const resultItemRefs = useRef<Array<HTMLLIElement | null>>([]);
 
-  const toId = (value: any) => {
+  const toId = (value: unknown) => {
     if (!value) return "";
     if (typeof value === "string") return value;
-    if (typeof value?.toString === "function") return value.toString();
     return String(value);
   };
 
@@ -100,9 +101,9 @@ function HomeContent() {
     const handle = window.setTimeout(async () => {
       try {
         const response = await searchAPI.search(searchQuery.trim(), 10);
-        setSearchResults(response.data || response);
-      } catch (err: any) {
-        setSearchError(err.message || "Search failed");
+        setSearchResults(response.data);
+      } catch (err) {
+        setSearchError(err instanceof Error ? err.message : "Search failed");
         setSearchResults(null);
       } finally {
         setSearchLoading(false);
@@ -131,7 +132,7 @@ function HomeContent() {
       label: string;
     }> = [];
 
-    (searchResults.topics || []).forEach((item: any) => {
+    (searchResults.topics || []).forEach(item => {
       items.push({
         kind: "topic",
         id: toId(item._id),
@@ -141,7 +142,7 @@ function HomeContent() {
       });
     });
 
-    (searchResults.notes || []).forEach((item: any) => {
+    (searchResults.notes || []).forEach(item => {
       items.push({
         kind: "note",
         id: toId(item._id),
@@ -152,7 +153,7 @@ function HomeContent() {
       });
     });
 
-    (searchResults.flashcards || []).forEach((item: any) => {
+    (searchResults.flashcards || []).forEach(item => {
       items.push({
         kind: "flashcard",
         id: toId(item._id),
@@ -163,7 +164,7 @@ function HomeContent() {
       });
     });
 
-    (searchResults.quizzes || []).forEach((item: any) => {
+    (searchResults.quizzes || []).forEach(item => {
       items.push({
         kind: "quiz",
         id: toId(item._id),
@@ -216,18 +217,18 @@ function HomeContent() {
       if (response.success) {
         // Map API response to match UI structure
         const apiTopics = await Promise.all(
-          response.data.map(async (topic: any) => {
+          response.data.map(async (topic: ApiTopic) => {
             // Fetch subtopics for each topic
             const subtopicsResponse = await topicAPI.getAll(topic._id);
             const subtopics = subtopicsResponse.success
               ? await Promise.all(
-                  subtopicsResponse.data.map(async (sub: any) => {
+                  subtopicsResponse.data.map(async (sub: ApiTopic) => {
                     // Fetch nested subtopics (level 2)
                     const nestedSubtopicsResponse = await topicAPI.getAll(
                       sub._id,
                     );
                     const nestedSubtopics = nestedSubtopicsResponse.success
-                      ? nestedSubtopicsResponse.data.map((nested: any) => ({
+                      ? nestedSubtopicsResponse.data.map((nested: ApiTopic) => ({
                           id: nested._id,
                           name: nested.name,
                           slug: nested.slug,
@@ -275,9 +276,9 @@ function HomeContent() {
         );
         setTopics(apiTopics);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to fetch topics:", err);
-      setError(err.message || "Failed to load topics");
+      setError(err instanceof Error ? err.message : "Failed to load topics");
       // Fallback to mock data on error
       setTopics(mockTopics);
     } finally {
@@ -293,10 +294,10 @@ function HomeContent() {
   const getCurrentSubtopic = () => {
     if (!currentTopic || subtopicPath.length === 0) return null;
 
-    let current: any = currentTopic;
+    let current: Topic | Subtopic = currentTopic;
     for (const subtopicId of subtopicPath) {
       const found = (current.subtopics || []).find(
-        (s: any) => s.slug === subtopicId || s.id === subtopicId,
+        (s) => s.slug === subtopicId || s.id === subtopicId,
       );
       if (!found) return null;
       current = found;
@@ -506,9 +507,13 @@ function HomeContent() {
         setNewTopicDescription("");
         setIsAddTopicModalOpen(false);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to create topic:", err);
-      alert(err.message || "Failed to create topic. Please try again.");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to create topic. Please try again.",
+      );
     }
   };
 
@@ -522,10 +527,10 @@ function HomeContent() {
           },
           ...subtopicPath.map((_, index) => {
             // Navigate through path to get subtopic name
-            let current: any = currentTopic;
+            let current: Topic | Subtopic | undefined = currentTopic;
             for (let i = 0; i <= index; i++) {
               current = (current?.subtopics || []).find(
-                (s: any) =>
+                (s) =>
                   s.slug === subtopicPath[i] || s.id === subtopicPath[i],
               );
             }
@@ -606,7 +611,7 @@ function HomeContent() {
                     </p>
                     <ul className="!mt-2 !space-y-2">
                       {(searchResults.topics || []).map(
-                        (item: any, idx: number) => (
+                        (item, idx) => (
                         <li
                           key={item._id}
                           className="text-sm cursor-pointer"
@@ -649,7 +654,7 @@ function HomeContent() {
                     </p>
                     <ul className="!mt-2 !space-y-2">
                       {(searchResults.notes || []).map(
-                        (item: any, idx: number) => (
+                        (item, idx) => (
                         <li
                           key={item._id}
                           className="text-sm cursor-pointer"
@@ -695,7 +700,7 @@ function HomeContent() {
                     </p>
                     <ul className="!mt-2 !space-y-2">
                       {(searchResults.flashcards || []).map(
-                        (item: any, idx: number) => (
+                        (item, idx) => (
                         <li
                           key={item._id}
                           className="text-sm cursor-pointer"
@@ -744,7 +749,7 @@ function HomeContent() {
                     </p>
                     <ul className="!mt-2 !space-y-2">
                       {(searchResults.quizzes || []).map(
-                        (item: any, idx: number) => (
+                        (item, idx) => (
                         <li
                           key={item._id}
                           className="text-sm cursor-pointer"

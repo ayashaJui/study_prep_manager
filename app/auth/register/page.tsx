@@ -70,8 +70,8 @@ export default function RegisterPage() {
       );
       showSuccess("Registration successful!");
       router.push("/");
-    } catch (error: any) {
-      showError(error.message || "Registration failed");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Registration failed");
     } finally {
       setIsLoading(false);
     }

@@ -22,7 +22,7 @@ export default function OAuthCallbackPage() {
         const params = new URLSearchParams(window.location.search);
         const redirectTo = params.get("redirectTo") || "/";
         router.replace(redirectTo);
-      } catch (e: any) {
+      } catch {
         showError("OAuth exchange failed");
         router.replace("/");
       }

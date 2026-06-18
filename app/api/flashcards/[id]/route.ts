@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import * as flashcardController from "@/controllers/flashcardController";
 import { requireAuth } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 // GET /api/flashcards/[id] - Get single flashcard
 export async function GET(
@@ -14,9 +15,10 @@ export async function GET(
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -30,18 +32,19 @@ export async function GET(
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     const status =
-      error.message === "Flashcard not found"
+      err.message === "Flashcard not found"
         ? 404
-        : error.message.includes("Invalid")
+        : err.message.includes("Invalid")
           ? 400
           : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch flashcard",
+        message: err.message || "Failed to fetch flashcard",
       },
       { status },
     );
@@ -60,9 +63,10 @@ export async function PATCH(
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -81,29 +85,30 @@ export async function PATCH(
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    if (error.name === "ValidationError") {
+  } catch (error) {
+    const err = error as ApiError;
+    if (err.name === "ValidationError") {
       return NextResponse.json(
         {
           success: false,
           message: "Validation error",
-          errors: Object.values(error.errors).map((e: any) => e.message),
+          errors: Object.values(err.errors ?? {}).map((e) => e.message),
         },
         { status: 400 },
       );
     }
 
     const status =
-      error.message === "Flashcard not found"
+      err.message === "Flashcard not found"
         ? 404
-        : error.message.includes("Invalid")
+        : err.message.includes("Invalid")
           ? 400
           : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to update flashcard",
+        message: err.message || "Failed to update flashcard",
       },
       { status },
     );
@@ -121,9 +126,10 @@ export async function DELETE(
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -137,18 +143,19 @@ export async function DELETE(
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ApiError;
     const status =
-      error.message === "Flashcard not found"
+      err.message === "Flashcard not found"
         ? 404
-        : error.message.includes("Invalid")
+        : err.message.includes("Invalid")
           ? 400
           : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to delete flashcard",
+        message: err.message || "Failed to delete flashcard",
       },
       { status },
     );

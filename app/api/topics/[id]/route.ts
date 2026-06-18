@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { topicController } from "@/controllers/topicController";
 import { requireAuth } from "@/lib/serverAuth";
+import { ApiError } from "@/lib/errorHandler";
 
 // GET /api/topics/[id] - Get a single topic by ID
 export async function GET(
@@ -14,9 +15,10 @@ export async function GET(
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -30,17 +32,18 @@ export async function GET(
       },
       { status: 200 },
     );
-  } catch (error: any) {
-    const status = error.message.includes("not found")
+  } catch (error) {
+    const err = error as ApiError;
+    const status = err.message.includes("not found")
       ? 404
-      : error.message.includes("Invalid")
+      : err.message.includes("Invalid")
         ? 400
         : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to fetch topic",
+        message: err.message || "Failed to fetch topic",
       },
       { status },
     );
@@ -60,9 +63,10 @@ export async function PATCH(
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -74,28 +78,29 @@ export async function PATCH(
       message: "Topic updated successfully",
       data: topic,
     });
-  } catch (error: any) {
-    if (error.name === "ValidationError") {
+  } catch (error) {
+    const err = error as ApiError;
+    if (err.name === "ValidationError") {
       return NextResponse.json(
         {
           success: false,
           message: "Validation error",
-          errors: Object.values(error.errors).map((e: any) => e.message),
+          errors: Object.values(err.errors ?? {}).map((e) => e.message),
         },
         { status: 400 },
       );
     }
 
-    const status = error.message.includes("not found")
+    const status = err.message.includes("not found")
       ? 404
-      : error.message.includes("Invalid")
+      : err.message.includes("Invalid")
         ? 400
         : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to update topic",
+        message: err.message || "Failed to update topic",
       },
       { status },
     );
@@ -113,9 +118,10 @@ export async function DELETE(
     let userId: string;
     try {
       userId = await requireAuth(request as Request);
-    } catch (err: any) {
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        { success: false, message: err.message || "Unauthorized" },
+        { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
       );
     }
@@ -127,19 +133,20 @@ export async function DELETE(
       message: "Topic deleted successfully",
       data: topic,
     });
-  } catch (error: any) {
-    const status = error.message.includes("not found")
+  } catch (error) {
+    const err = error as ApiError;
+    const status = err.message.includes("not found")
       ? 404
-      : error.message.includes("Invalid")
+      : err.message.includes("Invalid")
         ? 400
-        : error.message.includes("Cannot delete")
+        : err.message.includes("Cannot delete")
           ? 409
           : 500;
 
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Failed to delete topic",
+        message: err.message || "Failed to delete topic",
       },
       { status },
     );

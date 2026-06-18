@@ -5,9 +5,9 @@
 
 import { useState, useEffect } from "react";
 
-export interface UseApiOptions {
+export interface UseApiOptions<T = unknown> {
   enabled?: boolean;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: T) => void;
   onError?: (error: Error) => void;
 }
 
