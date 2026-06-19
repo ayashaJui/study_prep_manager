@@ -8,6 +8,8 @@ import {
   Edit2,
   Image as ImageIcon,
   Upload,
+  Pin,
+  PinOff,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -28,15 +30,19 @@ interface NoteArticleProps {
     id: string;
     content: string;
     date: string;
+    editedDate?: string;
+    pinned?: boolean;
   };
   onClose: () => void;
   onSave?: (id: string, content: string) => void | Promise<void>;
+  onTogglePin?: (id: string, pinned: boolean) => void;
 }
 
 export default function NoteArticle({
   note,
   onClose,
   onSave,
+  onTogglePin,
 }: NoteArticleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(note.content || "");
@@ -114,6 +120,19 @@ export default function NoteArticle({
             Back to Notes
           </Button>
           <div className="flex items-center gap-3">
+            {!isEditing && onTogglePin && (
+              <button
+                onClick={() => onTogglePin(note.id, !note.pinned)}
+                className={`!p-2 rounded-lg transition-colors ${
+                  note.pinned
+                    ? "text-yellow-400 hover:text-yellow-300 hover:bg-slate-800"
+                    : "text-slate-400 hover:text-yellow-400 hover:bg-slate-800"
+                }`}
+                aria-label={note.pinned ? "Unpin note" : "Pin note"}
+              >
+                {note.pinned ? <Pin size={18} /> : <PinOff size={18} />}
+              </button>
+            )}
             {!isEditing && onSave && (
               <Button
                 onClick={() => setIsEditing(true)}
@@ -145,7 +164,7 @@ export default function NoteArticle({
               <div className="flex items-center gap-3 text-sm text-slate-400">
                 <span className="flex items-center gap-2">
                   <Calendar size={16} />
-                  {note.date}
+                  {note.editedDate ? `Edited ${note.editedDate}` : note.date}
                 </span>
                 <span className="flex items-center gap-2">
                   <Clock size={16} />

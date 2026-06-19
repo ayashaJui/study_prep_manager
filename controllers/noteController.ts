@@ -13,7 +13,10 @@ export const noteController = {
       throw new Error("Invalid user ID");
     }
 
-    const notes = await Note.find({ topicId, userId }).sort({ createdAt: -1 });
+    const notes = await Note.find({ topicId, userId }).sort({
+      pinned: -1,
+      createdAt: -1,
+    });
     return notes;
   },
 
@@ -85,6 +88,7 @@ export const noteController = {
     data: {
       content?: string;
       tags?: string[];
+      pinned?: boolean;
     },
     userId: string,
   ) {

@@ -61,6 +61,7 @@ export interface ApiNote {
   topicId: string;
   content: string;
   tags: string[];
+  pinned: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,6 +70,7 @@ export interface NoteCreateInput {
   topicId: string;
   content: string;
   tags?: string[];
+  pinned?: boolean;
 }
 
 export interface ApiFlashcard {

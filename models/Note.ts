@@ -5,6 +5,7 @@ export interface INote {
   topicId: mongoose.Types.ObjectId;
   content: string;
   tags: string[];
+  pinned: boolean;
   userId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -35,6 +36,10 @@ const noteSchema = new Schema<INoteDocument, INoteModel>(
         trim: true,
       },
     ],
+    pinned: {
+      type: Boolean,
+      default: false,
+    },
 
     // User reference (required for data isolation)
     userId: {
@@ -53,6 +58,7 @@ const noteSchema = new Schema<INoteDocument, INoteModel>(
 noteSchema.index({ userId: 1, topicId: 1 });
 noteSchema.index({ userId: 1, createdAt: -1 });
 noteSchema.index({ userId: 1, tags: 1 });
+noteSchema.index({ userId: 1, topicId: 1, pinned: -1, createdAt: -1 });
 
 export default mongoose.models.Note ||
   mongoose.model<INoteDocument, INoteModel>("Note", noteSchema);

@@ -16,6 +16,7 @@ interface Note {
   _id: string;
   content: string;
   tags: string[];
+  pinned?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,11 +56,20 @@ export default function TopicNotes({
     );
   };
 
-  const filteredNotes = notes.filter(
-    (n) =>
-      selectedTags.length === 0 ||
-      selectedTags.every((t) => (n.tags || []).includes(t)),
-  );
+  const filteredNotes = notes
+    .filter(
+      (n) =>
+        selectedTags.length === 0 ||
+        selectedTags.every((t) => (n.tags || []).includes(t)),
+    )
+    .sort((a, b) => {
+      if (Boolean(a.pinned) !== Boolean(b.pinned)) {
+        return a.pinned ? -1 : 1;
+      }
+      return (
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    });
 
   // Fetch notes on mount
   useEffect(() => {
@@ -138,17 +148,37 @@ export default function TopicNotes({
     }
   };
 
+  const handleTogglePin = async (id: string, pinned: boolean) => {
+    try {
+      const updatedNote = await notesAPI.update(id, { pinned });
+      setNotes(notes.map((n) => (n._id === id ? updatedNote : n)));
+    } catch (error) {
+      showError(
+        error instanceof Error ? error.message : "Failed to update note",
+      );
+    }
+  };
+
   // If a note is selected, show only the article view
   if (selectedNote) {
+    const wasEdited =
+      new Date(selectedNote.updatedAt).getTime() >
+      new Date(selectedNote.createdAt).getTime() + 60_000;
+
     return (
       <NoteArticle
         note={{
           id: selectedNote._id,
           content: selectedNote.content,
           date: new Date(selectedNote.createdAt).toLocaleDateString(),
+          editedDate: wasEdited
+            ? new Date(selectedNote.updatedAt).toLocaleDateString()
+            : undefined,
+          pinned: selectedNote.pinned,
         }}
         onClose={() => setSelectedNoteId(null)}
         onSave={handleUpdateNote}
+        onTogglePin={handleTogglePin}
       />
     );
   }
@@ -208,18 +238,28 @@ export default function TopicNotes({
 
       <CardSection title={`All Notes (${filteredNotes.length})`}>
         <NoteList
-          notes={filteredNotes.map((note) => ({
-            id: note._id || "",
-            content: note.content || "",
-            date: note.createdAt
-              ? new Date(note.createdAt).toLocaleDateString()
-              : new Date().toLocaleDateString(),
-            tags: note.tags,
-          }))}
+          notes={filteredNotes.map((note) => {
+            const wasEdited =
+              new Date(note.updatedAt).getTime() >
+              new Date(note.createdAt).getTime() + 60_000;
+            return {
+              id: note._id || "",
+              content: note.content || "",
+              date: note.createdAt
+                ? new Date(note.createdAt).toLocaleDateString()
+                : new Date().toLocaleDateString(),
+              editedDate: wasEdited
+                ? new Date(note.updatedAt).toLocaleDateString()
+                : undefined,
+              tags: note.tags,
+              pinned: note.pinned,
+            };
+          })}
           onDelete={handleDeleteNote}
           onReadMore={(id) => {
             setSelectedNoteId(id);
           }}
+          onTogglePin={handleTogglePin}
         />
       </CardSection>
 

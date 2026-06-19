@@ -1,4 +1,4 @@
-import { Edit2, Trash2, BookOpen, Clock } from "lucide-react";
+import { Edit2, Trash2, BookOpen, Clock, Pin, PinOff } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -12,7 +12,9 @@ interface Note {
   id: string;
   content: string;
   date: string;
+  editedDate?: string;
   tags?: string[];
+  pinned?: boolean;
 }
 
 interface NoteListProps {
@@ -20,6 +22,7 @@ interface NoteListProps {
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onReadMore?: (id: string) => void;
+  onTogglePin?: (id: string, pinned: boolean) => void;
 }
 
 export default function NoteList({
@@ -27,6 +30,7 @@ export default function NoteList({
   onEdit,
   onDelete,
   onReadMore,
+  onTogglePin,
 }: NoteListProps) {
   return (
     <div className="!space-y-3 md:!space-y-4">
@@ -42,11 +46,28 @@ export default function NoteList({
         return (
           <div
             key={note.id}
-            className="bg-slate-800/80 backdrop-blur-sm !p-5 rounded-xl border-l-4 border-purple-500 hover:shadow-lg hover:shadow-purple-500/10 transition-all"
+            className={`bg-slate-800/80 backdrop-blur-sm !p-5 rounded-xl border-l-4 hover:shadow-lg hover:shadow-purple-500/10 transition-all ${
+              note.pinned ? "border-yellow-500" : "border-purple-500"
+            }`}
           >
-            <h3 className="text-base font-semibold text-slate-100 !mb-2">
-              {title}
-            </h3>
+            <div className="flex items-start justify-between gap-2 !mb-2">
+              <h3 className="text-base font-semibold text-slate-100">
+                {title}
+              </h3>
+              {onTogglePin && (
+                <button
+                  onClick={() => onTogglePin(note.id, !note.pinned)}
+                  className={`!p-1 shrink-0 transition-colors ${
+                    note.pinned
+                      ? "text-yellow-400 hover:text-yellow-300"
+                      : "text-slate-400 hover:text-yellow-400"
+                  }`}
+                  aria-label={note.pinned ? "Unpin note" : "Pin note"}
+                >
+                  {note.pinned ? <Pin size={16} /> : <PinOff size={16} />}
+                </button>
+              )}
+            </div>
             <div
               className="prose prose-slate dark:prose-invert prose-sm max-w-none"
               style={
@@ -105,7 +126,11 @@ export default function NoteList({
 
             <div className="flex justify-between items-center !mt-3 text-xs text-slate-500">
               <div className="flex items-center gap-3">
-                <span>Added on {note.date}</span>
+                <span>
+                  {note.editedDate
+                    ? `Edited on ${note.editedDate}`
+                    : `Added on ${note.date}`}
+                </span>
                 <span className="flex items-center gap-1">
                   <Clock size={12} />
                   {readingMinutes} min read

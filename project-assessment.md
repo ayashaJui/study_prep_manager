@@ -23,7 +23,8 @@ Yes, on the core ask — Topics, Notes (Medium-style reading view), Flashcards, 
 
 ### Notes
 - No WYSIWYG/formatting toolbar — still hand-written markdown (by design)
-- No pinning/favorites, no version history, no note-to-flashcard/quiz linking
+- **Done (2026-06-19):** Pinning/favorites — `Note.pinned` field, pin/unpin button in both `NoteList.tsx` and `NoteArticle.tsx`, pinned notes sort to the top.
+- **Scoped down (2026-06-19):** "Version history" reduced to a last-edited timestamp (no stored snapshots) — note list/article now show "Edited on X" instead of "Added on X" once a note has actually been edited. "Note-to-flashcard/quiz linking" dropped — already effectively covered by shared topic scoping, no separate link field added.
 - **Known limitation:** image uploads (`app/api/upload/route.ts`) write to the local filesystem (`public/uploads`) — fine for a single dev/VM instance, but ephemeral and unsafe on serverless/multi-instance deployments. Needs migration to object storage (S3/Cloudinary/Vercel Blob) before such a deployment.
 
 ### Quizzes
