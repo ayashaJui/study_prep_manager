@@ -14,6 +14,28 @@ interface Question {
   explanation?: string;
 }
 
+const TRUE_FALSE_OPTIONS = ["True", "False"];
+
+function isTrueFalseShaped(q: Question) {
+  return (
+    q.options.length === 2 &&
+    q.options[0]?.trim().toLowerCase() === "true" &&
+    q.options[1]?.trim().toLowerCase() === "false"
+  );
+}
+
+function blankMultipleChoiceQuestion(q: Question): Question {
+  return { ...q, options: ["", "", "", ""], correctAnswer: [] };
+}
+
+function blankTrueFalseQuestion(q: Question): Question {
+  return {
+    ...q,
+    options: [...TRUE_FALSE_OPTIONS],
+    correctAnswer: typeof q.correctAnswer === "number" ? q.correctAnswer : 0,
+  };
+}
+
 export interface QuizFormData {
   title: string;
   description: string;
@@ -62,18 +84,71 @@ export default function AddQuizForm({
       },
     ],
   );
+  // Per-question kind, only meaningful (and shown) when the overall quiz
+  // type is "mixed" — multiple-choice and true-false otherwise share the
+  // same shape, so this is inferred once from existing data and updated
+  // explicitly when the user switches a question's kind.
+  const [questionKinds, setQuestionKinds] = useState<
+    Record<string, "multiple-choice" | "true-false">
+  >(() => {
+    const map: Record<string, "multiple-choice" | "true-false"> = {};
+    (initialData?.questions || []).forEach((q) => {
+      map[q.id] = isTrueFalseShaped(q) ? "true-false" : "multiple-choice";
+    });
+    return map;
+  });
+
+  const getQuestionKind = (q: Question): "multiple-choice" | "true-false" => {
+    if (type === "true-false") return "true-false";
+    if (type === "multiple-choice") return "multiple-choice";
+    return questionKinds[q.id] || (isTrueFalseShaped(q) ? "true-false" : "multiple-choice");
+  };
+
+  const setQuestionKind = (
+    questionId: string,
+    kind: "multiple-choice" | "true-false",
+  ) => {
+    setQuestionKinds((prev) => ({ ...prev, [questionId]: kind }));
+    setQuestions(
+      questions.map((q) =>
+        q.id === questionId
+          ? kind === "true-false"
+            ? blankTrueFalseQuestion(q)
+            : blankMultipleChoiceQuestion(q)
+          : q,
+      ),
+    );
+  };
+
+  const handleTypeChange = (
+    nextType: "multiple-choice" | "true-false" | "mixed",
+  ) => {
+    setType(nextType);
+    if (nextType === "true-false") {
+      setQuestions(questions.map((q) => blankTrueFalseQuestion(q)));
+    } else if (nextType === "multiple-choice") {
+      setQuestions(
+        questions.map((q) =>
+          isTrueFalseShaped(q) ? blankMultipleChoiceQuestion(q) : q,
+        ),
+      );
+    }
+  };
 
   const addQuestion = () => {
-    setQuestions([
-      ...questions,
-      {
-        id: Date.now().toString(),
-        question: "",
-        options: ["", "", "", ""],
-        correctAnswer: [], // Array for multiple answers
-        explanation: "",
-      },
-    ]);
+    const newId = Date.now().toString();
+    const newQuestion: Question = {
+      id: newId,
+      question: "",
+      options: type === "true-false" ? [...TRUE_FALSE_OPTIONS] : ["", "", "", ""],
+      correctAnswer: type === "true-false" ? 0 : [], // Array for multiple answers
+      explanation: "",
+    };
+    setQuestions([...questions, newQuestion]);
+    setQuestionKinds((prev) => ({
+      ...prev,
+      [newId]: type === "true-false" ? "true-false" : "multiple-choice",
+    }));
   };
 
   const removeQuestion = (id: string) => {
@@ -106,6 +181,14 @@ export default function AddQuizForm({
         }
         return q;
       }),
+    );
+  };
+
+  const setSingleCorrectAnswer = (questionId: string, optionIndex: number) => {
+    setQuestions(
+      questions.map((q) =>
+        q.id === questionId ? { ...q, correctAnswer: optionIndex } : q,
+      ),
     );
   };
 
@@ -232,7 +315,7 @@ export default function AddQuizForm({
                   <select
                     value={type}
                     onChange={(e) =>
-                      setType(
+                      handleTypeChange(
                         e.target.value as
                           | "multiple-choice"
                           | "true-false"
@@ -313,6 +396,27 @@ export default function AddQuizForm({
                     )}
                   </div>
 
+                  {type === "mixed" && (
+                    <div className="!mb-4">
+                      <label className="block text-sm font-medium text-slate-300 !mb-2">
+                        Question Type
+                      </label>
+                      <select
+                        value={getQuestionKind(q)}
+                        onChange={(e) =>
+                          setQuestionKind(
+                            q.id,
+                            e.target.value as "multiple-choice" | "true-false",
+                          )
+                        }
+                        className="w-full !px-4 !py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="multiple-choice">Multiple Choice</option>
+                        <option value="true-false">True/False</option>
+                      </select>
+                    </div>
+                  )}
+
                   <Textarea
                     label="Question"
                     placeholder="Enter your question..."
@@ -324,42 +428,71 @@ export default function AddQuizForm({
                     required
                   />
 
-                  <div className="!mt-4">
-                    <label className="block text-sm font-medium text-slate-300 !mb-3">
-                      Options (check all correct answers)
-                    </label>
-                    <div className="space-y-2">
-                      {q.options.map((option, optIndex) => {
-                        const correctAnswers = Array.isArray(q.correctAnswer)
-                          ? q.correctAnswer
-                          : [q.correctAnswer];
-                        return (
+                  {getQuestionKind(q) === "true-false" ? (
+                    <div className="!mt-4">
+                      <label className="block text-sm font-medium text-slate-300 !mb-3">
+                        Correct Answer
+                      </label>
+                      <div className="space-y-2">
+                        {q.options.map((option, optIndex) => (
                           <div
                             key={optIndex}
                             className="flex items-center gap-3"
                           >
                             <input
-                              type="checkbox"
-                              checked={correctAnswers.includes(optIndex)}
+                              type="radio"
+                              name={`correct-answer-${q.id}`}
+                              checked={q.correctAnswer === optIndex}
                               onChange={() =>
-                                toggleCorrectAnswer(q.id, optIndex)
+                                setSingleCorrectAnswer(q.id, optIndex)
                               }
-                              className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2 rounded"
+                              className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2"
                             />
-                            <Input
-                              placeholder={`Option ${optIndex + 1}`}
-                              value={option}
-                              onChange={(e) =>
-                                updateOption(q.id, optIndex, e.target.value)
-                              }
-                              required
-                              className="flex-1"
-                            />
+                            <span className="flex-1 !px-4 !py-2.5 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-200">
+                              {option}
+                            </span>
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="!mt-4">
+                      <label className="block text-sm font-medium text-slate-300 !mb-3">
+                        Options (check all correct answers)
+                      </label>
+                      <div className="space-y-2">
+                        {q.options.map((option, optIndex) => {
+                          const correctAnswers = Array.isArray(q.correctAnswer)
+                            ? q.correctAnswer
+                            : [q.correctAnswer];
+                          return (
+                            <div
+                              key={optIndex}
+                              className="flex items-center gap-3"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={correctAnswers.includes(optIndex)}
+                                onChange={() =>
+                                  toggleCorrectAnswer(q.id, optIndex)
+                                }
+                                className="w-4 h-4 text-purple-600 focus:ring-purple-500 focus:ring-2 rounded"
+                              />
+                              <Input
+                                placeholder={`Option ${optIndex + 1}`}
+                                value={option}
+                                onChange={(e) =>
+                                  updateOption(q.id, optIndex, e.target.value)
+                                }
+                                required
+                                className="flex-1"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="!mt-4">
                     <Textarea

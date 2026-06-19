@@ -25,9 +25,6 @@ Yes, on the core ask — Topics, Notes (Medium-style reading view), Flashcards, 
 - No WYSIWYG/formatting toolbar — still hand-written markdown (by design)
 - **Known limitation:** image uploads (`app/api/upload/route.ts`) write to the local filesystem (`public/uploads`) — fine for a single dev/VM instance, but ephemeral and unsafe on serverless/multi-instance deployments. Needs migration to object storage (S3/Cloudinary/Vercel Blob) before such a deployment.
 
-### Quizzes
-- Schema supports `true-false`/`mixed` question types but the UI only builds multiple-choice.
-
 ### Study Sessions / Streaks — Partially implemented
 - Sessions are logged and a streak endpoint exists, but there's no UI to start/stop sessions manually, and timezone handling for streaks is unverified.
 
