@@ -1,27 +1,16 @@
 "use client";
 
-import { useState, useEffect, ComponentProps } from "react";
+import { useState, useEffect } from "react";
 import Tabs from "@/components/ui/Tabs";
 import TopicOverview from "@/components/views/TopicOverview";
 import TopicNotes from "@/components/views/TopicNotes";
 import TopicFlashcards from "@/components/views/TopicFlashcards";
 import TopicQuizzes from "@/components/views/TopicQuizzes";
-import AddQuizForm from "@/components/views/AddQuizForm";
-import GenerateFromFile from "@/components/views/GenerateFromFile";
-import ImportFromFile from "@/components/views/ImportFromFile";
-import TakeQuiz from "@/components/views/TakeQuiz";
 import Modal from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { topicAPI } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
-import {
-  mockSubtopics,
-  mockNotes,
-  mockFlashcards,
-  mockQuizzes,
-} from "@/lib/mockData";
-import { QuizFormData } from "@/components/views/AddQuizForm";
 
 type TopicStatus = "not-started" | "in-progress" | "review" | "mastered";
 
@@ -79,16 +68,6 @@ export default function TopicContent({
   const [newSubtopicName, setNewSubtopicName] = useState("");
   const [newSubtopicDescription, setNewSubtopicDescription] = useState("");
   const [isCreatingSubtopic, setIsCreatingSubtopic] = useState(false);
-  const [isAddFlashcardModalOpen, setIsAddFlashcardModalOpen] = useState(false);
-  const [newFlashcardFront, setNewFlashcardFront] = useState("");
-  const [newFlashcardBack, setNewFlashcardBack] = useState("");
-  const [isAddQuizModalOpen, setIsAddQuizModalOpen] = useState(false);
-  const [isGenerateFlashcardsOpen, setIsGenerateFlashcardsOpen] =
-    useState(false);
-  const [isGenerateQuizOpen, setIsGenerateQuizOpen] = useState(false);
-  const [isImportFlashcardsOpen, setIsImportFlashcardsOpen] = useState(false);
-  const [isImportQuizOpen, setIsImportQuizOpen] = useState(false);
-  const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
@@ -195,53 +174,6 @@ export default function TopicContent({
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to copy link");
     }
-  };
-
-  const handleAddFlashcard = () => {
-    if (!newFlashcardFront.trim() || !newFlashcardBack.trim()) return;
-
-    console.log("Add flashcard:", {
-      front: newFlashcardFront,
-      back: newFlashcardBack,
-    });
-
-    setNewFlashcardFront("");
-    setNewFlashcardBack("");
-    setIsAddFlashcardModalOpen(false);
-  };
-
-  const handleAddQuiz = (quiz: QuizFormData) => {
-    console.log("Add quiz:", quiz);
-    setIsAddQuizModalOpen(false);
-  };
-
-  const handleGenerateFromFile: ComponentProps<
-    typeof GenerateFromFile
-  >["onGenerate"] = (result) => {
-    console.log("Generated content:", result);
-    setIsGenerateFlashcardsOpen(false);
-    setIsGenerateQuizOpen(false);
-  };
-
-  const handleImportFromFile: ComponentProps<typeof ImportFromFile>["onImport"] = (
-    result,
-  ) => {
-    console.log("Imported content:", result);
-    setIsImportFlashcardsOpen(false);
-    setIsImportQuizOpen(false);
-  };
-
-  const handleTakeQuiz = (quizId: string) => {
-    setActiveQuizId(quizId);
-  };
-
-  const handleQuizComplete = (score: number) => {
-    console.log("Quiz completed with score:", score);
-    // In real implementation, update quiz with:
-    // - lastScore: score
-    // - lastAttemptDate: new Date().toLocaleDateString()
-    // - attempts: attempts + 1
-    // Keep modal open to show results - user will close it manually
   };
 
   // Calculate stats from topic data
@@ -375,106 +307,6 @@ export default function TopicContent({
           </div>
         </form>
       </Modal>
-
-      <Modal
-        isOpen={isAddFlashcardModalOpen}
-        onClose={() => {
-          setIsAddFlashcardModalOpen(false);
-          setNewFlashcardFront("");
-          setNewFlashcardBack("");
-        }}
-        title="Add New Flashcard"
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleAddFlashcard();
-          }}
-        >
-          <Textarea
-            label="Front (Question)"
-            placeholder="Enter the question or term..."
-            value={newFlashcardFront}
-            onChange={(e) => setNewFlashcardFront(e.target.value)}
-            rows={3}
-            required
-          />
-          <Textarea
-            label="Back (Answer)"
-            placeholder="Enter the answer or definition..."
-            value={newFlashcardBack}
-            onChange={(e) => setNewFlashcardBack(e.target.value)}
-            rows={3}
-            required
-          />
-          <div className="flex gap-3 justify-end !mt-6">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setIsAddFlashcardModalOpen(false);
-                setNewFlashcardFront("");
-                setNewFlashcardBack("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!newFlashcardFront.trim() || !newFlashcardBack.trim()}
-            >
-              Add Flashcard
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {isAddQuizModalOpen && (
-        <AddQuizForm
-          onClose={() => setIsAddQuizModalOpen(false)}
-          onSave={handleAddQuiz}
-        />
-      )}
-
-      {isGenerateFlashcardsOpen && (
-        <GenerateFromFile
-          type="flashcards"
-          onClose={() => setIsGenerateFlashcardsOpen(false)}
-          onGenerate={handleGenerateFromFile}
-        />
-      )}
-
-      {isGenerateQuizOpen && (
-        <GenerateFromFile
-          type="quiz"
-          onClose={() => setIsGenerateQuizOpen(false)}
-          onGenerate={handleGenerateFromFile}
-        />
-      )}
-
-      {isImportFlashcardsOpen && (
-        <ImportFromFile
-          type="flashcards"
-          onClose={() => setIsImportFlashcardsOpen(false)}
-          onImport={handleImportFromFile}
-        />
-      )}
-
-      {isImportQuizOpen && (
-        <ImportFromFile
-          type="quiz"
-          onClose={() => setIsImportQuizOpen(false)}
-          onImport={handleImportFromFile}
-        />
-      )}
-
-      {activeQuizId && (
-        <TakeQuiz
-          quiz={mockQuizzes.find((q) => q.id === activeQuizId)!}
-          onClose={() => setActiveQuizId(null)}
-          onComplete={handleQuizComplete}
-        />
-      )}
     </>
   );
 }

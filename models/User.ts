@@ -1,5 +1,13 @@
 import mongoose, { Document, Schema, Model } from "mongoose";
 
+export type WeeklyGoalMetric = "flashcards" | "quizzes" | "topics" | "notes";
+
+export interface IWeeklyGoal {
+  metric: WeeklyGoalMetric;
+  label: string;
+  target: number;
+}
+
 export interface IUser {
   name: string;
   email: string;
@@ -13,6 +21,7 @@ export interface IUser {
   verificationTokenExpiry?: Date;
   resetToken?: string;
   resetTokenExpiry?: Date;
+  weeklyGoals?: IWeeklyGoal[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,6 +90,30 @@ const userSchema = new Schema<IUserDocument, IUserModel>(
     resetTokenExpiry: {
       type: Date,
       default: null,
+    },
+    weeklyGoals: {
+      type: [
+        {
+          metric: {
+            type: String,
+            enum: ["flashcards", "quizzes", "topics", "notes"],
+            required: true,
+          },
+          label: {
+            type: String,
+            required: true,
+            trim: true,
+            maxlength: 100,
+          },
+          target: {
+            type: Number,
+            required: true,
+            min: 1,
+            max: 1000,
+          },
+        },
+      ],
+      default: undefined,
     },
   },
   {

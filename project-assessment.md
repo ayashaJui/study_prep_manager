@@ -53,9 +53,10 @@ Rename is fully applied across `package.json`, `README.md`, `app/layout.tsx`, an
 **Design decision — no cover image, no separate title field:** initially both were added to mirror Medium/ByteByteGo, but cover images make sense for standalone publishable articles competing for attention, not topic-scoped study notes — the topic already provides context, and the user pushed back on the unnecessary input. Cover image support was removed entirely (from the model, controller, and all note UI); the upload endpoint itself was kept since it's still used for inline image/GIF embedding in note content. Title was changed from a typed field to something derived from the content itself, removing typing friction while still giving notes a visible heading in lists and the reading view.
 
 **Still open (smaller, not blocking the core requirement):**
-- ❌ No tag-based filtering UI (tags are stored but unused in the UI)
 - ❌ No WYSIWYG/formatting toolbar — still hand-written markdown (by design, per the markdown-vs-rich-text research below)
 - ❌ No pinning/favorites, no version history, no note-to-flashcard/quiz linking
+
+*(Correction 2026-06-19: this section previously claimed "no tag-based filtering UI" — that was stale. `TopicNotes.tsx` already has tag filtering via `selectedTags`/`toggleTag`/`filteredNotes`.)*
 
 **Known limitation — image storage:** uploads are written to the local filesystem (`public/uploads`). This works for the current dev/single-instance setup but is **not safe for serverless/multi-instance production** (e.g. Vercel's filesystem is ephemeral per invocation) — see Known Issues below.
 
@@ -71,7 +72,8 @@ Rename is fully applied across `package.json`, `README.md`, `app/layout.tsx`, an
 
 - Multiple-choice with multi-answer support, explanations, time limits, shuffle options, scoring, full attempt history.
 - CSV import supported.
-- Gaps: no edit-after-create flow; schema supports `true-false`/`mixed` types but UI only builds multiple-choice.
+- Edit-after-create flow exists (`handleEditQuiz`/`editingQuizId` in `TopicQuizzes.tsx` + `quizzesAPI.update`). *(Correction 2026-06-19: previously claimed missing — stale.)*
+- Remaining gap: schema supports `true-false`/`mixed` types but the UI only builds multiple-choice.
 - Files: `models/Quiz.ts`, `components/views/TakeQuiz.tsx`, `components/views/AddQuizForm.tsx`
 
 ### ✅ Auth — Mature, minor known issues
@@ -87,11 +89,11 @@ Rename is fully applied across `package.json`, `README.md`, `app/layout.tsx`, an
 
 - Read-only public link per topic, exposes notes/flashcards/quizzes without auth.
 
-### ✅ Dashboard / Analytics — Basic, data-isolation bug fixed
+### ✅ Dashboard / Analytics — Basic, data-isolation bug fixed, goals now user-editable
 
 - Stats cards, recent activity, topic progress, study streak.
 - **Fixed (2026-06-19):** `app/api/dashboard/stats/route.ts` and `app/api/dashboard/goals/route.ts` had no auth check and queried `Flashcard`/`Quiz`/`Note`/`Topic` without a `userId` filter — every user saw aggregate counts/scores across *all* users' data. Both routes now call `requireAuth` and scope every query by `userId`, matching the pattern used elsewhere (e.g. `app/api/flashcards/route.ts`).
-- Weekly goal targets/labels are still hardcoded text (not user-editable), separate from the data-isolation issue above.
+- **Fixed (2026-06-19):** Weekly goal targets/labels were hardcoded literals with no way to change them. Added a `weeklyGoals` array field on `User` (`metric`/`label`/`target`), a `PUT /api/dashboard/goals` endpoint to save per-metric overrides, and an edit control (pencil icon) on the Dashboard's Weekly Goals card that opens a modal to edit each goal's label and target. `GET /api/dashboard/goals` now merges user overrides over sensible defaults (the flashcard target still defaults dynamically from total flashcard count if not overridden).
 
 ### ⚠️ Study Sessions / Streaks — Partially implemented
 
@@ -123,12 +125,14 @@ These files were removed from the repo but their gaps still apply:
 
 ## Priority Gaps to Close (to meet the stated goal)
 
-1. ~~**Notes reading/editing experience**~~ — ✅ Done. Title, cover image, inline image/GIF upload-and-embed, reading time, and a `prose`-styled centered reading column were added (see Notes section above). Remaining smaller items (tag filtering, version history) are tracked separately, not blocking.
-2. Tag-based filtering UI for notes (and ideally flashcards/quizzes too).
-3. Finish spaced-repetition scheduling logic for flashcards.
-4. Add edit flows for quizzes and flashcards.
-5. Move rate limiting to a shared store before any real deployment.
-6. Move note image uploads off the local filesystem to object storage before any serverless/multi-instance deployment.
+1. ~~**Notes reading/editing experience**~~ — ✅ Done. Title, cover image, inline image/GIF upload-and-embed, reading time, and a `prose`-styled centered reading column were added (see Notes section above). Remaining smaller items (version history, WYSIWYG) are tracked separately, not blocking.
+2. ~~Tag-based filtering UI for notes~~ — ✅ Already done (stale claim, corrected 2026-06-19; flashcards have tag filtering too).
+3. ~~Finish spaced-repetition scheduling logic for flashcards~~ — ✅ Already done (stale claim, corrected 2026-06-19).
+4. ~~Add edit flows for quizzes and flashcards~~ — ✅ Already done (stale claim, corrected 2026-06-19).
+5. Move rate limiting to a shared store before any real deployment. *(still open)*
+6. Move note image uploads off the local filesystem to object storage before any serverless/multi-instance deployment. *(still open)*
+7. Wire up "Generate from File" (AI-assisted flashcard/quiz generation) — currently a dead button with no `onClick` in `TopicFlashcards.tsx`/`TopicQuizzes.tsx`. *(still open)*
+8. Add export functionality (CSV import exists; no export despite README implying it). *(still open)*
 
 ---
 

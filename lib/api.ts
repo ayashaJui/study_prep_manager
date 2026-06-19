@@ -596,10 +596,19 @@ export interface DashboardTopicProgress {
   id: string;
 }
 
+export type WeeklyGoalMetric = "flashcards" | "quizzes" | "topics" | "notes";
+
 export interface DashboardGoal {
+  metric: WeeklyGoalMetric;
   goal: string;
   current: number;
   total: number;
+}
+
+export interface WeeklyGoalInput {
+  metric: WeeklyGoalMetric;
+  label: string;
+  target: number;
 }
 
 export const dashboardAPI = {
@@ -621,6 +630,13 @@ export const dashboardAPI = {
 
   getWeeklyGoals: async () => {
     return fetchAPI<ApiResponse<DashboardGoal[]>>("/dashboard/goals");
+  },
+
+  updateWeeklyGoals: async (goals: WeeklyGoalInput[]) => {
+    return fetchAPI<ApiResponse<WeeklyGoalInput[]>>("/dashboard/goals", {
+      method: "PUT",
+      body: JSON.stringify({ goals }),
+    });
   },
 };
 

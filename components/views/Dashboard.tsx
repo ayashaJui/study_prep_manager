@@ -6,6 +6,9 @@ import { Card, CardTitle } from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Badge from "@/components/ui/Badge";
+import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import {
   BookOpen,
   Brain,
@@ -13,8 +16,10 @@ import {
   TrendingUp,
   Clock,
   Target,
+  Pencil,
 } from "lucide-react";
-import { dashboardAPI } from "@/lib/api";
+import { dashboardAPI, WeeklyGoalMetric, WeeklyGoalInput } from "@/lib/api";
+import { useToast } from "@/contexts/ToastContext";
 
 interface DashboardStats {
   totalTopics: number;
@@ -46,6 +51,7 @@ interface TopicProgressItem {
 }
 
 interface Goal {
+  metric: WeeklyGoalMetric;
   goal: string;
   current: number;
   total: number;
@@ -53,12 +59,16 @@ interface Goal {
 
 export default function Dashboard() {
   const { isLoading: authLoading } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
   const [topicProgress, setTopicProgress] = useState<TopicProgressItem[]>([]);
   const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditGoalsOpen, setIsEditGoalsOpen] = useState(false);
+  const [editGoals, setEditGoals] = useState<WeeklyGoalInput[]>([]);
+  const [savingGoals, setSavingGoals] = useState(false);
 
   useEffect(() => {
     // Fetch once auth initialization completes.
@@ -90,6 +100,54 @@ export default function Dashboard() {
       );
     } finally {
       setDashboardLoading(false);
+    }
+  };
+
+  const openEditGoals = () => {
+    setEditGoals(
+      weeklyGoals.map((g) => ({
+        metric: g.metric,
+        label: g.goal,
+        target: g.total,
+      })),
+    );
+    setIsEditGoalsOpen(true);
+  };
+
+  const updateEditGoal = (
+    metric: WeeklyGoalMetric,
+    field: "label" | "target",
+    value: string,
+  ) => {
+    setEditGoals((prev) =>
+      prev.map((g) =>
+        g.metric === metric
+          ? {
+              ...g,
+              [field]: field === "target" ? Number(value) || 0 : value,
+            }
+          : g,
+      ),
+    );
+  };
+
+  const handleSaveGoals = async () => {
+    try {
+      setSavingGoals(true);
+      const res = await dashboardAPI.updateWeeklyGoals(editGoals);
+      if (res.success) {
+        showSuccess("Weekly goals updated");
+        setIsEditGoalsOpen(false);
+        await fetchDashboardData();
+      } else {
+        showError(res.message || "Failed to update weekly goals");
+      }
+    } catch (err) {
+      showError(
+        err instanceof Error ? err.message : "Failed to update weekly goals",
+      );
+    } finally {
+      setSavingGoals(false);
     }
   };
 
@@ -242,7 +300,17 @@ export default function Dashboard() {
 
         {/* Weekly Goals */}
         <Card>
-          <CardTitle>
+          <CardTitle
+            action={
+              <button
+                onClick={openEditGoals}
+                className="!p-1.5 rounded hover:bg-slate-700 transition-colors text-slate-400 hover:text-slate-200"
+                aria-label="Edit weekly goals"
+              >
+                <Pencil size={16} />
+              </button>
+            }
+          >
             <div className="flex items-center gap-2">
               <Target size={20} className="text-green-400" />
               Weekly Goals
@@ -250,8 +318,8 @@ export default function Dashboard() {
           </CardTitle>
           <div className="!space-y-5">
             {weeklyGoals.length > 0 ? (
-              weeklyGoals.map((goal, index) => (
-                <div key={index}>
+              weeklyGoals.map((goal) => (
+                <div key={goal.metric}>
                   <div className="flex justify-between !mb-2">
                     <span
                       className="text-xs md:text-sm font-medium"
@@ -420,6 +488,55 @@ export default function Dashboard() {
           </div>
         </Card>
       </div>
+
+      <Modal
+        isOpen={isEditGoalsOpen}
+        onClose={() => setIsEditGoalsOpen(false)}
+        title="Edit Weekly Goals"
+      >
+        <div className="!space-y-4">
+          {editGoals.map((goal) => (
+            <div key={goal.metric} className="!space-y-2">
+              <label className="block text-xs font-medium text-slate-400 capitalize">
+                {goal.metric}
+              </label>
+              <Input
+                value={goal.label}
+                onChange={(e) =>
+                  updateEditGoal(goal.metric, "label", e.target.value)
+                }
+                placeholder="Goal description"
+              />
+              <Input
+                type="number"
+                min={1}
+                max={1000}
+                value={goal.target}
+                onChange={(e) =>
+                  updateEditGoal(goal.metric, "target", e.target.value)
+                }
+                placeholder="Target"
+              />
+            </div>
+          ))}
+          <div className="flex gap-3 justify-end !pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => setIsEditGoalsOpen(false)}
+              type="button"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveGoals}
+              disabled={savingGoals}
+              type="button"
+            >
+              {savingGoals ? "Saving..." : "Save Goals"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
