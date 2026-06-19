@@ -10,6 +10,7 @@ import MainContent from "@/components/layout/MainContent";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import MobileMenu from "@/components/layout/MobileMenu";
 import Dashboard from "@/components/views/Dashboard";
+import PinnedNotes from "@/components/views/PinnedNotes";
 import TopicContent from "@/components/views/TopicContent";
 import SubtopicContent from "@/components/views/SubtopicContent";
 import Modal from "@/components/ui/Modal";
@@ -29,11 +30,13 @@ function HomeContent() {
     activeSubtopic,
     subtopicPath,
     activeTab,
+    view,
     selectedNoteId,
     selectedFlashcardId,
     selectedQuizId,
     setActiveTab,
     navigateToDashboard,
+    navigateToPinnedNotes,
     navigateToTopic,
     navigateToSubtopic,
     navigateToSubtopicPath,
@@ -565,7 +568,9 @@ function HomeContent() {
             topics={topics}
             activeTopic={activeTopic}
             activeSubtopic={activeSubtopic}
+            activeView={view}
             onDashboardSelect={navigateToDashboard}
+            onPinnedNotesSelect={navigateToPinnedNotes}
             onTopicSelect={navigateToTopic}
             onSubtopicSelect={navigateToSubtopic}
             onAddTopic={() => setIsAddTopicModalOpen(true)}
@@ -801,7 +806,13 @@ function HomeContent() {
 
           <Breadcrumb items={breadcrumbItems} />
 
-          {!activeTopic ? (
+          {!activeTopic && view === "pinned" ? (
+            <PinnedNotes
+              onOpenNote={(topicId, noteId) =>
+                navigateToTopicTab(topicId, "notes", { note: noteId })
+              }
+            />
+          ) : !activeTopic ? (
             <Dashboard />
           ) : subtopicPath.length > 0 && currentSubtopic ? (
             <SubtopicContent

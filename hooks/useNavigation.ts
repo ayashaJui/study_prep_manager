@@ -8,6 +8,7 @@ export function useNavigation() {
   const [activeTopic, setActiveTopic] = useState<string | undefined>();
   const [subtopicPath, setSubtopicPath] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [view, setView] = useState<"dashboard" | "pinned">("dashboard");
   const [selectedNoteId, setSelectedNoteId] = useState<string | undefined>();
   const [selectedFlashcardId, setSelectedFlashcardId] = useState<
     string | undefined
@@ -27,6 +28,7 @@ export function useNavigation() {
     const noteId = searchParams.get("note");
     const flashcardId = searchParams.get("flashcard");
     const quizId = searchParams.get("quiz");
+    const viewParam = searchParams.get("view");
 
     if (topic) setActiveTopic(topic);
     setSubtopicPath(subtopicsParam ? subtopicsParam.split(",") : []);
@@ -34,6 +36,7 @@ export function useNavigation() {
     setSelectedNoteId(noteId || undefined);
     setSelectedFlashcardId(flashcardId || undefined);
     setSelectedQuizId(quizId || undefined);
+    setView(viewParam === "pinned" ? "pinned" : "dashboard");
   }
 
   const navigateToDashboard = () => {
@@ -41,6 +44,15 @@ export function useNavigation() {
     setActiveTopic(undefined);
     setSubtopicPath([]);
     setActiveTab("overview");
+    setView("dashboard");
+  };
+
+  const navigateToPinnedNotes = () => {
+    router.push("/?view=pinned");
+    setActiveTopic(undefined);
+    setSubtopicPath([]);
+    setActiveTab("overview");
+    setView("pinned");
   };
 
   const navigateToTopic = (slug: string) => {
@@ -48,6 +60,7 @@ export function useNavigation() {
     setActiveTopic(slug);
     setSubtopicPath([]);
     setActiveTab("overview");
+    setView("dashboard");
   };
 
   const navigateToSubtopic = (topicSlug: string, subtopicSlug: string) => {
@@ -55,6 +68,7 @@ export function useNavigation() {
     setActiveTopic(topicSlug);
     setSubtopicPath([subtopicSlug]);
     setActiveTab("overview");
+    setView("dashboard");
   };
 
   const navigateToSubtopicPath = (topicSlug: string, path: string[]) => {
@@ -62,6 +76,7 @@ export function useNavigation() {
     setActiveTopic(topicSlug);
     setSubtopicPath(path);
     setActiveTab("overview");
+    setView("dashboard");
   };
 
   return {
@@ -69,11 +84,13 @@ export function useNavigation() {
     activeSubtopic: subtopicPath[0], // For backward compatibility
     subtopicPath,
     activeTab,
+    view,
     selectedNoteId,
     selectedFlashcardId,
     selectedQuizId,
     setActiveTab,
     navigateToDashboard,
+    navigateToPinnedNotes,
     navigateToTopic,
     navigateToSubtopic,
     navigateToSubtopicPath,

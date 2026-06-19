@@ -73,6 +73,10 @@ export interface NoteCreateInput {
   pinned?: boolean;
 }
 
+export interface PinnedNote extends Omit<ApiNote, "topicId"> {
+  topicId: { _id: string; name: string; slug?: string } | string;
+}
+
 export interface ApiFlashcard {
   _id: string;
   topicId: string;
@@ -360,6 +364,13 @@ export const notesAPI = {
       method: "PATCH",
       body: JSON.stringify(data),
     });
+    return response.data;
+  },
+
+  getPinned: async () => {
+    const response = await fetchAPI<ApiResponse<PinnedNote[]>>(
+      "/notes/pinned",
+    );
     return response.data;
   },
 

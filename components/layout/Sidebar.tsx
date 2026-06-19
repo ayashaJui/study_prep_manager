@@ -3,7 +3,7 @@
 import { useState } from "react";
 import SearchBox from "@/components/ui/SearchBox";
 import Button from "@/components/ui/Button";
-import { Plus, ChevronRight, Trash2, LayoutDashboard } from "lucide-react";
+import { Plus, ChevronRight, Trash2, LayoutDashboard, Pin } from "lucide-react";
 
 interface Topic {
   id: string;
@@ -23,7 +23,9 @@ interface SidebarProps {
   topics: Topic[];
   activeTopic?: string;
   activeSubtopic?: string;
+  activeView?: "dashboard" | "pinned";
   onDashboardSelect: () => void;
+  onPinnedNotesSelect: () => void;
   onTopicSelect: (topicSlug: string) => void;
   onSubtopicSelect: (topicSlug: string, subtopicSlug: string) => void;
   onAddTopic: () => void;
@@ -33,7 +35,9 @@ export default function Sidebar({
   topics,
   activeTopic,
   activeSubtopic,
+  activeView,
   onDashboardSelect,
+  onPinnedNotesSelect,
   onTopicSelect,
   onSubtopicSelect,
   onAddTopic,
@@ -82,7 +86,7 @@ export default function Sidebar({
         <li>
           <div
             className={`flex items-center gap-2 !px-3 !py-2.5 rounded-md cursor-pointer transition-all border-l-3 ${
-              !activeTopic
+              !activeTopic && activeView !== "pinned"
                 ? "border-purple-500 bg-purple-500/10 text-white"
                 : "border-transparent text-slate-300 hover:bg-slate-700/50 hover:border-slate-600"
             }`}
@@ -90,6 +94,21 @@ export default function Sidebar({
           >
             <LayoutDashboard size={16} className="flex-shrink-0" />
             <span className="flex-1 text-sm font-medium">Dashboard</span>
+          </div>
+        </li>
+
+        {/* Pinned Notes Item */}
+        <li>
+          <div
+            className={`flex items-center gap-2 !px-3 !py-2.5 rounded-md cursor-pointer transition-all border-l-3 ${
+              !activeTopic && activeView === "pinned"
+                ? "border-purple-500 bg-purple-500/10 text-white"
+                : "border-transparent text-slate-300 hover:bg-slate-700/50 hover:border-slate-600"
+            }`}
+            onClick={onPinnedNotesSelect}
+          >
+            <Pin size={16} className="flex-shrink-0" />
+            <span className="flex-1 text-sm font-medium">Pinned Notes</span>
           </div>
         </li>
 
