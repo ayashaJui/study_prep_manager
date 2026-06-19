@@ -61,11 +61,10 @@ Rename is fully applied across `package.json`, `README.md`, `app/layout.tsx`, an
 
 **Data model** (`models/Note.ts`): `topicId`, `content`, `tags[]`, `userId`, timestamps. No `title` or `coverImage` fields — title is computed client-side from `content`.
 
-### ⚠️ Flashcards — Implemented, spaced repetition incomplete
+### ✅ Flashcards — Implemented, spaced repetition working
 
-- Front/back cards, difficulty, tags, CSV import, study/flip mode.
-- Schema has full SM-2 spaced-repetition fields (`easeFactor`, `intervalDays`, `nextReview`, `confidence`) **but the review endpoint never recalculates the next interval** — so spaced repetition doesn't actually function end-to-end.
-- No edit-in-place UI (only create/delete).
+- Front/back cards, difficulty, tags, CSV import, study/flip mode, tag filtering, edit-in-place UI.
+- SM-2 spaced repetition (`easeFactor`, `intervalDays`, `nextReview`, `confidence`) is fully implemented in `reviewFlashcard` (`controllers/flashcardController.ts`) and wired end-to-end from the study UI. *(Note: this section was stale as of 2026-06-17 — already fixed by 2026-06-18.)*
 - Files: `models/Flashcard.ts`, `components/views/TopicFlashcards.tsx`, `app/api/flashcards/*`
 
 ### ✅ Quizzes — Most mature feature
@@ -88,10 +87,11 @@ Rename is fully applied across `package.json`, `README.md`, `app/layout.tsx`, an
 
 - Read-only public link per topic, exposes notes/flashcards/quizzes without auth.
 
-### ⚠️ Dashboard / Analytics — Basic
+### ✅ Dashboard / Analytics — Basic, data-isolation bug fixed
 
 - Stats cards, recent activity, topic progress, study streak.
-- Weekly goals are **hardcoded**, not user-editable.
+- **Fixed (2026-06-19):** `app/api/dashboard/stats/route.ts` and `app/api/dashboard/goals/route.ts` had no auth check and queried `Flashcard`/`Quiz`/`Note`/`Topic` without a `userId` filter — every user saw aggregate counts/scores across *all* users' data. Both routes now call `requireAuth` and scope every query by `userId`, matching the pattern used elsewhere (e.g. `app/api/flashcards/route.ts`).
+- Weekly goal targets/labels are still hardcoded text (not user-editable), separate from the data-isolation issue above.
 
 ### ⚠️ Study Sessions / Streaks — Partially implemented
 

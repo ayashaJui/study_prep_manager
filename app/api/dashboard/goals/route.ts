@@ -3,11 +3,23 @@ import connectDB from "@/lib/db";
 import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
 import Note from "@/models/Note";
+import { requireAuth } from "@/lib/serverAuth";
 import { ApiError } from "@/lib/errorHandler";
 
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
+
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err) {
+      const e = err as ApiError;
+      return NextResponse.json(
+        { success: false, message: e.message || "Unauthorized" },
+        { status: 401 },
+      );
+    }
 
     // Get counts for this week
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -18,10 +30,10 @@ export async function GET(request: NextRequest) {
       notesThisWeek,
       totalFlashcards,
     ] = await Promise.all([
-      Flashcard.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
-      Quiz.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
-      Note.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
-      Flashcard.countDocuments(),
+      Flashcard.countDocuments({ userId, createdAt: { $gte: sevenDaysAgo } }),
+      Quiz.countDocuments({ userId, createdAt: { $gte: sevenDaysAgo } }),
+      Note.countDocuments({ userId, createdAt: { $gte: sevenDaysAgo } }),
+      Flashcard.countDocuments({ userId }),
     ]);
 
     // Define weekly goals (dynamic based on total content)
