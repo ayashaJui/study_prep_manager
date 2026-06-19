@@ -585,7 +585,6 @@ export interface DashboardStats {
   totalFlashcards: number;
   totalQuizzes: number;
   averageScore: number;
-  studyStreak: number;
   weeklyStats: {
     flashcardsReviewed: number;
     quizzesTaken: number;
@@ -698,9 +697,10 @@ export const studySessionsAPI = {
     );
   },
 
-  getStreak: async () => {
+  getStreak: async (timeZone?: string) => {
+    const query = timeZone ? `?tz=${encodeURIComponent(timeZone)}` : "";
     return fetchAPI<ApiResponse<{ streak: number; lastStudyDate: string | null }>>(
-      "/study-sessions/streak",
+      `/study-sessions/streak${query}`,
     );
   },
 };

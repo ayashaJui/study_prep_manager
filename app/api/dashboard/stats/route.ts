@@ -4,6 +4,7 @@ import Topic from "@/models/Topic";
 import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
 import Note from "@/models/Note";
+import StudySession from "@/models/StudySession";
 import { requireAuth } from "@/lib/serverAuth";
 import { ApiError } from "@/lib/errorHandler";
 
@@ -41,22 +42,16 @@ export async function GET(request: NextRequest) {
           )
         : 0;
 
-    // Calculate study streak (simplified - count days with activity in last 7 days)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const recentNotes = await Note.countDocuments({
+
+    const recentSessions = await StudySession.find({
       userId,
-      updatedAt: { $gte: sevenDaysAgo },
-    });
-    const recentFlashcards = await Flashcard.countDocuments({
-      userId,
-      updatedAt: { $gte: sevenDaysAgo },
-    });
-    const recentQuizzes = await Quiz.countDocuments({
-      userId,
-      updatedAt: { $gte: sevenDaysAgo },
-    });
-    const studyStreak =
-      recentNotes > 0 || recentFlashcards > 0 || recentQuizzes > 0 ? 1 : 0;
+      createdAt: { $gte: sevenDaysAgo },
+    }).select("duration");
+    const studyMinutes = recentSessions.reduce(
+      (sum, s) => sum + (s.duration || 0),
+      0,
+    );
 
     // Weekly stats
     const weeklyStats = {
@@ -72,7 +67,7 @@ export async function GET(request: NextRequest) {
         userId,
         createdAt: { $gte: sevenDaysAgo },
       }),
-      studyTime: 0, // Not tracked at the moment
+      studyTime: Math.round((studyMinutes / 60) * 10) / 10, // hours, logged StudySession durations
     };
 
     return NextResponse.json(
@@ -83,7 +78,6 @@ export async function GET(request: NextRequest) {
           totalFlashcards,
           totalQuizzes,
           averageScore,
-          studyStreak,
           weeklyStats,
         },
       },

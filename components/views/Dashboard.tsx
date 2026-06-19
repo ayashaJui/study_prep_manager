@@ -17,8 +17,15 @@ import {
   Clock,
   Target,
   Pencil,
+  Play,
+  Square,
 } from "lucide-react";
-import { dashboardAPI, WeeklyGoalMetric, WeeklyGoalInput } from "@/lib/api";
+import {
+  dashboardAPI,
+  studySessionsAPI,
+  WeeklyGoalMetric,
+  WeeklyGoalInput,
+} from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 
 interface DashboardStats {
@@ -26,7 +33,6 @@ interface DashboardStats {
   totalFlashcards: number;
   totalQuizzes: number;
   averageScore: number;
-  studyStreak: number;
   weeklyStats: {
     flashcardsReviewed: number;
     quizzesTaken: number;
@@ -57,6 +63,15 @@ interface Goal {
   total: number;
 }
 
+function formatElapsed(ms: number) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
 export default function Dashboard() {
   const { isLoading: authLoading } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -64,6 +79,12 @@ export default function Dashboard() {
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
   const [topicProgress, setTopicProgress] = useState<TopicProgressItem[]>([]);
   const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
+  const [studyStreak, setStudyStreak] = useState(0);
+  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(
+    null,
+  );
+  const [sessionElapsedMs, setSessionElapsedMs] = useState(0);
+  const [loggingSession, setLoggingSession] = useState(false);
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditGoalsOpen, setIsEditGoalsOpen] = useState(false);
@@ -77,19 +98,31 @@ export default function Dashboard() {
     }
   }, [authLoading]);
 
+  useEffect(() => {
+    if (sessionStartedAt === null) return;
+    const interval = setInterval(() => {
+      setSessionElapsedMs(Date.now() - sessionStartedAt);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sessionStartedAt]);
+
   const fetchDashboardData = async () => {
     try {
       setDashboardLoading(true);
       setError(null);
 
-      const [statsRes, activityRes, progressRes, goalsRes] = await Promise.all([
-        dashboardAPI.getStats(),
-        dashboardAPI.getRecentActivity(4),
-        dashboardAPI.getTopicProgress(),
-        dashboardAPI.getWeeklyGoals(),
-      ]);
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const [statsRes, activityRes, progressRes, goalsRes, streakRes] =
+        await Promise.all([
+          dashboardAPI.getStats(),
+          dashboardAPI.getRecentActivity(4),
+          dashboardAPI.getTopicProgress(),
+          dashboardAPI.getWeeklyGoals(),
+          studySessionsAPI.getStreak(timeZone),
+        ]);
 
       if (statsRes.success) setStats(statsRes.data);
+      if (streakRes.success) setStudyStreak(streakRes.data?.streak || 0);
       if (activityRes.success) setRecentActivity(activityRes.data || []);
       if (progressRes.success) setTopicProgress(progressRes.data || []);
       if (goalsRes.success) setWeeklyGoals(goalsRes.data || []);
@@ -100,6 +133,41 @@ export default function Dashboard() {
       );
     } finally {
       setDashboardLoading(false);
+    }
+  };
+
+  const handleStartSession = () => {
+    setSessionElapsedMs(0);
+    setSessionStartedAt(Date.now());
+  };
+
+  const handleStopSession = async () => {
+    if (sessionStartedAt === null) return;
+    const durationMinutes = Math.max(
+      1,
+      Math.round((Date.now() - sessionStartedAt) / 60000),
+    );
+
+    try {
+      setLoggingSession(true);
+      const res = await studySessionsAPI.create({
+        activityType: "review",
+        duration: durationMinutes,
+      });
+      if (res.success) {
+        showSuccess(`Logged a ${durationMinutes} min study session`);
+        setSessionStartedAt(null);
+        setSessionElapsedMs(0);
+        await fetchDashboardData();
+      } else {
+        showError(res.message || "Failed to log study session");
+      }
+    } catch (err) {
+      showError(
+        err instanceof Error ? err.message : "Failed to log study session",
+      );
+    } finally {
+      setLoggingSession(false);
     }
   };
 
@@ -410,7 +478,7 @@ export default function Dashboard() {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              {stats?.studyStreak || 0}
+              {studyStreak}
             </div>
             <p className="text-base md:text-lg" style={{ color: "#cbd5e0" }}>
               Days in a row
@@ -419,10 +487,36 @@ export default function Dashboard() {
               className="text-xs md:text-sm !mt-2"
               style={{ color: "#a0aec0" }}
             >
-              {(stats?.studyStreak || 0) > 0
+              {studyStreak > 0
                 ? "Keep it up! You're on fire 🔥"
                 : "Start your study streak today!"}
             </p>
+
+            <div className="!mt-6 !pt-4 border-t border-slate-700/50">
+              {sessionStartedAt === null ? (
+                <Button onClick={handleStartSession} className="!mx-auto">
+                  <Play size={16} />
+                  Start Studying
+                </Button>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <span
+                    className="text-2xl font-mono font-semibold"
+                    style={{ color: "#e2e8f0" }}
+                  >
+                    {formatElapsed(sessionElapsedMs)}
+                  </span>
+                  <Button
+                    onClick={handleStopSession}
+                    disabled={loggingSession}
+                    className="!bg-red-600 hover:!bg-red-700 !mx-auto"
+                  >
+                    <Square size={16} />
+                    {loggingSession ? "Logging..." : "Stop & Log Session"}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </Card>
 
