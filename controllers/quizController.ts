@@ -2,6 +2,18 @@ import Quiz, { IQuiz, IQuizQuestion } from "@/models/Quiz";
 import Topic from "@/models/Topic";
 import mongoose from "mongoose";
 
+interface SubmitAnswer {
+  questionId: string;
+  selectedAnswer: number | number[] | null;
+}
+
+const arraysEqual = (a: number[], b: number[]) => {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((val, idx) => val === sortedB[idx]);
+};
+
 interface CreateQuizData {
   topicId: string;
   title: string;
@@ -144,6 +156,58 @@ export const updateQuiz = async (
   }
 
   return quiz;
+};
+
+// Submit a quiz attempt: scores answers server-side, records the attempt
+export const submitQuizAttempt = async (
+  id: string,
+  userId: string,
+  answers: SubmitAnswer[],
+  timeTaken: number,
+) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid quiz ID");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid user ID");
+  }
+
+  const quiz = await Quiz.findOne({ _id: id, userId });
+  if (!quiz) {
+    throw new Error("Quiz not found");
+  }
+
+  let score = 0;
+  let totalPoints = 0;
+  for (const question of quiz.questions) {
+    totalPoints += question.points || 1;
+    const submitted = answers.find((a) => a.questionId === question.id);
+    if (!submitted || submitted.selectedAnswer === null) continue;
+
+    const correctAnswers = Array.isArray(question.correctAnswer)
+      ? question.correctAnswer
+      : [question.correctAnswer];
+    const selected = Array.isArray(submitted.selectedAnswer)
+      ? submitted.selectedAnswer
+      : [submitted.selectedAnswer];
+
+    if (arraysEqual(selected, correctAnswers)) {
+      score += question.points || 1;
+    }
+  }
+
+  quiz.attempts.push({
+    attemptId: new mongoose.Types.ObjectId(),
+    date: new Date(),
+    score,
+    totalPoints,
+    timeTaken,
+    answers: [],
+  });
+  await quiz.save();
+
+  return { quiz, score, totalPoints };
 };
 
 // Delete quiz

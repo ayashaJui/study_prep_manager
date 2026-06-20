@@ -522,13 +522,17 @@ export const quizzesAPI = {
   },
   submit: async (
     id: string,
-    answers: Array<{ questionId: string; selectedAnswer: number }>,
+    answers: Array<{
+      questionId: string;
+      selectedAnswer: number | number[] | null;
+    }>,
+    timeTaken: number,
   ) => {
     return fetchAPI<ApiResponse<{ score: number; totalPoints: number }>>(
       `/quizzes/${id}/submit`,
       {
         method: "POST",
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify({ answers, timeTaken }),
       },
     );
   },
@@ -692,9 +696,16 @@ export const studySessionsAPI = {
           )
         : undefined,
     ).toString();
-    return fetchAPI<ApiResponse<ApiStudySession[]>>(
-      `/study-sessions${query ? `?${query}` : ""}`,
-    );
+    return fetchAPI<
+      ApiResponse<ApiStudySession[]> & {
+        pagination?: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      }
+    >(`/study-sessions${query ? `?${query}` : ""}`);
   },
 
   getStreak: async (timeZone?: string) => {

@@ -216,6 +216,7 @@ export default function NoteArticle({
                 >
                   Insert
                 </Button>
+                {/* File upload deferred - no persistent/free storage backend wired up yet
                 <input
                   ref={inlineFileInputRef}
                   type="file"
@@ -232,6 +233,7 @@ export default function NoteArticle({
                   <Upload size={16} />
                   {uploadingInline ? "Uploading..." : "Upload file"}
                 </Button>
+                */}
               </div>
             )}
 

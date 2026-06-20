@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import { noteController } from "@/controllers/noteController";
 import { requireAuth } from "@/lib/serverAuth";
 import { ApiError } from "@/lib/errorHandler";
+import StudySession from "@/models/StudySession";
 
 // GET /api/notes/[id] - Get a single note by ID
 export async function GET(
@@ -72,6 +73,16 @@ export async function PATCH(
     }
 
     const note = await noteController.updateNote(id, body, userId);
+
+    // Only log a study session for actual content edits, not pin toggles etc.
+    if (body.content !== undefined) {
+      await StudySession.create({
+        userId,
+        topicId: note.topicId,
+        activityType: "note",
+        duration: body.duration || 1,
+      });
+    }
 
     return NextResponse.json({
       success: true,

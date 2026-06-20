@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Sparkles, Upload } from "lucide-react";
+import { Plus, Sparkles, Upload, Download } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
 import QuizList from "@/components/features/QuizList";
@@ -11,6 +11,7 @@ import AddQuizForm, { QuizFormData } from "@/components/views/AddQuizForm";
 import TakeQuiz from "@/components/views/TakeQuiz";
 import ImportFromFile from "@/components/views/ImportFromFile";
 import { quizzesAPI } from "@/lib/api";
+import { downloadCSV } from "@/lib/csv";
 import { useToast } from "@/contexts/ToastContext";
 
 interface QuizQuestion {
@@ -204,6 +205,32 @@ export default function TopicQuizzes({
     }
   };
 
+  const handleExportQuizzes = () => {
+    const rows = quizzes.flatMap((quiz) =>
+      quiz.questions.map((q) => {
+        const correctAnswer = Array.isArray(q.correctAnswer)
+          ? q.correctAnswer[0]
+          : q.correctAnswer;
+        return [
+          q.question,
+          q.options[0] ?? "",
+          q.options[1] ?? "",
+          q.options[2] ?? "",
+          q.options[3] ?? "",
+          String(correctAnswer),
+        ];
+      }),
+    );
+
+    if (rows.length === 0) {
+      showError("No quiz questions to export");
+      return;
+    }
+
+    downloadCSV(rows, `${topicName.replace(/\s+/g, "_")}_quizzes.csv`);
+    showSuccess(`Exported ${rows.length} quiz question(s)`);
+  };
+
   if (loading) {
     return (
       <Card>
@@ -265,10 +292,16 @@ export default function TopicQuizzes({
                 <Upload size={16} />
                 Import CSV
               </Button>
+              <Button variant="secondary" onClick={handleExportQuizzes}>
+                <Download size={16} />
+                Export CSV
+              </Button>
+              {/* AI-assisted "Generate from File" deferred - no budget for LLM API calls
               <Button variant="secondary">
                 <Sparkles size={16} />
                 Generate from File
               </Button>
+              */}
               <Button onClick={() => setIsAddQuizModalOpen(true)}>
                 <Plus size={16} />
                 Add Quiz

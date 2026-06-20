@@ -11,6 +11,7 @@ import Breadcrumb from "@/components/layout/Breadcrumb";
 import MobileMenu from "@/components/layout/MobileMenu";
 import Dashboard from "@/components/views/Dashboard";
 import PinnedNotes from "@/components/views/PinnedNotes";
+import StudySessionHistory from "@/components/views/StudySessionHistory";
 import TopicContent from "@/components/views/TopicContent";
 import SubtopicContent from "@/components/views/SubtopicContent";
 import Modal from "@/components/ui/Modal";
@@ -37,6 +38,7 @@ function HomeContent() {
     setActiveTab,
     navigateToDashboard,
     navigateToPinnedNotes,
+    navigateToSessionHistory,
     navigateToTopic,
     navigateToSubtopic,
     navigateToSubtopicPath,
@@ -521,7 +523,16 @@ function HomeContent() {
   };
 
   const breadcrumbItems = !activeTopic
-    ? [{ label: "Dashboard" }]
+    ? [
+        {
+          label:
+            view === "pinned"
+              ? "Pinned Notes"
+              : view === "sessions"
+                ? "Session History"
+                : "Dashboard",
+        },
+      ]
     : subtopicPath.length > 0
       ? [
           {
@@ -571,6 +582,7 @@ function HomeContent() {
             activeView={view}
             onDashboardSelect={navigateToDashboard}
             onPinnedNotesSelect={navigateToPinnedNotes}
+            onSessionHistorySelect={navigateToSessionHistory}
             onTopicSelect={navigateToTopic}
             onSubtopicSelect={navigateToSubtopic}
             onAddTopic={() => setIsAddTopicModalOpen(true)}
@@ -812,6 +824,8 @@ function HomeContent() {
                 navigateToTopicTab(topicId, "notes", { note: noteId })
               }
             />
+          ) : !activeTopic && view === "sessions" ? (
+            <StudySessionHistory />
           ) : !activeTopic ? (
             <Dashboard />
           ) : subtopicPath.length > 0 && currentSubtopic ? (

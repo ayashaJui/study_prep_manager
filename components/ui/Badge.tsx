@@ -1,7 +1,15 @@
 import { ReactNode } from "react";
 
 interface BadgeProps {
-  variant?: "default" | "not-started" | "in-progress" | "review" | "mastered";
+  variant?:
+    | "default"
+    | "not-started"
+    | "in-progress"
+    | "review"
+    | "mastered"
+    | "flashcard"
+    | "quiz"
+    | "note";
   children: ReactNode;
   className?: string;
   onClick?: () => void;
@@ -32,6 +40,18 @@ export default function Badge({
     },
     mastered: {
       background: "#10b981",
+      color: "white",
+    },
+    flashcard: {
+      background: "#06b6d4",
+      color: "white",
+    },
+    quiz: {
+      background: "#3b82f6",
+      color: "white",
+    },
+    note: {
+      background: "#a78bfa",
       color: "white",
     },
   };

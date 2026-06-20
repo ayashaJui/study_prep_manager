@@ -8,7 +8,9 @@ export function useNavigation() {
   const [activeTopic, setActiveTopic] = useState<string | undefined>();
   const [subtopicPath, setSubtopicPath] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
-  const [view, setView] = useState<"dashboard" | "pinned">("dashboard");
+  const [view, setView] = useState<"dashboard" | "pinned" | "sessions">(
+    "dashboard",
+  );
   const [selectedNoteId, setSelectedNoteId] = useState<string | undefined>();
   const [selectedFlashcardId, setSelectedFlashcardId] = useState<
     string | undefined
@@ -36,7 +38,13 @@ export function useNavigation() {
     setSelectedNoteId(noteId || undefined);
     setSelectedFlashcardId(flashcardId || undefined);
     setSelectedQuizId(quizId || undefined);
-    setView(viewParam === "pinned" ? "pinned" : "dashboard");
+    setView(
+      viewParam === "pinned"
+        ? "pinned"
+        : viewParam === "sessions"
+          ? "sessions"
+          : "dashboard",
+    );
   }
 
   const navigateToDashboard = () => {
@@ -53,6 +61,14 @@ export function useNavigation() {
     setSubtopicPath([]);
     setActiveTab("overview");
     setView("pinned");
+  };
+
+  const navigateToSessionHistory = () => {
+    router.push("/?view=sessions");
+    setActiveTopic(undefined);
+    setSubtopicPath([]);
+    setActiveTab("overview");
+    setView("sessions");
   };
 
   const navigateToTopic = (slug: string) => {
@@ -91,6 +107,7 @@ export function useNavigation() {
     setActiveTab,
     navigateToDashboard,
     navigateToPinnedNotes,
+    navigateToSessionHistory,
     navigateToTopic,
     navigateToSubtopic,
     navigateToSubtopicPath,

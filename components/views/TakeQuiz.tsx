@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import ProgressBar from "@/components/ui/ProgressBar";
+import { quizzesAPI } from "@/lib/api";
 import {
   Clock,
   CheckCircle2,
@@ -45,6 +46,7 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
   const [timeRemaining, setTimeRemaining] = useState(
     quiz.timeLimit ? quiz.timeLimit * 60 : null,
   );
+  const [startedAt] = useState(() => Date.now());
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
@@ -117,6 +119,19 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
       const isCorrect = arraysEqual(answer, correctAnswers);
       return acc + (isCorrect ? 1 : 0);
     }, 0);
+
+    const timeTaken = Math.round((Date.now() - startedAt) / 1000);
+    quizzesAPI
+      .submit(
+        quiz.id,
+        quiz.questions.map((q, index) => ({
+          questionId: q.id,
+          selectedAnswer: selectedAnswers[index],
+        })),
+        timeTaken,
+      )
+      .catch((err) => console.error("Failed to log quiz attempt", err));
+
     onComplete((score / quiz.questions.length) * 100);
   };
 

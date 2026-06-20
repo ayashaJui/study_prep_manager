@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Play, Shuffle, Sparkles, Upload, X } from "lucide-react";
+import {
+  Plus,
+  Play,
+  Shuffle,
+  Sparkles,
+  Upload,
+  Download,
+  X,
+} from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -10,6 +18,7 @@ import Badge from "@/components/ui/Badge";
 import FlashcardGrid from "@/components/features/FlashcardGrid";
 import ImportFromFile from "@/components/views/ImportFromFile";
 import { flashcardsAPI } from "@/lib/api";
+import { downloadCSV } from "@/lib/csv";
 import { useToast } from "@/contexts/ToastContext";
 
 type FlashcardDifficulty = "easy" | "medium" | "hard";
@@ -221,6 +230,19 @@ export default function TopicFlashcards({
     }
   };
 
+  const handleExportFlashcards = () => {
+    if (flashcards.length === 0) {
+      showError("No flashcards to export");
+      return;
+    }
+
+    downloadCSV(
+      flashcards.map((f) => [f.front, f.back]),
+      `${topicName.replace(/\s+/g, "_")}_flashcards.csv`,
+    );
+    showSuccess(`Exported ${flashcards.length} flashcard(s)`);
+  };
+
   const openStudyMode = () => {
     if (!flashcards.length) {
       showError("No flashcards available for study mode");
@@ -320,10 +342,16 @@ export default function TopicFlashcards({
                 <Upload size={16} />
                 Import CSV
               </Button>
+              <Button variant="secondary" onClick={handleExportFlashcards}>
+                <Download size={16} />
+                Export CSV
+              </Button>
+              {/* AI-assisted "Generate from File" deferred - no budget for LLM API calls
               <Button variant="secondary">
                 <Sparkles size={16} />
                 Generate from File
               </Button>
+              */}
               <Button onClick={() => setIsAddModalOpen(true)}>
                 <Plus size={16} />
                 Add Flashcard

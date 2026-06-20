@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import { noteController } from "@/controllers/noteController";
 import { requireAuth } from "@/lib/serverAuth";
 import { ApiError } from "@/lib/errorHandler";
+import StudySession from "@/models/StudySession";
 
 // GET /api/notes - Get all notes for a topic
 export async function GET(request: NextRequest) {
@@ -75,6 +76,13 @@ export async function POST(request: NextRequest) {
     // Add userId to the note data
     body.userId = userId;
     const note = await noteController.createNote(body);
+
+    await StudySession.create({
+      userId,
+      topicId: note.topicId,
+      activityType: "note",
+      duration: body.duration || 1,
+    });
 
     return NextResponse.json(
       {
