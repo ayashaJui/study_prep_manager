@@ -32,13 +32,18 @@ export async function GET(request: NextRequest) {
     // Get total quizzes
     const totalQuizzes = await Quiz.countDocuments({ userId });
 
-    // Get average quiz score
-    const quizzes = await Quiz.find({ userId, lastScore: { $exists: true } });
+    // Get average quiz score. `lastScore` is a virtual computed from
+    // `attempts`, so we select that field (not the much larger `questions`
+    // array) rather than trying to select the virtual itself - and filter
+    // for attempted quizzes in JS, since `lastScore` can't be queried as a
+    // Mongo filter (it isn't a stored field).
+    const quizzes = await Quiz.find({ userId }).select("attempts");
+    const attemptedQuizzes = quizzes.filter((q) => q.lastScore !== null);
     const averageScore =
-      quizzes.length > 0
+      attemptedQuizzes.length > 0
         ? Math.round(
-            quizzes.reduce((sum, q) => sum + (q.lastScore || 0), 0) /
-              quizzes.length,
+            attemptedQuizzes.reduce((sum, q) => sum + (q.lastScore || 0), 0) /
+              attemptedQuizzes.length,
           )
         : 0;
 

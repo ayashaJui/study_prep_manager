@@ -57,6 +57,7 @@ export default function Badge({
   };
 
   const badgeClassName = `inline-block !px-2.5 !py-1 rounded-sm text-xs font-semibold uppercase ${onClick ? "cursor-pointer" : ""} ${className}`;
+  const badgeStyle = styles[variant] || styles.default;
 
   if (onClick) {
     return (
@@ -64,7 +65,7 @@ export default function Badge({
         type="button"
         onClick={onClick}
         className={badgeClassName}
-        style={styles[variant]}
+        style={badgeStyle}
       >
         {children}
       </button>
@@ -72,7 +73,7 @@ export default function Badge({
   }
 
   return (
-    <span className={badgeClassName} style={styles[variant]}>
+    <span className={badgeClassName} style={badgeStyle}>
       {children}
     </span>
   );

@@ -1,41 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
-import { verifyToken, getTokenFromRequest } from "@/lib/auth";
+import { requireAuth } from "@/lib/serverAuth";
 import { ApiError } from "@/lib/errorHandler";
 
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    // Get token from request
-    const token = getTokenFromRequest(request);
-
-    if (!token) {
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err) {
+      const e = err as ApiError;
       return NextResponse.json(
-        {
-          success: false,
-          message: "Not authenticated",
-        },
-        { status: 401 },
-      );
-    }
-
-    // Verify token
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid or expired token",
-        },
+        { success: false, message: e.message || "Not authenticated" },
         { status: 401 },
       );
     }
 
     // Get user
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(userId);
 
     if (!user) {
       return NextResponse.json(

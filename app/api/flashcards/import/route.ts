@@ -37,7 +37,21 @@ export async function POST(request: NextRequest) {
     }
 
     const created = await Flashcard.insertMany(
-      flashcards.map((fc) => ({ ...fc, topicId, userId })),
+      flashcards.map(
+        (fc: {
+          front: string;
+          back: string;
+          difficulty?: string;
+          tags?: string[];
+        }) => ({
+          front: fc.front,
+          back: fc.back,
+          difficulty: fc.difficulty,
+          tags: fc.tags,
+          topicId,
+          userId,
+        }),
+      ),
     );
 
     return NextResponse.json(

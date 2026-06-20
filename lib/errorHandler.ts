@@ -22,6 +22,40 @@ export interface ApiError extends Error {
 }
 
 /**
+ * Typed HTTP errors controllers can throw so route handlers can read
+ * `err.statusCode` directly instead of pattern-matching on `err.message`.
+ */
+export class HttpError extends Error {
+  statusCode: number;
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.name = "HttpError";
+    this.statusCode = statusCode;
+  }
+}
+
+export class BadRequestError extends HttpError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = "BadRequestError";
+  }
+}
+
+export class NotFoundError extends HttpError {
+  constructor(message: string) {
+    super(message, 404);
+    this.name = "NotFoundError";
+  }
+}
+
+export class ConflictError extends HttpError {
+  constructor(message: string) {
+    super(message, 409);
+    this.name = "ConflictError";
+  }
+}
+
+/**
  * Parse and format errors into user-friendly messages
  */
 export function parseError(error: unknown): AppError {

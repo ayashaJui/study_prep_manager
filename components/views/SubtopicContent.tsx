@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Tabs from "@/components/ui/Tabs";
 import SubtopicDetail from "@/components/views/SubtopicDetail";
 import TopicNotes from "@/components/views/TopicNotes";
@@ -12,6 +12,7 @@ import Button from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { mockNotes, mockFlashcards, mockQuizzes } from "@/lib/mockData";
 import { topicAPI } from "@/lib/api";
+import { useToast } from "@/contexts/ToastContext";
 
 interface SubtopicSummary {
   id: string;
@@ -35,6 +36,8 @@ interface SubtopicContentProps {
     flashcardsCount?: number;
     quizzesCount?: number;
     notesCount?: number;
+    isPublic?: boolean;
+    shareId?: string | null;
   };
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -49,11 +52,80 @@ export default function SubtopicContent({
   onSubtopicSelect,
   onSubtopicAdded,
 }: SubtopicContentProps) {
+  const { showSuccess, showError } = useToast();
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [isAddSubtopicModalOpen, setIsAddSubtopicModalOpen] = useState(false);
   const [newSubtopicName, setNewSubtopicName] = useState("");
   const [newSubtopicDescription, setNewSubtopicDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  const buildShareUrl = (id: string) => {
+    if (typeof window === "undefined") {
+      return `/public/topic/${id}`;
+    }
+    return `${window.location.origin}/public/topic/${id}`;
+  };
+
+  useEffect(() => {
+    const nextShareId = subtopic.shareId || null;
+    const nextIsPublic = Boolean(subtopic.isPublic && nextShareId);
+    setShareId(nextShareId);
+    setIsPublic(nextIsPublic);
+    setShareUrl(nextShareId ? buildShareUrl(nextShareId) : null);
+  }, [subtopic.shareId, subtopic.isPublic]);
+
+  const handlePublish = async () => {
+    try {
+      setIsPublishing(true);
+      const response = await topicAPI.publish(subtopic.id);
+      const data = response.data || response;
+      const nextShareId = data.shareId || null;
+      const nextShareUrl =
+        data.publicUrl || (nextShareId ? buildShareUrl(nextShareId) : null);
+
+      setShareId(nextShareId);
+      setShareUrl(nextShareUrl);
+      setIsPublic(Boolean(nextShareId));
+      showSuccess("Subtopic published. Share link is ready.");
+    } catch (err) {
+      showError(
+        err instanceof Error ? err.message : "Failed to publish subtopic",
+      );
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    try {
+      setIsPublishing(true);
+      await topicAPI.unpublish(subtopic.id);
+      setShareId(null);
+      setShareUrl(null);
+      setIsPublic(false);
+      showSuccess("Subtopic unpublished.");
+    } catch (err) {
+      showError(
+        err instanceof Error ? err.message : "Failed to unpublish subtopic",
+      );
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const handleCopyShareUrl = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showSuccess("Share link copied to clipboard.");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to copy link");
+    }
+  };
 
   const handleTakeQuiz = (quizId: string) => {
     setActiveQuizId(quizId);
@@ -133,6 +205,8 @@ export default function SubtopicContent({
             name: subtopic.name,
             status: subtopic.status || "in-progress",
             summary: subtopic.description || "",
+            isPublic,
+            shareId,
           }}
           subSubtopics={subSubtopics.map((s) => ({
             id: s.id,
@@ -149,6 +223,11 @@ export default function SubtopicContent({
           }}
           onSubSubtopicSelect={onSubtopicSelect}
           onAddSubtopic={() => setIsAddSubtopicModalOpen(true)}
+          shareUrl={shareUrl}
+          isPublishing={isPublishing}
+          onPublish={handlePublish}
+          onUnpublish={handleUnpublish}
+          onCopyShareUrl={handleCopyShareUrl}
         />
       )}
 

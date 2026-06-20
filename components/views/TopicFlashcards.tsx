@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Plus,
   Play,
@@ -95,8 +95,15 @@ export default function TopicFlashcards({
     }
   }, [topicId]);
 
+  const autoOpenedFlashcardId = useRef<string | undefined>(undefined);
+
   useEffect(() => {
-    if (initialFlashcardId && flashcards.length > 0) {
+    if (
+      initialFlashcardId &&
+      flashcards.length > 0 &&
+      autoOpenedFlashcardId.current !== initialFlashcardId
+    ) {
+      autoOpenedFlashcardId.current = initialFlashcardId;
       handleEditFlashcard(initialFlashcardId);
     }
   }, [initialFlashcardId, flashcards]);

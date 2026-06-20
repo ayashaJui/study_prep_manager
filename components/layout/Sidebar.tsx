@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import SearchBox from "@/components/ui/SearchBox";
 import Button from "@/components/ui/Button";
 import {
@@ -53,8 +53,15 @@ export default function Sidebar({
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(
-    new Set([topics[0]?.id]),
+    new Set(),
   );
+  const hasAutoExpanded = useRef(false);
+
+  useEffect(() => {
+    if (hasAutoExpanded.current || topics.length === 0) return;
+    hasAutoExpanded.current = true;
+    setExpandedTopics(new Set([topics[0].id]));
+  }, [topics]);
 
   const toggleExpand = (topicId: string) => {
     setExpandedTopics((prev) => {

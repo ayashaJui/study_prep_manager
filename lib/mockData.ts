@@ -23,6 +23,8 @@ export interface Subtopic {
   flashcardsCount?: number;
   quizzesCount?: number;
   count?: number;
+  isPublic?: boolean;
+  shareId?: string | null;
   subtopics?: Subtopic[]; // Support nested subtopics
 }
 

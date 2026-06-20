@@ -103,8 +103,8 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
 
   const arraysEqual = (a: number[], b: number[]) => {
     if (a.length !== b.length) return false;
-    const sortedA = [...a].sort();
-    const sortedB = [...b].sort();
+    const sortedA = [...a].sort((x, y) => x - y);
+    const sortedB = [...b].sort((x, y) => x - y);
     return sortedA.every((val, idx) => val === sortedB[idx]);
   };
 

@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     const err = error as ApiError;
-    const status = err.message.includes("Invalid") ? 400 : 500;
+    const status = err.statusCode || 500;
 
     return NextResponse.json(
       {
@@ -105,11 +105,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const status = err.message.includes("not found")
-      ? 404
-      : err.message.includes("Invalid") || err.message.includes("required")
-        ? 400
-        : 500;
+    const status = err.statusCode || 500;
 
     return NextResponse.json(
       {

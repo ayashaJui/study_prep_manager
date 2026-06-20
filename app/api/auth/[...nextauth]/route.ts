@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import GitHubProvider from "next-auth/providers/github";
+// import GoogleProvider from "next-auth/providers/google";
+// import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
@@ -32,14 +32,15 @@ declare module "next-auth/jwt" {
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID || "",
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-    }),
+    // Google/GitHub OAuth disabled for now - not needed for personal use
+    // GoogleProvider({
+    //   clientId: process.env.GOOGLE_CLIENT_ID || "",
+    //   clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    // }),
+    // GitHubProvider({
+    //   clientId: process.env.GITHUB_CLIENT_ID || "",
+    //   clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
+    // }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -59,6 +60,12 @@ export const authOptions: NextAuthOptions = {
 
         if (!user) {
           throw new Error("User not found");
+        }
+
+        if (!user.password) {
+          throw new Error(
+            "This account uses Google/GitHub sign-in. Please log in that way.",
+          );
         }
 
         const isValid = await comparePassword(

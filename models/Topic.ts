@@ -94,7 +94,6 @@ const topicSchema = new Schema<ITopicDocument, ITopicModel>(
     },
     shareId: {
       type: String,
-      default: null,
     },
     lastReviewed: Date,
 
@@ -141,14 +140,23 @@ topicSchema.virtual("subtopics", {
 
 // Validation to prevent circular references
 topicSchema.pre("save", async function () {
+  if (!this.isModified("parentId") || !this.parentId) return;
+
   // Prevent self-reference
-  if (this.parentId && this.parentId.equals(this._id)) {
+  if (this.parentId.equals(this._id)) {
     throw new Error("A topic cannot be its own parent");
   }
 
-  // Prevent circular references by checking if parentId is in the path
-  if (this.parentId && this.path.some((id) => id.equals(this.parentId!))) {
-    throw new Error("Circular reference detected in topic hierarchy");
+  // Prevent circular references: the new parent's ancestor chain must not
+  // include this topic (which would mean this topic is one of its own
+  // ancestors after the move).
+  const Model = this.constructor as ITopicModel;
+  const parent = await Model.findById(this.parentId).select("path");
+  if (parent) {
+    const ancestorIds = [...parent.path, parent._id];
+    if (ancestorIds.some((id) => id.equals(this._id as mongoose.Types.ObjectId))) {
+      throw new Error("Circular reference detected in topic hierarchy");
+    }
   }
 });
 
@@ -192,6 +200,10 @@ topicSchema.pre("save", async function () {
 
 // Indexes
 topicSchema.index({ slug: 1, parentId: 1 });
+// Enforces slug uniqueness atomically (the pre-save hook's check-then-act
+// loop above is only a best-effort first guess; this index is the real
+// guard, paired with retry-on-conflict in topicController.createTopic).
+topicSchema.index({ userId: 1, parentId: 1, slug: 1 }, { unique: true });
 topicSchema.index({ userId: 1, path: 1 });
 topicSchema.index({ userId: 1, tags: 1 });
 topicSchema.index({ createdAt: -1 });

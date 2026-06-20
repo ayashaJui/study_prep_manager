@@ -33,7 +33,11 @@ export async function GET(
       {
         success: true,
         data: {
-          topic,
+          topic: {
+            id: topic._id,
+            name: topic.name,
+            description: topic.description,
+          },
           notes: notes.map((n) => ({
             id: n._id,
             title: n.title,

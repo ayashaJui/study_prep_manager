@@ -37,7 +37,31 @@ export async function POST(request: NextRequest) {
     }
 
     const created = await Quiz.insertMany(
-      quizzes.map((quiz) => ({ ...quiz, topicId, userId })),
+      quizzes.map(
+        (quiz: {
+          title: string;
+          description?: string;
+          difficulty?: string;
+          type?: string;
+          tags?: string[];
+          questions: unknown[];
+          shuffleQuestions?: boolean;
+          shuffleOptions?: boolean;
+          showAnswersImmediately?: boolean;
+        }) => ({
+          title: quiz.title,
+          description: quiz.description,
+          difficulty: quiz.difficulty,
+          type: quiz.type,
+          tags: quiz.tags,
+          questions: quiz.questions,
+          shuffleQuestions: quiz.shuffleQuestions,
+          shuffleOptions: quiz.shuffleOptions,
+          showAnswersImmediately: quiz.showAnswersImmediately,
+          topicId,
+          userId,
+        }),
+      ),
     );
 
     return NextResponse.json(

@@ -1,5 +1,4 @@
-import jwt from "jsonwebtoken";
-import { getTokenFromRequest } from "./auth";
+import { getTokenFromRequest, verifyTokenSignature } from "./auth";
 
 /**
  * Server-side helper: verify token signature and return userId.
@@ -11,30 +10,17 @@ export async function requireAuth(request: Request): Promise<string> {
     throw new Error("Unauthorized - No token provided");
   }
 
-  try {
-    // Verify token signature using same helper as auth
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as {
-      userId?: string;
-    };
-    if (!decoded || !decoded.userId) {
-      throw new Error("Unauthorized - Invalid token payload");
-    }
-
-    return decoded.userId as string;
-  } catch (err) {
+  const decoded = verifyTokenSignature(token);
+  if (!decoded || !decoded.userId) {
     throw new Error("Unauthorized - Invalid or expired token");
   }
+
+  return decoded.userId;
 }
 
 export function tryGetUserIdFromToken(request: Request): string | null {
-  try {
-    const token = getTokenFromRequest(request as Request);
-    if (!token) return null;
-    const secret = process.env.JWT_SECRET;
-    if (!secret) return null;
-    const decoded = jwt.verify(token, secret) as { userId?: string };
-    return decoded?.userId || null;
-  } catch {
-    return null;
-  }
+  const token = getTokenFromRequest(request as Request);
+  if (!token) return null;
+  const decoded = verifyTokenSignature(token);
+  return decoded?.userId || null;
 }

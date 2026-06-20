@@ -31,17 +31,32 @@ export async function POST(
       );
     }
 
-    // Generate unique shareId
+    // Generate a shareId and rely on the unique index to catch collisions
+    // atomically (avoids a check-then-act race between concurrent requests).
     const crypto = globalThis.crypto || (await import("crypto")).webcrypto;
     let shareId = crypto.randomUUID();
-    // Ensure uniqueness
-    while (await Topic.findOne({ shareId })) {
-      shareId = crypto.randomUUID();
-    }
-
     topic.isPublic = true;
     topic.shareId = shareId;
-    await topic.save();
+
+    const MAX_ATTEMPTS = 5;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await topic.save();
+        break;
+      } catch (err) {
+        const isDuplicateShareId =
+          (err as { code?: number; keyPattern?: Record<string, unknown> })
+            .code === 11000 &&
+          "shareId" in
+            ((err as { keyPattern?: Record<string, unknown> }).keyPattern ||
+              {});
+        if (!isDuplicateShareId || attempt >= MAX_ATTEMPTS) {
+          throw err;
+        }
+        shareId = crypto.randomUUID();
+        topic.shareId = shareId;
+      }
+    }
 
     return NextResponse.json(
       {
@@ -87,7 +102,8 @@ export async function DELETE(
     }
 
     topic.isPublic = false;
-    topic.shareId = null;
+    topic.shareId = undefined;
+    topic.markModified("shareId");
     await topic.save();
 
     return NextResponse.json(

@@ -28,11 +28,7 @@ export async function GET(
     );
   } catch (error) {
     const err = error as ApiError;
-    const status = err.message.includes("not found")
-      ? 404
-      : err.message.includes("Invalid") || err.message.includes("required")
-        ? 400
-        : 500;
+    const status = err.statusCode || 500;
 
     return NextResponse.json(
       {

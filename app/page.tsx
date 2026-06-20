@@ -242,6 +242,8 @@ function HomeContent() {
                           notesCount: nested.stats?.notesCount || 0,
                           flashcardsCount: nested.stats?.flashcardsCount || 0,
                           quizzesCount: nested.stats?.quizzesCount || 0,
+                          isPublic: nested.isPublic,
+                          shareId: nested.shareId,
                           subtopics: [], // Level 3 not yet loaded
                         }))
                       : [];
@@ -259,6 +261,8 @@ function HomeContent() {
                         (sub.stats?.notesCount || 0) +
                         (sub.stats?.flashcardsCount || 0) +
                         (sub.stats?.quizzesCount || 0),
+                      isPublic: sub.isPublic,
+                      shareId: sub.shareId,
                       subtopics: nestedSubtopics,
                     };
                   }),

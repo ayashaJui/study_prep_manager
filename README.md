@@ -6,8 +6,8 @@ A comprehensive, hierarchical study management system designed for interview pre
 
 ### Authentication & Security
 
-- **Email & Password Authentication**: Secure account registration and login with bcryptjs password hashing
-- **OAuth Support**: Sign in with Google or GitHub accounts
+- **Email & Password Authentication**: Secure account registration and login with bcryptjs password hashing, with a show/hide toggle on password fields
+- **OAuth Support**: Google/GitHub sign-in is implemented but currently disabled (commented out) since it isn't needed for personal use - see [OAUTH_SETUP.md](./docs/OAUTH_SETUP.md) to re-enable
 - **Password Reset**: Forgot password functionality with secure email recovery
 - **User Profiles**: Manage profile information including name and avatar
 - **Protected Routes**: API endpoints protected with JWT authentication and proxy checks
@@ -16,12 +16,12 @@ A comprehensive, hierarchical study management system designed for interview pre
 ### Core Functionality
 
 - **Hierarchical Organization**: Create unlimited nested topics and subtopics for organizing study material
-- **Notes & Summaries**: Write notes in Markdown with a Medium-style reading view — titles, cover images, inline images/GIFs, and an estimated reading time
+- **Notes & Summaries**: Write notes in Markdown with a Medium-style reading view — titles, cover images, inline images/GIFs via URL, and an estimated reading time (direct file upload is implemented but disabled by default - no persistent storage backend wired up yet)
 - **Flashcards**: Create interactive flashcards with spaced repetition support
 - **Quizzes**: Build customizable quizzes with multiple-choice questions, multi-answer support, and detailed explanations
 - **Progress Tracking**: Monitor learning progress across topics and study sessions
 - **Topic Management**: Create, edit, and organize topics with difficulty levels and tags
-- **Public Sharing**: Publish read-only topic links for easy sharing
+- **Public Sharing**: Publish read-only links for topics or individual subtopics for easy sharing
 - **Study Streaks**: Track daily learning streaks from study sessions
 
 ### Import & Export
@@ -96,7 +96,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 # Optional: override API base URL for the client
 NEXT_PUBLIC_API_URL=/api
 
-# OAuth (optional - for Google/GitHub sign-in)
+# OAuth (optional - for Google/GitHub sign-in; providers are currently
+# commented out in app/api/auth/[...nextauth]/route.ts, uncomment to re-enable)
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GITHUB_CLIENT_ID=your-github-client-id
@@ -123,7 +124,7 @@ npm run dev
 The application includes built-in authentication:
 
 - **Sign up**: Create an account with email and password
-- **Login**: Sign in with email/password or OAuth (Google/GitHub)
+- **Login**: Sign in with email/password (OAuth via Google/GitHub is implemented but disabled by default)
 - **Password reset**: Recover access via email link
 - **User profile**: Manage account settings and profile information
 
@@ -135,7 +136,7 @@ All study data is automatically linked to your user account and protected by aut
 - **Styling**: Tailwind CSS 4
 - **Backend**: Next.js API Routes
 - **Database**: MongoDB with Mongoose ODM
-- **Authentication**: NextAuth.js with JWT, bcryptjs, OAuth (Google/GitHub)
+- **Authentication**: NextAuth.js with JWT, bcryptjs, OAuth (Google/GitHub, currently disabled)
 - **Email**: Nodemailer for password reset notifications
 - **Icons**: Lucide React
 - **Markdown**: React Markdown with GFM support

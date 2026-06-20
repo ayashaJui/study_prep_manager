@@ -18,6 +18,8 @@ interface SubtopicDetailProps {
     name: string;
     status: "not-started" | "in-progress" | "review" | "mastered";
     summary: string;
+    isPublic?: boolean;
+    shareId?: string | null;
   };
   subSubtopics: Array<{
     id: string;
@@ -34,6 +36,11 @@ interface SubtopicDetailProps {
   };
   onSubSubtopicSelect?: (id: string) => void;
   onAddSubtopic?: () => void;
+  shareUrl?: string | null;
+  isPublishing?: boolean;
+  onPublish?: () => void;
+  onUnpublish?: () => void;
+  onCopyShareUrl?: () => void;
 }
 
 export default function SubtopicDetail({
@@ -42,6 +49,11 @@ export default function SubtopicDetail({
   stats,
   onSubSubtopicSelect,
   onAddSubtopic,
+  shareUrl,
+  isPublishing,
+  onPublish,
+  onUnpublish,
+  onCopyShareUrl,
 }: SubtopicDetailProps) {
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [editedSummary, setEditedSummary] = useState(subtopic.summary);
@@ -98,6 +110,59 @@ export default function SubtopicDetail({
       >
         {subtopic.name}
       </CardTitle>
+
+      {subtopic.isPublic && shareUrl ? (
+        <div className="!mt-4 !mb-2 flex flex-col gap-2">
+          <div className="text-xs uppercase tracking-wide text-slate-400">
+            Public Link
+          </div>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center">
+            <input
+              type="text"
+              value={shareUrl}
+              readOnly
+              className="w-full flex-1 rounded-md border border-slate-700 bg-slate-900/60 !px-3 !py-2 text-sm text-slate-200"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={onCopyShareUrl}
+                disabled={!onCopyShareUrl}
+              >
+                Copy
+              </Button>
+              <a
+                href={shareUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-md border border-slate-600 !px-3 !py-2 text-sm text-slate-200 hover:bg-slate-700/50"
+              >
+                Open
+              </a>
+              {onUnpublish && (
+                <Button
+                  variant="secondary"
+                  onClick={onUnpublish}
+                  disabled={isPublishing}
+                >
+                  {isPublishing ? "Working..." : "Unpublish"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="!mt-4 !mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-400">
+            Publish this subtopic to generate a public link.
+          </p>
+          {onPublish && (
+            <Button onClick={onPublish} disabled={isPublishing}>
+              {isPublishing ? "Working..." : "Publish"}
+            </Button>
+          )}
+        </div>
+      )}
 
       <CardSection
         title="Summary"

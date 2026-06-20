@@ -43,7 +43,7 @@ const topicSchema = new mongoose.Schema(
     tags: [String],
     favorite: { type: Boolean, default: false },
     isPublic: { type: Boolean, default: false },
-    shareId: { type: String, default: null },
+    shareId: { type: String },
     stats: {
       notesCount: { type: Number, default: 0 },
       flashcardsCount: { type: Number, default: 0 },
@@ -258,7 +258,6 @@ async function seed() {
       tags: ["design", "backend"],
       favorite: false,
       isPublic: false,
-      shareId: null,
       stats: {
         notesCount: 0,
         flashcardsCount: 0,
@@ -278,7 +277,6 @@ async function seed() {
       tags: ["soft-skills"],
       favorite: false,
       isPublic: false,
-      shareId: null,
       stats: {
         notesCount: 0,
         flashcardsCount: 0,

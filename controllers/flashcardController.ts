@@ -1,6 +1,7 @@
 import Flashcard, { IFlashcard } from "@/models/Flashcard";
 import Topic from "@/models/Topic";
 import mongoose from "mongoose";
+import { BadRequestError, NotFoundError } from "@/lib/errorHandler";
 
 interface CreateFlashcardData {
   topicId: string;
@@ -31,11 +32,11 @@ type UpdateFlashcardData = Partial<
 // Get all flashcards for a topic
 export const getFlashcardsByTopic = async (topicId: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(topicId)) {
-    throw new Error("Invalid topic ID");
+    throw new BadRequestError("Invalid topic ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   const flashcards = await Flashcard.find({ topicId, userId }).sort({
@@ -47,17 +48,17 @@ export const getFlashcardsByTopic = async (topicId: string, userId: string) => {
 // Get single flashcard by ID
 export const getFlashcardById = async (id: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid flashcard ID");
+    throw new BadRequestError("Invalid flashcard ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   const flashcard = await Flashcard.findOne({ _id: id, userId });
 
   if (!flashcard) {
-    throw new Error("Flashcard not found");
+    throw new NotFoundError("Flashcard not found");
   }
 
   return flashcard;
@@ -69,16 +70,16 @@ export const createFlashcard = async (data: CreateFlashcardData) => {
 
   // Validate topic exists
   if (!mongoose.Types.ObjectId.isValid(topicId)) {
-    throw new Error("Invalid topic ID");
+    throw new BadRequestError("Invalid topic ID");
   }
 
   if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   const topic = await Topic.findOne({ _id: topicId, userId });
   if (!topic) {
-    throw new Error("Topic not found");
+    throw new NotFoundError("Topic not found");
   }
 
   // Create flashcard
@@ -106,11 +107,11 @@ export const updateFlashcard = async (
   userId: string,
 ) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid flashcard ID");
+    throw new BadRequestError("Invalid flashcard ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   const flashcard = await Flashcard.findOneAndUpdate(
@@ -123,7 +124,7 @@ export const updateFlashcard = async (
   );
 
   if (!flashcard) {
-    throw new Error("Flashcard not found");
+    throw new NotFoundError("Flashcard not found");
   }
 
   return flashcard;
@@ -132,17 +133,17 @@ export const updateFlashcard = async (
 // Delete flashcard
 export const deleteFlashcard = async (id: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid flashcard ID");
+    throw new BadRequestError("Invalid flashcard ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   const flashcard = await Flashcard.findOneAndDelete({ _id: id, userId });
 
   if (!flashcard) {
-    throw new Error("Flashcard not found");
+    throw new NotFoundError("Flashcard not found");
   }
 
   // Update topic stats
@@ -159,20 +160,20 @@ export const reviewFlashcard = async (
   userId: string,
 ) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid flashcard ID");
+    throw new BadRequestError("Invalid flashcard ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   if (!Number.isInteger(quality) || quality < 0 || quality > 5) {
-    throw new Error("Invalid quality score");
+    throw new BadRequestError("Invalid quality score");
   }
 
   const flashcard = await Flashcard.findOne({ _id: id, userId });
   if (!flashcard) {
-    throw new Error("Flashcard not found");
+    throw new NotFoundError("Flashcard not found");
   }
 
   const currentEase = flashcard.easeFactor || 2.5;

@@ -29,8 +29,8 @@ interface Quiz {
   title: string;
   description?: string;
   source?: string;
-  difficulty: string;
-  type: string;
+  difficulty: "easy" | "medium" | "hard";
+  type: "multiple-choice" | "true-false" | "mixed";
   timeLimit?: number;
   tags?: string[];
   questions: QuizQuestion[];
@@ -268,7 +268,7 @@ export default function TopicQuizzes({
             id: activeQuiz._id,
             title: activeQuiz.title,
             description: activeQuiz.description || "",
-            difficulty: activeQuiz.difficulty as "easy" | "medium" | "hard",
+            difficulty: activeQuiz.difficulty,
             timeLimit: activeQuiz.timeLimit,
             questions: activeQuiz.questions,
           }}
@@ -359,11 +359,8 @@ export default function TopicQuizzes({
                 title: editQuiz.title,
                 description: editQuiz.description || "",
                 source: editQuiz.source || "",
-                difficulty: editQuiz.difficulty as "easy" | "medium" | "hard",
-                type: editQuiz.type as
-                  | "multiple-choice"
-                  | "true-false"
-                  | "mixed",
+                difficulty: editQuiz.difficulty,
+                type: editQuiz.type,
                 timeLimit: editQuiz.timeLimit,
                 tags: editQuiz.tags || [],
                 questions: editQuiz.questions.map((q) => ({

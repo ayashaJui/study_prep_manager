@@ -1,16 +1,17 @@
 import Note from "@/models/Note";
 import Topic from "@/models/Topic";
 import mongoose from "mongoose";
+import { BadRequestError, NotFoundError } from "@/lib/errorHandler";
 
 export const noteController = {
   // Get all notes for a topic
   async getNotesByTopic(topicId: string, userId: string) {
     if (!mongoose.Types.ObjectId.isValid(topicId)) {
-      throw new Error("Invalid topic ID");
+      throw new BadRequestError("Invalid topic ID");
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error("Invalid user ID");
+      throw new BadRequestError("Invalid user ID");
     }
 
     const notes = await Note.find({ topicId, userId }).sort({
@@ -23,16 +24,16 @@ export const noteController = {
   // Get a single note by ID
   async getNoteById(id: string, userId: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error("Invalid note ID");
+      throw new BadRequestError("Invalid note ID");
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error("Invalid user ID");
+      throw new BadRequestError("Invalid user ID");
     }
 
     const note = await Note.findOne({ _id: id, userId });
     if (!note) {
-      throw new Error("Note not found");
+      throw new NotFoundError("Note not found");
     }
 
     return note;
@@ -49,21 +50,21 @@ export const noteController = {
 
     // Validation
     if (!content || content.trim().length === 0) {
-      throw new Error("Note content is required");
+      throw new BadRequestError("Note content is required");
     }
 
     if (!topicId || !mongoose.Types.ObjectId.isValid(topicId)) {
-      throw new Error("Invalid topic ID");
-    }
-
-    // Verify topic exists
-    const topic = await Topic.findById(topicId);
-    if (!topic) {
-      throw new Error("Topic not found");
+      throw new BadRequestError("Invalid topic ID");
     }
 
     if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error("Invalid user ID");
+      throw new BadRequestError("Invalid user ID");
+    }
+
+    // Verify topic exists and belongs to this user
+    const topic = await Topic.findOne({ _id: topicId, userId });
+    if (!topic) {
+      throw new NotFoundError("Topic not found");
     }
 
     // Create note
@@ -93,15 +94,15 @@ export const noteController = {
     userId: string,
   ) {
     if (!id) {
-      throw new Error("Note ID is required");
+      throw new BadRequestError("Note ID is required");
     }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error("Invalid note ID");
+      throw new BadRequestError("Invalid note ID");
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error("Invalid user ID");
+      throw new BadRequestError("Invalid user ID");
     }
 
     const note = await Note.findOneAndUpdate(
@@ -111,7 +112,7 @@ export const noteController = {
     );
 
     if (!note) {
-      throw new Error("Note not found");
+      throw new NotFoundError("Note not found");
     }
 
     return note;
@@ -120,16 +121,16 @@ export const noteController = {
   // Delete a note
   async deleteNote(id: string, userId: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error("Invalid note ID");
+      throw new BadRequestError("Invalid note ID");
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error("Invalid user ID");
+      throw new BadRequestError("Invalid user ID");
     }
 
     const note = await Note.findOneAndDelete({ _id: id, userId });
     if (!note) {
-      throw new Error("Note not found");
+      throw new NotFoundError("Note not found");
     }
 
     // Update topic stats

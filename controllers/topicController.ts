@@ -1,5 +1,10 @@
 import Topic from "@/models/Topic";
 import mongoose from "mongoose";
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+} from "@/lib/errorHandler";
 
 export const topicController = {
   // Get all topics or filter by parentId
@@ -29,16 +34,16 @@ export const topicController = {
   // Get a single topic by ID
   async getTopicById(id: string, userId: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error("Invalid topic ID");
+      throw new BadRequestError("Invalid topic ID");
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error("Invalid user ID");
+      throw new BadRequestError("Invalid user ID");
     }
 
     const topic = await Topic.findOne({ _id: id, userId });
     if (!topic) {
-      throw new Error("Topic not found");
+      throw new NotFoundError("Topic not found");
     }
 
     return topic;
@@ -51,7 +56,7 @@ export const topicController = {
     userId?: string,
   ) {
     if (!slug || slug.trim().length === 0) {
-      throw new Error("Slug is required");
+      throw new BadRequestError("Slug is required");
     }
 
     const query: {
@@ -71,7 +76,7 @@ export const topicController = {
         query.parentId = null;
       } else {
         if (!mongoose.Types.ObjectId.isValid(parentId)) {
-          throw new Error("Invalid parent topic ID");
+          throw new BadRequestError("Invalid parent topic ID");
         }
         query.parentId = parentId;
       }
@@ -79,7 +84,7 @@ export const topicController = {
 
     const topic = await Topic.findOne(query);
     if (!topic) {
-      throw new Error("Topic not found");
+      throw new NotFoundError("Topic not found");
     }
 
     return topic;
@@ -111,27 +116,30 @@ export const topicController = {
 
     // Validation
     if (!name || name.trim().length === 0) {
-      throw new Error("Topic name is required");
+      throw new BadRequestError("Topic name is required");
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error("Invalid user ID");
+      throw new BadRequestError("Invalid user ID");
     }
 
     // Validate parentId if provided
     if (parentId) {
       if (!mongoose.Types.ObjectId.isValid(parentId)) {
-        throw new Error("Invalid parent topic ID");
+        throw new BadRequestError("Invalid parent topic ID");
       }
 
       const parentTopic = await Topic.findOne({ _id: parentId, userId });
       if (!parentTopic) {
-        throw new Error("Parent topic not found");
+        throw new NotFoundError("Parent topic not found");
       }
     }
 
-    // Create topic
-    const topic = await Topic.create({
+    // Create topic. The slug pre-save hook's uniqueness check is only a
+    // best-effort first guess (racy under concurrent requests); the unique
+    // index on {userId, parentId, slug} is the real guard, so retry with a
+    // freshly regenerated slug if it reports a collision.
+    const topic = new Topic({
       name: name.trim(),
       description: description?.trim(),
       parentId: parentId || null,
@@ -149,6 +157,26 @@ export const topicController = {
       },
     });
 
+    const MAX_ATTEMPTS = 5;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await topic.save();
+        break;
+      } catch (err) {
+        const isDuplicateSlug =
+          (err as { code?: number; keyPattern?: Record<string, unknown> })
+            .code === 11000 &&
+          "slug" in
+            ((err as { keyPattern?: Record<string, unknown> }).keyPattern ||
+              {});
+        if (!isDuplicateSlug || attempt >= MAX_ATTEMPTS) {
+          throw err;
+        }
+        topic.slug = undefined;
+        topic.markModified("slug");
+      }
+    }
+
     return topic;
   },
 
@@ -165,15 +193,15 @@ export const topicController = {
     userId: string,
   ) {
     if (!id) {
-      throw new Error("Topic ID is required");
+      throw new BadRequestError("Topic ID is required");
     }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error("Invalid topic ID");
+      throw new BadRequestError("Invalid topic ID");
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error("Invalid user ID");
+      throw new BadRequestError("Invalid user ID");
     }
 
     const topic = await Topic.findOneAndUpdate(
@@ -183,7 +211,7 @@ export const topicController = {
     );
 
     if (!topic) {
-      throw new Error("Topic not found");
+      throw new NotFoundError("Topic not found");
     }
 
     return topic;
@@ -192,24 +220,24 @@ export const topicController = {
   // Delete a topic
   async deleteTopic(id: string, userId: string) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error("Invalid topic ID");
+      throw new BadRequestError("Invalid topic ID");
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error("Invalid user ID");
+      throw new BadRequestError("Invalid user ID");
     }
 
     // Check if topic has children
     const hasChildren = await Topic.findOne({ parentId: id, userId });
     if (hasChildren) {
-      throw new Error(
+      throw new ConflictError(
         "Cannot delete topic with subtopics. Delete subtopics first.",
       );
     }
 
     const topic = await Topic.findOneAndDelete({ _id: id, userId });
     if (!topic) {
-      throw new Error("Topic not found");
+      throw new NotFoundError("Topic not found");
     }
 
     return topic;
@@ -226,7 +254,7 @@ export const topicController = {
     },
   ) {
     if (!mongoose.Types.ObjectId.isValid(topicId)) {
-      throw new Error("Invalid topic ID");
+      throw new BadRequestError("Invalid topic ID");
     }
 
     const topic = await Topic.findByIdAndUpdate(
@@ -236,7 +264,7 @@ export const topicController = {
     );
 
     if (!topic) {
-      throw new Error("Topic not found");
+      throw new NotFoundError("Topic not found");
     }
 
     return topic;

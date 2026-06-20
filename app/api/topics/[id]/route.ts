@@ -34,11 +34,7 @@ export async function GET(
     );
   } catch (error) {
     const err = error as ApiError;
-    const status = err.message.includes("not found")
-      ? 404
-      : err.message.includes("Invalid")
-        ? 400
-        : 500;
+    const status = err.statusCode || 500;
 
     return NextResponse.json(
       {
@@ -91,11 +87,7 @@ export async function PATCH(
       );
     }
 
-    const status = err.message.includes("not found")
-      ? 404
-      : err.message.includes("Invalid")
-        ? 400
-        : 500;
+    const status = err.statusCode || 500;
 
     return NextResponse.json(
       {
@@ -135,13 +127,7 @@ export async function DELETE(
     });
   } catch (error) {
     const err = error as ApiError;
-    const status = err.message.includes("not found")
-      ? 404
-      : err.message.includes("Invalid")
-        ? 400
-        : err.message.includes("Cannot delete")
-          ? 409
-          : 500;
+    const status = err.statusCode || 500;
 
     return NextResponse.json(
       {

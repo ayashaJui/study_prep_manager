@@ -34,7 +34,7 @@ export function useNavigation() {
 
     if (topic) setActiveTopic(topic);
     setSubtopicPath(subtopicsParam ? subtopicsParam.split(",") : []);
-    if (tab) setActiveTab(tab);
+    setActiveTab(tab || "overview");
     setSelectedNoteId(noteId || undefined);
     setSelectedFlashcardId(flashcardId || undefined);
     setSelectedQuizId(quizId || undefined);

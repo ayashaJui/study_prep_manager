@@ -5,6 +5,7 @@ import Topic from "@/models/Topic";
 import Note from "@/models/Note";
 import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
+import { rateLimit } from "@/lib/rateLimit";
 import { ApiError } from "@/lib/errorHandler";
 
 function escapeRegExp(value: string) {
@@ -23,6 +24,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: e.message || "Unauthorized" },
         { status: 401 },
+      );
+    }
+
+    const rate = rateLimit({
+      key: `search:${userId}`,
+      limit: 30,
+      windowMs: 60_000,
+    });
+    if (!rate.ok) {
+      const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
+      return NextResponse.json(
+        { success: false, message: "Too many requests. Please slow down." },
+        {
+          status: 429,
+          headers: { "Retry-After": retryAfter.toString() },
+        },
       );
     }
 

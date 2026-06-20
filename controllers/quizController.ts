@@ -1,6 +1,7 @@
 import Quiz, { IQuiz, IQuizQuestion } from "@/models/Quiz";
 import Topic from "@/models/Topic";
 import mongoose from "mongoose";
+import { BadRequestError, NotFoundError } from "@/lib/errorHandler";
 
 interface SubmitAnswer {
   questionId: string;
@@ -9,8 +10,8 @@ interface SubmitAnswer {
 
 const arraysEqual = (a: number[], b: number[]) => {
   if (a.length !== b.length) return false;
-  const sortedA = [...a].sort();
-  const sortedB = [...b].sort();
+  const sortedA = [...a].sort((x, y) => x - y);
+  const sortedB = [...b].sort((x, y) => x - y);
   return sortedA.every((val, idx) => val === sortedB[idx]);
 };
 
@@ -48,11 +49,11 @@ type UpdateQuizData = Partial<
 // Get all quizzes for a topic
 export const getQuizzesByTopic = async (topicId: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(topicId)) {
-    throw new Error("Invalid topic ID");
+    throw new BadRequestError("Invalid topic ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   const quizzes = await Quiz.find({ topicId, userId }).sort({ createdAt: -1 });
@@ -62,17 +63,17 @@ export const getQuizzesByTopic = async (topicId: string, userId: string) => {
 // Get single quiz by ID
 export const getQuizById = async (id: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid quiz ID");
+    throw new BadRequestError("Invalid quiz ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   const quiz = await Quiz.findOne({ _id: id, userId });
 
   if (!quiz) {
-    throw new Error("Quiz not found");
+    throw new NotFoundError("Quiz not found");
   }
 
   return quiz;
@@ -96,16 +97,16 @@ export const createQuiz = async (data: CreateQuizData, userId: string) => {
 
   // Validate topic exists
   if (!mongoose.Types.ObjectId.isValid(topicId)) {
-    throw new Error("Invalid topic ID");
+    throw new BadRequestError("Invalid topic ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   const topic = await Topic.findOne({ _id: topicId, userId });
   if (!topic) {
-    throw new Error("Topic not found");
+    throw new NotFoundError("Topic not found");
   }
 
   // Create quiz
@@ -139,11 +140,11 @@ export const updateQuiz = async (
   userId: string,
 ) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid quiz ID");
+    throw new BadRequestError("Invalid quiz ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   const quiz = await Quiz.findOneAndUpdate({ _id: id, userId }, data, {
@@ -152,30 +153,35 @@ export const updateQuiz = async (
   });
 
   if (!quiz) {
-    throw new Error("Quiz not found");
+    throw new NotFoundError("Quiz not found");
   }
 
   return quiz;
 };
 
-// Submit a quiz attempt: scores answers server-side, records the attempt
+// Submit a quiz attempt: scores answers server-side, records the attempt,
+// and (via the caller-supplied session) logs a study session atomically so
+// a crash between the two writes can't drop one but not the other.
 export const submitQuizAttempt = async (
   id: string,
   userId: string,
   answers: SubmitAnswer[],
   timeTaken: number,
+  session?: mongoose.ClientSession,
 ) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid quiz ID");
+    throw new BadRequestError("Invalid quiz ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
-  const quiz = await Quiz.findOne({ _id: id, userId });
+  const quiz = await Quiz.findOne({ _id: id, userId }).session(
+    session ?? null,
+  );
   if (!quiz) {
-    throw new Error("Quiz not found");
+    throw new NotFoundError("Quiz not found");
   }
 
   let score = 0;
@@ -197,33 +203,40 @@ export const submitQuizAttempt = async (
     }
   }
 
-  quiz.attempts.push({
-    attemptId: new mongoose.Types.ObjectId(),
-    date: new Date(),
-    score,
-    totalPoints,
-    timeTaken,
-    answers: [],
-  });
-  await quiz.save();
+  const updatedQuiz = await Quiz.findOneAndUpdate(
+    { _id: id, userId },
+    {
+      $push: {
+        attempts: {
+          attemptId: new mongoose.Types.ObjectId(),
+          date: new Date(),
+          score,
+          totalPoints,
+          timeTaken,
+          answers: [],
+        },
+      },
+    },
+    { new: true, session },
+  );
 
-  return { quiz, score, totalPoints };
+  return { quiz: updatedQuiz, score, totalPoints };
 };
 
 // Delete quiz
 export const deleteQuiz = async (id: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid quiz ID");
+    throw new BadRequestError("Invalid quiz ID");
   }
 
   if (!mongoose.Types.ObjectId.isValid(userId)) {
-    throw new Error("Invalid user ID");
+    throw new BadRequestError("Invalid user ID");
   }
 
   const quiz = await Quiz.findOneAndDelete({ _id: id, userId });
 
   if (!quiz) {
-    throw new Error("Quiz not found");
+    throw new NotFoundError("Quiz not found");
   }
 
   // Update topic stats

@@ -179,6 +179,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
+        {/* Google/GitHub OAuth disabled for now - not needed for personal use
         <div className="!mt-6 !mb-4">
           <div className="relative !mb-4">
             <div className="absolute inset-0 flex items-center">
@@ -224,6 +225,7 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
+        */}
 
         <div className="text-center">
           <p style={{ color: "#cbd5e0" }}>

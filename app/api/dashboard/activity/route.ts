@@ -4,6 +4,7 @@ import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
 import Note from "@/models/Note";
 import Topic from "@/models/Topic";
+import { requireAuth } from "@/lib/serverAuth";
 import { ApiError } from "@/lib/errorHandler";
 
 type PopulatedTopicRef = { name?: string } | null | undefined;
@@ -12,20 +13,31 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
+    let userId: string;
+    try {
+      userId = await requireAuth(request as Request);
+    } catch (err) {
+      const e = err as ApiError;
+      return NextResponse.json(
+        { success: false, message: e.message || "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get("limit") || "10", 10);
 
     // Fetch recent activities from different resources
     const [recentNotes, recentFlashcards, recentQuizzes] = await Promise.all([
-      Note.find()
+      Note.find({ userId })
         .sort({ updatedAt: -1 })
         .limit(limit)
         .populate("topicId", "name"),
-      Flashcard.find()
+      Flashcard.find({ userId })
         .sort({ updatedAt: -1 })
         .limit(limit)
         .populate("topicId", "name"),
-      Quiz.find()
+      Quiz.find({ userId })
         .sort({ updatedAt: -1 })
         .limit(limit)
         .populate("topicId", "name"),
