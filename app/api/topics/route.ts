@@ -25,8 +25,10 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get("parentId");
+    const favoriteParam = searchParams.get("favorite");
+    const favorite = favoriteParam === "true" ? true : undefined;
 
-    const topics = await topicController.getAllTopics(parentId, userId);
+    const topics = await topicController.getAllTopics(parentId, userId, favorite);
 
     return NextResponse.json(
       {

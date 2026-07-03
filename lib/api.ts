@@ -248,6 +248,10 @@ export const topicAPI = {
     return fetchAPI<ApiResponse<ApiTopic[]>>(endpoint);
   },
 
+  getFavorites: async () => {
+    return fetchAPI<ApiResponse<ApiTopic[]>>("/topics?favorite=true");
+  },
+
   getById: async (id: string) => {
     return fetchAPI<ApiResponse<ApiTopic>>(`/topics/${id}`);
   },

@@ -8,10 +8,11 @@ import {
 
 export const topicController = {
   // Get all topics or filter by parentId
-  async getAllTopics(parentId?: string | null, userId?: string) {
+  async getAllTopics(parentId?: string | null, userId?: string, favorite?: boolean) {
     const query: {
       userId?: mongoose.Types.ObjectId;
       parentId?: string | null;
+      favorite?: boolean;
     } = {};
 
     // Always filter by userId
@@ -25,6 +26,10 @@ export const topicController = {
       } else {
         query.parentId = parentId;
       }
+    }
+
+    if (favorite === true) {
+      query.favorite = true;
     }
 
     const topics = await Topic.find(query).sort({ createdAt: -1 });

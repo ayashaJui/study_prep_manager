@@ -12,6 +12,7 @@ import MobileMenu from "@/components/layout/MobileMenu";
 import Dashboard from "@/components/views/Dashboard";
 import PinnedNotes from "@/components/views/PinnedNotes";
 import StudySessionHistory from "@/components/views/StudySessionHistory";
+import FavoriteTopics from "@/components/views/FavoriteTopics";
 import TopicContent from "@/components/views/TopicContent";
 import SubtopicContent from "@/components/views/SubtopicContent";
 import Modal from "@/components/ui/Modal";
@@ -39,6 +40,7 @@ function HomeContent() {
     navigateToDashboard,
     navigateToPinnedNotes,
     navigateToSessionHistory,
+    navigateToFavorites,
     navigateToTopic,
     navigateToSubtopic,
     navigateToSubtopicPath,
@@ -279,6 +281,7 @@ function HomeContent() {
               notesCount: topic.stats?.notesCount || 0,
               flashcardsCount: topic.stats?.flashcardsCount || 0,
               quizzesCount: topic.stats?.quizzesCount || 0,
+              favorite: topic.favorite ?? false,
               subtopics,
             };
           }),
@@ -506,6 +509,19 @@ function HomeContent() {
     );
   }
 
+  const handleToggleFavorite = async (topicId: string, current: boolean) => {
+    setTopics((prev) =>
+      prev.map((t) => (t.id === topicId ? { ...t, favorite: !current } : t)),
+    );
+    try {
+      await topicAPI.update(topicId, { favorite: !current });
+    } catch {
+      setTopics((prev) =>
+        prev.map((t) => (t.id === topicId ? { ...t, favorite: current } : t)),
+      );
+    }
+  };
+
   const handleAddTopic = async () => {
     if (!newTopicName.trim()) return;
 
@@ -550,7 +566,9 @@ function HomeContent() {
               ? "Pinned Notes"
               : view === "sessions"
                 ? "Session History"
-                : "Dashboard",
+                : view === "favorites"
+                  ? "Favorites"
+                  : "Dashboard",
         },
       ]
     : subtopicPath.length > 0
@@ -603,6 +621,8 @@ function HomeContent() {
             onDashboardSelect={navigateToDashboard}
             onPinnedNotesSelect={navigateToPinnedNotes}
             onSessionHistorySelect={navigateToSessionHistory}
+            onFavoritesSelect={navigateToFavorites}
+            onToggleFavorite={handleToggleFavorite}
             onTopicSelect={navigateToTopic}
             onSubtopicSelect={navigateToSubtopic}
             onAddTopic={() => setIsAddTopicModalOpen(true)}
@@ -858,6 +878,12 @@ function HomeContent() {
               onOpenNote={(topicId, noteId) =>
                 navigateToTopicTab(topicId, "notes", { note: noteId })
               }
+            />
+          ) : !activeTopic && view === "favorites" ? (
+            <FavoriteTopics
+              topics={topics.filter((t) => t.favorite)}
+              onTopicSelect={navigateToTopic}
+              onUnfavorite={(topicId) => handleToggleFavorite(topicId, true)}
             />
           ) : !activeTopic && view === "sessions" ? (
             <StudySessionHistory />

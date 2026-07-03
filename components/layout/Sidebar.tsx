@@ -10,12 +10,14 @@ import {
   LayoutDashboard,
   Pin,
   History,
+  Star,
 } from "lucide-react";
 
 interface Topic {
   id: string;
   name: string;
   slug?: string;
+  favorite?: boolean;
   subtopics?: Subtopic[];
 }
 
@@ -30,10 +32,12 @@ interface SidebarProps {
   topics: Topic[];
   activeTopic?: string;
   activeSubtopic?: string;
-  activeView?: "dashboard" | "pinned" | "sessions";
+  activeView?: "dashboard" | "pinned" | "sessions" | "favorites";
   onDashboardSelect: () => void;
   onPinnedNotesSelect: () => void;
   onSessionHistorySelect: () => void;
+  onFavoritesSelect: () => void;
+  onToggleFavorite: (topicId: string, current: boolean) => void;
   onTopicSelect: (topicSlug: string) => void;
   onSubtopicSelect: (topicSlug: string, subtopicSlug: string) => void;
   onAddTopic: () => void;
@@ -47,6 +51,8 @@ export default function Sidebar({
   onDashboardSelect,
   onPinnedNotesSelect,
   onSessionHistorySelect,
+  onFavoritesSelect,
+  onToggleFavorite,
   onTopicSelect,
   onSubtopicSelect,
   onAddTopic,
@@ -102,7 +108,7 @@ export default function Sidebar({
         <li>
           <div
             className={`flex items-center gap-2 !px-3 !py-2.5 rounded-md cursor-pointer transition-all border-l-3 ${
-              !activeTopic && activeView !== "pinned"
+              !activeTopic && activeView !== "pinned" && activeView !== "sessions" && activeView !== "favorites"
                 ? "border-purple-500 bg-purple-500/10 text-white"
                 : "border-transparent text-slate-300 hover:bg-slate-700/50 hover:border-slate-600"
             }`}
@@ -143,6 +149,21 @@ export default function Sidebar({
           </div>
         </li>
 
+        {/* Favorites Item */}
+        <li>
+          <div
+            className={`flex items-center gap-2 !px-3 !py-2.5 rounded-md cursor-pointer transition-all border-l-3 ${
+              !activeTopic && activeView === "favorites"
+                ? "border-purple-500 bg-purple-500/10 text-white"
+                : "border-transparent text-slate-300 hover:bg-slate-700/50 hover:border-slate-600"
+            }`}
+            onClick={onFavoritesSelect}
+          >
+            <Star size={16} className="flex-shrink-0" />
+            <span className="flex-1 text-sm font-medium">Favorites</span>
+          </div>
+        </li>
+
         {/* Topics List */}
         {filteredTopics.map((topic) => (
           <li key={topic.id}>
@@ -175,6 +196,17 @@ export default function Sidebar({
               <span className="flex-1 text-sm font-medium truncate">
                 {topic.name}
               </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite(topic.id, !!topic.favorite);
+                }}
+                className="flex-shrink-0 transition-colors"
+                style={{ color: topic.favorite ? "#facc15" : "#475569" }}
+                title={topic.favorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Star size={13} fill={topic.favorite ? "#facc15" : "none"} />
+              </button>
             </div>
 
             {topic.subtopics && expandedTopics.has(topic.id) && (

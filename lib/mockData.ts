@@ -10,6 +10,7 @@ export interface Topic {
   notesCount?: number;
   flashcardsCount?: number;
   quizzesCount?: number;
+  favorite?: boolean;
   subtopics: Subtopic[];
 }
 
