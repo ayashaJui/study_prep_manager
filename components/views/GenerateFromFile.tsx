@@ -45,9 +45,6 @@ export default function GenerateFromFile({
   const parseContentToFlashcards = (text: string) => {
     const flashcards: Array<{ front: string; back: string }> = [];
 
-    // Simple parsing: Look for Q&A patterns or headings with content
-    const lines = text.split("\n").filter((line) => line.trim());
-
     // Pattern 1: Q: ... A: ...
     const qaPattern = /Q:\s*(.+?)\s*A:\s*(.+)/gi;
     let match;
@@ -100,7 +97,7 @@ export default function GenerateFromFile({
       (line) => line.startsWith("#") || line.endsWith(":"),
     );
 
-    headings.slice(0, 10).forEach((heading, idx) => {
+    headings.slice(0, 10).forEach((heading) => {
       const cleanHeading = heading.replace(/^#+\s*/, "").replace(/:$/, "");
 
       quizzes.push({

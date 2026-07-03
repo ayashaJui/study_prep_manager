@@ -6,7 +6,6 @@ import Button from "@/components/ui/Button";
 import {
   Plus,
   ChevronRight,
-  Trash2,
   LayoutDashboard,
   Pin,
   History,

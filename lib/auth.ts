@@ -9,7 +9,6 @@ if (process.env.NODE_ENV === "production" && !RAW_JWT_SECRET) {
 }
 if (!RAW_JWT_SECRET) {
   // Development fallback but warn loudly
-  // eslint-disable-next-line no-console
   console.warn(
     "Warning: JWT_SECRET is not set — using insecure default for development only.",
   );
@@ -31,7 +30,7 @@ export const verifyTokenSignature = (
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     return decoded as { userId: string };
-  } catch (error) {
+  } catch {
     return null;
   }
 };
@@ -41,7 +40,7 @@ export const verifyToken = (token: string): { userId: string } | null => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     return decoded as { userId: string };
-  } catch (error) {
+  } catch {
     return null;
   }
 };

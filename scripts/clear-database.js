@@ -59,7 +59,7 @@ async function clearDatabase() {
     console.error("\n❌ Error clearing database:", error.message);
     try {
       await mongoose.disconnect();
-    } catch (e) {
+    } catch {
       // Ignore disconnect errors
     }
     process.exit(1);

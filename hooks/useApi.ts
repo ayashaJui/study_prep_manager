@@ -3,7 +3,7 @@
  * These hooks will be used to fetch data from the backend API
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export interface UseApiOptions<T = unknown> {
   enabled?: boolean;
@@ -31,7 +31,7 @@ export function useApi<T>(
 
   const { enabled = true, onSuccess, onError } = options;
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!enabled) return;
 
     setIsLoading(true);
@@ -48,11 +48,11 @@ export function useApi<T>(
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [enabled, apiFunction, onSuccess, onError]);
 
   useEffect(() => {
     fetchData();
-  }, [enabled]);
+  }, [fetchData]);
 
   return {
     data,

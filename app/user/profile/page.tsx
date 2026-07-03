@@ -170,12 +170,15 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-4">
                     <div className="w-20 h-20 rounded-2xl flex items-center justify-center overflow-hidden border border-indigo-400/30 bg-slate-900">
                       {formData.avatar && !imageError ? (
-                        <img
-                          src={formData.avatar}
-                          alt="Avatar preview"
-                          className="w-full h-full object-cover"
-                          onError={() => setImageError(true)}
-                        />
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={formData.avatar}
+                            alt="Avatar preview"
+                            className="w-full h-full object-cover"
+                            onError={() => setImageError(true)}
+                          />
+                        </>
                       ) : (
                         <span className="text-2xl font-semibold text-indigo-200">
                           {initials}
@@ -273,12 +276,15 @@ export default function ProfilePage() {
                     <div className="!mt-4 flex items-center !gap-4">
                       <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-800 border border-slate-700 flex items-center justify-center">
                         {formData.avatar && !imageError ? (
-                          <img
-                            src={formData.avatar}
-                            alt="Avatar preview"
-                            className="w-full h-full object-cover"
-                            onError={() => setImageError(true)}
-                          />
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={formData.avatar}
+                              alt="Avatar preview"
+                              className="w-full h-full object-cover"
+                              onError={() => setImageError(true)}
+                            />
+                          </>
                         ) : (
                           <span className="text-sm font-semibold text-indigo-200">
                             {initials}

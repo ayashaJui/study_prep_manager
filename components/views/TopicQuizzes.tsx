@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Sparkles, Upload, Download } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Plus, Upload, Download } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
 import QuizList from "@/components/features/QuizList";
@@ -70,19 +70,7 @@ export default function TopicQuizzes({
     );
   };
 
-  useEffect(() => {
-    if (topicId) {
-      fetchQuizzes();
-    }
-  }, [topicId]);
-
-  useEffect(() => {
-    if (initialQuizId && quizzes.length > 0) {
-      setActiveQuizId(initialQuizId);
-    }
-  }, [initialQuizId, quizzes]);
-
-  const fetchQuizzes = async () => {
+  const fetchQuizzes = useCallback(async () => {
     try {
       setLoading(true);
       const data = await quizzesAPI.getAll(topicId);
@@ -93,7 +81,19 @@ export default function TopicQuizzes({
     } finally {
       setLoading(false);
     }
-  };
+  }, [topicId, showError]);
+
+  useEffect(() => {
+    if (topicId) {
+      fetchQuizzes();
+    }
+  }, [topicId, fetchQuizzes]);
+
+  useEffect(() => {
+    if (initialQuizId && quizzes.length > 0) {
+      setActiveQuizId(initialQuizId);
+    }
+  }, [initialQuizId, quizzes]);
 
   const handleCreateQuiz = async (quizData: QuizFormData) => {
     try {

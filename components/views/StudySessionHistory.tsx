@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { History, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -35,11 +35,7 @@ export default function StudySessionHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSessions(page);
-  }, [page]);
-
-  const fetchSessions = async (pageToLoad: number) => {
+  const fetchSessions = useCallback(async (pageToLoad: number) => {
     try {
       setLoading(true);
       setError(null);
@@ -61,7 +57,11 @@ export default function StudySessionHistory() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
+
+  useEffect(() => {
+    fetchSessions(page);
+  }, [page, fetchSessions]);
 
   if (loading) {
     return (

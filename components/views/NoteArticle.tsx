@@ -7,18 +7,15 @@ import {
   ArrowLeft,
   Edit2,
   Image as ImageIcon,
-  Upload,
   Pin,
   PinOff,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
-import { uploadAPI } from "@/lib/api";
-import { useToast } from "@/contexts/ToastContext";
 import {
   deriveNoteTitle,
   estimateReadingMinutes,
@@ -49,9 +46,6 @@ export default function NoteArticle({
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [showImageInsert, setShowImageInsert] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploadingInline, setUploadingInline] = useState(false);
-  const inlineFileInputRef = useRef<HTMLInputElement>(null);
-  const { showError } = useToast();
 
   const handleSave = async () => {
     if (!onSave) return;
@@ -85,25 +79,6 @@ export default function NoteArticle({
     insertImageMarkdown(imageUrlInput.trim());
     setImageUrlInput("");
     setShowImageInsert(false);
-  };
-
-  const handleInlineFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    setUploadingInline(true);
-    try {
-      const url = await uploadAPI.uploadImage(file);
-      insertImageMarkdown(url);
-      setShowImageInsert(false);
-    } catch (error) {
-      showError(error instanceof Error ? error.message : "Failed to upload image");
-    } finally {
-      setUploadingInline(false);
-    }
   };
 
   const readingMinutes = estimateReadingMinutes(note.content || "");

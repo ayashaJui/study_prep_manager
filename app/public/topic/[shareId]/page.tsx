@@ -204,7 +204,11 @@ function FlashcardsTab({ flashcards }: { flashcards: PublicFlashcard[] }) {
   const toggleKnown = () => {
     setKnown((prev) => {
       const next = new Set(prev);
-      next.has(current.id) ? next.delete(current.id) : next.add(current.id);
+      if (next.has(current.id)) {
+        next.delete(current.id);
+      } else {
+        next.add(current.id);
+      }
       return next;
     });
   };

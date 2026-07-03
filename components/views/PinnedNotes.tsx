@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pin, BookOpen, Clock } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -21,11 +21,7 @@ export default function PinnedNotes({ onOpenNote }: PinnedNotesProps) {
   const [loading, setLoading] = useState(true);
   const { showError } = useToast();
 
-  useEffect(() => {
-    fetchPinned();
-  }, []);
-
-  const fetchPinned = async () => {
+  const fetchPinned = useCallback(async () => {
     try {
       setLoading(true);
       const data = await notesAPI.getPinned();
@@ -38,7 +34,11 @@ export default function PinnedNotes({ onOpenNote }: PinnedNotesProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
+
+  useEffect(() => {
+    fetchPinned();
+  }, [fetchPinned]);
 
   const handleUnpin = async (id: string) => {
     try {

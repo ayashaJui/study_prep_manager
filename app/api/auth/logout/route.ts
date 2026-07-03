@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { clearAuthCookie } from "@/lib/auth";
 import { ApiError } from "@/lib/errorHandler";
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const response = NextResponse.json(
       {

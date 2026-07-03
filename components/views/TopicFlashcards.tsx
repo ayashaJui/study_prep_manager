@@ -1,18 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Plus,
   Play,
   Shuffle,
-  Sparkles,
   Upload,
   Download,
   X,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
-import { Input, Textarea } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import FlashcardGrid from "@/components/features/FlashcardGrid";
@@ -89,26 +88,7 @@ export default function TopicFlashcards({
       selectedTags.every((t) => (f.tags || []).includes(t)),
   );
 
-  useEffect(() => {
-    if (topicId) {
-      fetchFlashcards();
-    }
-  }, [topicId]);
-
-  const autoOpenedFlashcardId = useRef<string | undefined>(undefined);
-
-  useEffect(() => {
-    if (
-      initialFlashcardId &&
-      flashcards.length > 0 &&
-      autoOpenedFlashcardId.current !== initialFlashcardId
-    ) {
-      autoOpenedFlashcardId.current = initialFlashcardId;
-      handleEditFlashcard(initialFlashcardId);
-    }
-  }, [initialFlashcardId, flashcards]);
-
-  const fetchFlashcards = async () => {
+  const fetchFlashcards = useCallback(async () => {
     try {
       setLoading(true);
       const data = await flashcardsAPI.getAll(topicId);
@@ -121,7 +101,33 @@ export default function TopicFlashcards({
     } finally {
       setLoading(false);
     }
-  };
+  }, [topicId, showError]);
+
+  const handleEditFlashcard = useCallback((id: string) => {
+    const flashcard = flashcards.find((f) => f._id === id);
+    if (flashcard) {
+      setEditingFlashcard(flashcard);
+    }
+  }, [flashcards]);
+
+  useEffect(() => {
+    if (topicId) {
+      fetchFlashcards();
+    }
+  }, [topicId, fetchFlashcards]);
+
+  const autoOpenedFlashcardId = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (
+      initialFlashcardId &&
+      flashcards.length > 0 &&
+      autoOpenedFlashcardId.current !== initialFlashcardId
+    ) {
+      autoOpenedFlashcardId.current = initialFlashcardId;
+      handleEditFlashcard(initialFlashcardId);
+    }
+  }, [initialFlashcardId, flashcards, handleEditFlashcard]);
 
   const handleAddFlashcard = async () => {
     if (!newFlashcard.front.trim() || !newFlashcard.back.trim()) {
@@ -150,12 +156,6 @@ export default function TopicFlashcards({
     }
   };
 
-  const handleEditFlashcard = (id: string) => {
-    const flashcard = flashcards.find((f) => f._id === id);
-    if (flashcard) {
-      setEditingFlashcard(flashcard);
-    }
-  };
 
   const handleUpdateFlashcard = async () => {
     if (

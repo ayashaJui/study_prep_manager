@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -51,20 +51,12 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
 
-  // Timer
+  // Timer — only decrements, submit is handled by a separate effect
   useEffect(() => {
     if (timeRemaining === null || timeRemaining <= 0 || isSubmitted) return;
-
     const timer = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev === null || prev <= 1) {
-          handleSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeRemaining((prev) => (prev !== null && prev > 1 ? prev - 1 : 0));
     }, 1000);
-
     return () => clearInterval(timer);
   }, [timeRemaining, isSubmitted]);
 
@@ -108,7 +100,7 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
     return sortedA.every((val, idx) => val === sortedB[idx]);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     setIsSubmitted(true);
     const score = selectedAnswers.reduce<number>((acc, answer, index) => {
       if (answer === null) return acc;
@@ -133,7 +125,14 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
       .catch((err) => console.error("Failed to log quiz attempt", err));
 
     onComplete((score / quiz.questions.length) * 100);
-  };
+  }, [selectedAnswers, quiz.questions, quiz.id, startedAt, onComplete]);
+
+  // Auto-submit when the countdown reaches zero
+  useEffect(() => {
+    if (timeRemaining !== 0 || isSubmitted) return;
+    const id = setTimeout(handleSubmit, 0);
+    return () => clearTimeout(id);
+  }, [timeRemaining, isSubmitted, handleSubmit]);
 
   const getScore = (): number => {
     return selectedAnswers.reduce<number>((acc, answer, index) => {

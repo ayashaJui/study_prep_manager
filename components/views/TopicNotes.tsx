@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Save } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardTitle, CardSection } from "@/components/ui/Card";
@@ -71,20 +71,7 @@ export default function TopicNotes({
       );
     });
 
-  // Fetch notes on mount
-  useEffect(() => {
-    if (topicId) {
-      fetchNotes();
-    }
-  }, [topicId]);
-
-  useEffect(() => {
-    if (initialNoteId) {
-      setSelectedNoteId(initialNoteId);
-    }
-  }, [initialNoteId]);
-
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     try {
       setLoading(true);
       const data = await notesAPI.getAll(topicId);
@@ -95,7 +82,19 @@ export default function TopicNotes({
     } finally {
       setLoading(false);
     }
-  };
+  }, [topicId, showError]);
+
+  useEffect(() => {
+    if (topicId) {
+      fetchNotes();
+    }
+  }, [topicId, fetchNotes]);
+
+  useEffect(() => {
+    if (initialNoteId) {
+      setSelectedNoteId(initialNoteId);
+    }
+  }, [initialNoteId]);
 
   const handleAddNote = async () => {
     if (!newNoteContent.trim()) {

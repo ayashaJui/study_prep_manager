@@ -3,7 +3,6 @@ import connectDB from "@/lib/db";
 import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
 import Note from "@/models/Note";
-import Topic from "@/models/Topic";
 import { requireAuth } from "@/lib/serverAuth";
 import { ApiError } from "@/lib/errorHandler";
 
@@ -73,7 +72,7 @@ export async function GET(request: NextRequest) {
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       )
       .slice(0, limit)
-      .map(({ timestamp, ...rest }) => rest); // Remove internal timestamp field
+      .map(({ timestamp: _ts, ...rest }) => rest); // Remove internal timestamp field
 
     return NextResponse.json(
       {

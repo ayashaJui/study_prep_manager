@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, Suspense } from "react";
 import type { KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -51,7 +51,6 @@ function HomeContent() {
   const [newTopicName, setNewTopicName] = useState("");
   const [newTopicDescription, setNewTopicDescription] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResults | null>(
@@ -85,13 +84,6 @@ function HomeContent() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  // Fetch topics on mount
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      fetchTopics();
-    }
-  }, [authLoading, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -208,14 +200,13 @@ function HomeContent() {
     target.scrollIntoView({ block: "nearest" });
   }, [highlightIndex, searchItems.length]);
 
-  const fetchTopics = async () => {
+  const fetchTopics = useCallback(async () => {
     try {
       if (!isAuthenticated) {
         setTopics([]);
         return;
       }
 
-      setIsLoading(true);
       setError(null);
 
       // First fetch only top-level topics (parentId = null)
@@ -291,10 +282,14 @@ function HomeContent() {
     } catch (err) {
       console.error("Failed to fetch topics:", err);
       setError(err instanceof Error ? err.message : "Failed to load topics");
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      fetchTopics();
+    }
+  }, [authLoading, isAuthenticated, fetchTopics]);
 
   const currentTopic = topics.find(
     (t) => t.slug === activeTopic || t.id === activeTopic,

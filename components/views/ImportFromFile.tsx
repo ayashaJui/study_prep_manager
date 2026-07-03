@@ -102,7 +102,7 @@ export default function ImportFromFile({
           }
           onImport({ quizzes });
         }
-      } catch (err) {
+      } catch {
         setError("Error parsing file. Please check the format.");
       }
     };
