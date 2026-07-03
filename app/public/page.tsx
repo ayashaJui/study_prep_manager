@@ -49,14 +49,13 @@ export default function ExplorePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
     fetch(`/api/public/topics?page=${page}&limit=20`)
       .then((r) => r.json())
       .then((res) => {
         if (!res.success) throw new Error(res.message || "Failed to load");
         setTopics(res.data);
         setPagination(res.pagination);
+        setError(null);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
       .finally(() => setLoading(false));
@@ -222,7 +221,7 @@ export default function ExplorePage() {
             {pagination && pagination.pages > 1 && (
               <div className="flex items-center justify-center gap-4 !mt-10">
                 <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => { setLoading(true); setPage((p) => Math.max(1, p - 1)); }}
                   disabled={page === 1}
                   className="!px-5 !py-2.5 rounded-xl text-sm text-slate-300 border border-slate-700 hover:border-violet-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   style={{ background: "rgba(30, 41, 66, 0.6)" }}
@@ -233,7 +232,7 @@ export default function ExplorePage() {
                   Page {page} of {pagination.pages}
                 </span>
                 <button
-                  onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+                  onClick={() => { setLoading(true); setPage((p) => Math.min(pagination.pages, p + 1)); }}
                   disabled={page === pagination.pages}
                   className="!px-5 !py-2.5 rounded-xl text-sm text-slate-300 border border-slate-700 hover:border-violet-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   style={{ background: "rgba(30, 41, 66, 0.6)" }}

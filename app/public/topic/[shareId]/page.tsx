@@ -418,9 +418,13 @@ function QuizPlayer({ quiz, onBack }: { quiz: PublicQuiz; onBack: () => void }) 
     return () => clearInterval(t);
   }, [timeLeft, submitted]);
 
+  const handleSubmit = () => setSubmitted(true);
+
   useEffect(() => {
-    if (timeLeft === 0 && !submitted) handleSubmit();
-  }, [timeLeft]);
+    if (timeLeft !== 0 || submitted) return;
+    const id = setTimeout(() => setSubmitted(true), 0);
+    return () => clearTimeout(id);
+  }, [timeLeft, submitted]);
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -435,8 +439,6 @@ function QuizPlayer({ quiz, onBack }: { quiz: PublicQuiz; onBack: () => void }) 
       return next;
     });
   };
-
-  const handleSubmit = () => setSubmitted(true);
 
   const score = submitted
     ? answers.reduce<number>((acc, ans, i) => {
