@@ -6,11 +6,9 @@ import SubtopicDetail from "@/components/views/SubtopicDetail";
 import TopicNotes from "@/components/views/TopicNotes";
 import TopicFlashcards from "@/components/views/TopicFlashcards";
 import TopicQuizzes from "@/components/views/TopicQuizzes";
-import TakeQuiz from "@/components/views/TakeQuiz";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
-import { mockNotes, mockFlashcards, mockQuizzes } from "@/lib/mockData";
 import { topicAPI } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -53,7 +51,6 @@ export default function SubtopicContent({
   onSubtopicAdded,
 }: SubtopicContentProps) {
   const { showSuccess, showError } = useToast();
-  const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [isAddSubtopicModalOpen, setIsAddSubtopicModalOpen] = useState(false);
   const [newSubtopicName, setNewSubtopicName] = useState("");
   const [newSubtopicDescription, setNewSubtopicDescription] = useState("");
@@ -127,19 +124,6 @@ export default function SubtopicContent({
     }
   };
 
-  const handleTakeQuiz = (quizId: string) => {
-    setActiveQuizId(quizId);
-  };
-
-  const handleQuizComplete = (score: number) => {
-    console.log("Quiz completed with score:", score);
-    // In real implementation, update quiz with:
-    // - lastScore: score
-    // - lastAttemptDate: new Date().toLocaleDateString()
-    // - attempts: attempts + 1
-    // Keep modal open to show results - user will close it manually
-  };
-
   const handleAddSubtopic = async () => {
     if (!newSubtopicName.trim()) return;
 
@@ -158,8 +142,6 @@ export default function SubtopicContent({
       });
 
       if (response.success) {
-        console.log("Subtopic created:", response.data);
-
         setNewSubtopicName("");
         setNewSubtopicDescription("");
         setIsAddSubtopicModalOpen(false);
@@ -241,14 +223,6 @@ export default function SubtopicContent({
 
       {activeTab === "quizzes" && (
         <TopicQuizzes topicId={subtopic.id} topicName={subtopic.name} />
-      )}
-
-      {activeQuizId && (
-        <TakeQuiz
-          quiz={mockQuizzes.find((q) => q.id === activeQuizId)!}
-          onClose={() => setActiveQuizId(null)}
-          onComplete={handleQuizComplete}
-        />
       )}
 
       <Modal

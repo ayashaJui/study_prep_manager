@@ -208,6 +208,7 @@ topicSchema.index({ userId: 1, path: 1 });
 topicSchema.index({ userId: 1, tags: 1 });
 topicSchema.index({ createdAt: -1 });
 topicSchema.index({ shareId: 1 }, { unique: true, sparse: true });
+topicSchema.index({ isPublic: 1, createdAt: -1 });
 
 export default mongoose.models.Topic ||
   mongoose.model<ITopicDocument, ITopicModel>("Topic", topicSchema);

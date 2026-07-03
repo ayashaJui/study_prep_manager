@@ -1,6 +1,6 @@
 "use client";
 
-import { Book, Menu, LogOut, User, Settings } from "lucide-react";
+import { Book, Menu, LogOut, User, Settings, Globe } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import Button from "@/components/ui/Button";
@@ -19,7 +19,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const handleLogout = async () => {
     await logout();
     setIsDropdownOpen(false);
-    router.replace("/auth/login");
+    router.replace("/");
   };
 
   return (
@@ -55,6 +55,13 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
         {/* Auth Section */}
         <div className="flex items-center gap-2 md:gap-4">
+          <Link
+            href="/public"
+            className="flex items-center gap-1.5 text-sm text-white/80 hover:text-white transition-colors !px-2 !py-1 rounded-lg hover:bg-white/10"
+          >
+            <Globe size={16} />
+            <span className="hidden sm:inline">Explore</span>
+          </Link>
           {isLoading ? (
             <div className="h-10 w-24 bg-white/20 rounded-lg animate-pulse" />
           ) : isAuthenticated && user ? (

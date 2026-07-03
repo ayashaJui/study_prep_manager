@@ -106,8 +106,6 @@ export default function TopicContent({
       });
 
       if (response.success) {
-        console.log("Subtopic created:", response.data);
-
         setNewSubtopicName("");
         setNewSubtopicDescription("");
         setIsAddSubtopicModalOpen(false);

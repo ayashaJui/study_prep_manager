@@ -5,12 +5,22 @@ import Note from "@/models/Note";
 import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
 import { ApiError } from "@/lib/errorHandler";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ shareId: string }> },
 ) {
   try {
+    const ip = getClientIp(request as Request);
+    const rl = rateLimit({ key: `public-topic:${ip}`, limit: 60, windowMs: 60_000 });
+    if (!rl.ok) {
+      return NextResponse.json(
+        { success: false, message: "Too many requests" },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } },
+      );
+    }
+
     await connectDB();
     const { shareId } = await params;
 
@@ -22,11 +32,10 @@ export async function GET(
       );
     }
 
-    // Fetch related content
     const [notes, flashcards, quizzes] = await Promise.all([
-      Note.find({ topicId: topic._id }).lean(),
-      Flashcard.find({ topicId: topic._id }).lean(),
-      Quiz.find({ topicId: topic._id }).lean(),
+      Note.find({ topicId: topic._id, userId: topic.userId }).lean(),
+      Flashcard.find({ topicId: topic._id, userId: topic.userId }).lean(),
+      Quiz.find({ topicId: topic._id, userId: topic.userId }).lean(),
     ]);
 
     return NextResponse.json(
@@ -37,21 +46,36 @@ export async function GET(
             id: topic._id,
             name: topic.name,
             description: topic.description,
+            tags: topic.tags || [],
           },
           notes: notes.map((n) => ({
             id: n._id,
-            title: n.title,
             content: n.content,
+            tags: n.tags || [],
+            pinned: n.pinned,
+            createdAt: n.createdAt,
           })),
           flashcards: flashcards.map((f) => ({
             id: f._id,
             front: f.front,
             back: f.back,
+            difficulty: f.difficulty,
+            tags: f.tags || [],
           })),
           quizzes: quizzes.map((q) => ({
             id: q._id,
             title: q.title,
-            questionsCount: q.questions?.length || 0,
+            description: q.description || null,
+            difficulty: q.difficulty,
+            tags: q.tags || [],
+            timeLimit: q.timeLimit || null,
+            questions: (q.questions || []).map((qu: { id: string; question: string; options: string[]; correctAnswer: number | number[]; explanation?: string }) => ({
+              id: qu.id,
+              question: qu.question,
+              options: qu.options,
+              correctAnswer: qu.correctAnswer,
+              explanation: qu.explanation || null,
+            })),
           })),
         },
       },

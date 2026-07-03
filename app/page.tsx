@@ -17,7 +17,7 @@ import SubtopicContent from "@/components/views/SubtopicContent";
 import Modal from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { mockTopics, Topic, Subtopic } from "@/lib/mockData";
+import { Topic, Subtopic } from "@/lib/mockData";
 import { topicAPI, searchAPI, ApiTopic, SearchResults } from "@/lib/api";
 import SearchBox from "@/components/ui/SearchBox";
 import { useNavigation } from "@/hooks/useNavigation";
@@ -288,8 +288,6 @@ function HomeContent() {
     } catch (err) {
       console.error("Failed to fetch topics:", err);
       setError(err instanceof Error ? err.message : "Failed to load topics");
-      // Fallback to mock data on error
-      setTopics(mockTopics);
     } finally {
       setIsLoading(false);
     }
@@ -404,6 +402,12 @@ function HomeContent() {
               StudyNest
             </div>
             <div className="hidden sm:flex items-center gap-3">
+              <Link
+                href="/public"
+                className="text-sm text-slate-400 hover:text-slate-200 transition-colors !px-3 !py-2"
+              >
+                Explore
+              </Link>
               <Link href="/auth/login">
                 <Button
                   variant="secondary"
@@ -453,6 +457,18 @@ function HomeContent() {
                     }}
                   >
                     I already have an account
+                  </Button>
+                </Link>
+                <Link href="/public">
+                  <Button
+                    variant="secondary"
+                    style={{
+                      borderColor: "rgba(148,163,184,0.2)",
+                      color: "#94a3b8",
+                      background: "transparent",
+                    }}
+                  >
+                    Browse shared topics
                   </Button>
                 </Link>
               </div>
@@ -821,6 +837,21 @@ function HomeContent() {
           </div>
 
           <Breadcrumb items={breadcrumbItems} />
+
+          {error && topics.length === 0 && (
+            <div
+              className="rounded-xl border !px-5 !py-4 !mb-4 flex items-center justify-between gap-4"
+              style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.25)" }}
+            >
+              <p className="text-sm text-red-400">{error}</p>
+              <button
+                onClick={fetchTopics}
+                className="text-xs text-red-300 hover:text-red-200 underline shrink-0 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {!activeTopic && view === "pinned" ? (
             <PinnedNotes

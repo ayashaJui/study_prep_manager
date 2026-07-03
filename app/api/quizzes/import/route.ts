@@ -64,6 +64,10 @@ export async function POST(request: NextRequest) {
       ),
     );
 
+    await Topic.findByIdAndUpdate(topicId, {
+      $inc: { "stats.quizzesCount": created.length },
+    });
+
     return NextResponse.json(
       { success: true, data: created },
       { status: 201 },
