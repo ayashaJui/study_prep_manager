@@ -273,6 +273,7 @@ function HomeContent() {
               flashcardsCount: topic.stats?.flashcardsCount || 0,
               quizzesCount: topic.stats?.quizzesCount || 0,
               favorite: topic.favorite ?? false,
+              createdAt: topic.createdAt,
               subtopics,
             };
           }),

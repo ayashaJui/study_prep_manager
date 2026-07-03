@@ -10,13 +10,17 @@ import {
   Pin,
   History,
   Star,
+  ArrowUpDown,
 } from "lucide-react";
+
+type SortOrder = "newest" | "oldest" | "az" | "za";
 
 interface Topic {
   id: string;
   name: string;
   slug?: string;
   favorite?: boolean;
+  createdAt?: string;
   subtopics?: Subtopic[];
 }
 
@@ -57,6 +61,7 @@ export default function Sidebar({
   onAddTopic,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const [initialExpanded, setInitialExpanded] = useState(false);
 
@@ -77,9 +82,22 @@ export default function Sidebar({
     });
   };
 
-  const filteredTopics = topics.filter((topic) =>
-    topic.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredTopics = topics
+    .filter((topic) =>
+      topic.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
+    .sort((a, b) => {
+      switch (sortOrder) {
+        case "az":
+          return a.name.localeCompare(b.name);
+        case "za":
+          return b.name.localeCompare(a.name);
+        case "oldest":
+          return (a.createdAt ?? "") < (b.createdAt ?? "") ? -1 : 1;
+        default: // newest
+          return (a.createdAt ?? "") > (b.createdAt ?? "") ? -1 : 1;
+      }
+    });
 
   return (
     <aside
@@ -93,6 +111,25 @@ export default function Sidebar({
         onChange={setSearchQuery}
         placeholder="Search topics..."
       />
+
+      <div className="flex items-center gap-2 !mb-3">
+        <ArrowUpDown size={13} className="text-slate-500 flex-shrink-0" />
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+          className="flex-1 text-xs rounded-md !px-2 !py-1.5 focus:outline-none focus:border-slate-500 border"
+          style={{
+            background: "rgba(30, 41, 59, 0.6)",
+            borderColor: "rgba(71, 85, 105, 0.5)",
+            color: "#94a3b8",
+          }}
+        >
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="az">A → Z</option>
+          <option value="za">Z → A</option>
+        </select>
+      </div>
 
       <Button className="w-full mb-4" onClick={onAddTopic}>
         <Plus size={18} />
