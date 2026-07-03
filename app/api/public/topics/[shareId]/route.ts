@@ -6,6 +6,7 @@ import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
 import { ApiError } from "@/lib/errorHandler";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
+import { tryGetUserIdFromToken } from "@/lib/serverAuth";
 
 export async function GET(
   request: NextRequest,
@@ -20,6 +21,8 @@ export async function GET(
         { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } },
       );
     }
+
+    const isAuthenticated = !!tryGetUserIdFromToken(request as Request);
 
     await connectDB();
     const { shareId } = await params;
@@ -73,8 +76,7 @@ export async function GET(
               id: qu.id,
               question: qu.question,
               options: qu.options,
-              correctAnswer: qu.correctAnswer,
-              explanation: qu.explanation || null,
+              ...(isAuthenticated ? { correctAnswer: qu.correctAnswer, explanation: qu.explanation || null } : {}),
             })),
           })),
         },

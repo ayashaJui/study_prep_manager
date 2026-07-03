@@ -48,8 +48,8 @@ interface QuizQuestion {
   id: string;
   question: string;
   options: string[];
-  correctAnswer: number | number[];
-  explanation: string | null;
+  correctAnswer?: number | number[];
+  explanation?: string | null;
 }
 
 interface PublicQuiz {
@@ -440,8 +440,8 @@ function QuizPlayer({ quiz, onBack }: { quiz: PublicQuiz; onBack: () => void }) 
 
   const score = submitted
     ? answers.reduce<number>((acc, ans, i) => {
-        if (!ans) return acc;
-        const ca = correctArr(quiz.questions[i].correctAnswer);
+        if (!ans || quiz.questions[i].correctAnswer == null) return acc;
+        const ca = correctArr(quiz.questions[i].correctAnswer!);
         return acc + (arraysEqual(ans, ca) ? 1 : 0);
       }, 0)
     : 0;
@@ -509,7 +509,7 @@ function QuizPlayer({ quiz, onBack }: { quiz: PublicQuiz; onBack: () => void }) 
           <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Answer Review</h4>
           {quiz.questions.map((q, qi) => {
             const ans = answers[qi];
-            const ca = correctArr(q.correctAnswer);
+            const ca = q.correctAnswer != null ? correctArr(q.correctAnswer) : [];
             const ansArr = ans || [];
             const correct = arraysEqual(ansArr, ca);
             const skipped = !ans;
