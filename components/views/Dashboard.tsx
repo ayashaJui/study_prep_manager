@@ -27,6 +27,7 @@ import {
   WeeklyGoalInput,
 } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
+import AllFlashcardsStudy from "@/components/views/AllFlashcardsStudy";
 
 interface DashboardStats {
   totalTopics: number;
@@ -516,6 +517,7 @@ export default function Dashboard() {
                   </Button>
                 </div>
               )}
+              <AllFlashcardsStudy />
             </div>
           </div>
         </Card>

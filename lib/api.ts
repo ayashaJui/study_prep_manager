@@ -80,6 +80,7 @@ export interface PinnedNote extends Omit<ApiNote, "topicId"> {
 export interface ApiFlashcard {
   _id: string;
   topicId: string;
+  topicName?: string;
   front: string;
   back: string;
   tags: string[];
@@ -420,6 +421,11 @@ export const flashcardsAPI = {
     const response = await fetchAPI<ApiResponse<ApiFlashcard[]>>(
       `/flashcards?topicId=${topicId}`,
     );
+    return response.data;
+  },
+
+  getAllForUser: async () => {
+    const response = await fetchAPI<ApiResponse<ApiFlashcard[]>>("/flashcards");
     return response.data;
   },
 

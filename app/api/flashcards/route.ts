@@ -23,13 +23,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (!topicId) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "topicId query parameter is required",
-        },
-        { status: 400 },
-      );
+      const docs = await flashcardController.getAllFlashcardsForUser(userId);
+      const data = docs.map((doc) => {
+        const plain = doc.toObject();
+        const topic = doc.topicId as
+          | { _id: { toString(): string }; name: string }
+          | null;
+        return {
+          ...plain,
+          topicId: topic ? String(topic._id) : String(plain.topicId),
+          topicName: topic?.name,
+        };
+      });
+      return NextResponse.json({ success: true, data }, { status: 200 });
     }
 
     const flashcards = await flashcardController.getFlashcardsByTopic(

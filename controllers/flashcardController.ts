@@ -29,6 +29,21 @@ type UpdateFlashcardData = Partial<
   >
 >;
 
+// Get all flashcards for the user across all topics (with topic name populated)
+export const getAllFlashcardsForUser = async (userId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new BadRequestError("Invalid user ID");
+  }
+
+  const flashcards = await Flashcard.find({ userId })
+    .populate<{ topicId: { _id: mongoose.Types.ObjectId; name: string } | null }>(
+      "topicId",
+      "name",
+    )
+    .sort({ nextReview: 1, createdAt: -1 });
+  return flashcards;
+};
+
 // Get all flashcards for a topic
 export const getFlashcardsByTopic = async (topicId: string, userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(topicId)) {
