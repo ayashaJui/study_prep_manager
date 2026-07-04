@@ -2,10 +2,6 @@
 
 ---
 
-## Do Later (Medium effort, good payoff)
-
-- **Short answer quiz type** — add to schema enum and quiz builder UI
-
 ---
 
 ## Low Priority (Nice to have)
