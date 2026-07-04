@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, X } from "lucide-react";
-import type { KeyboardEventHandler } from "react";
+import type { KeyboardEventHandler, RefObject } from "react";
 
 interface SearchBoxProps {
   value: string;
@@ -10,6 +10,7 @@ interface SearchBoxProps {
   onClear?: () => void;
   onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
   showClear?: boolean;
+  inputRef?: RefObject<HTMLInputElement | null>;
 }
 
 export default function SearchBox({
@@ -19,6 +20,7 @@ export default function SearchBox({
   onClear,
   onKeyDown,
   showClear = true,
+  inputRef,
 }: SearchBoxProps) {
   const canClear = showClear && value.trim().length > 0 && !!onClear;
 
@@ -29,6 +31,7 @@ export default function SearchBox({
         size={16}
       />
       <input
+        ref={inputRef}
         type="text"
         value={value}
         placeholder={placeholder}

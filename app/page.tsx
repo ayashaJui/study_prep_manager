@@ -22,6 +22,7 @@ import { Topic, Subtopic } from "@/lib/mockData";
 import { topicAPI, searchAPI, ApiTopic, SearchResults } from "@/lib/api";
 import SearchBox from "@/components/ui/SearchBox";
 import { useNavigation } from "@/hooks/useNavigation";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useAuth } from "@/contexts/AuthContext";
 
 function HomeContent() {
@@ -60,6 +61,7 @@ function HomeContent() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const resultItemRefs = useRef<Array<HTMLLIElement | null>>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const toId = (value: unknown) => {
     if (!value) return "";
@@ -378,6 +380,25 @@ function HomeContent() {
     }
   };
 
+  useKeyboardShortcuts({
+    "ctrl+f": (e) => {
+      e.preventDefault();
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    },
+    "ctrl+n": (e) => {
+      e.preventDefault();
+      setIsAddTopicModalOpen(true);
+    },
+    escape: () => {
+      if (searchResults) {
+        handleSearchClear();
+      } else if (isAddTopicModalOpen) {
+        setIsAddTopicModalOpen(false);
+      }
+    },
+  });
+
   const topicCount = (searchResults?.topics || []).length;
   const noteCount = (searchResults?.notes || []).length;
   const flashcardCount = (searchResults?.flashcards || []).length;
@@ -629,9 +650,10 @@ function HomeContent() {
             <SearchBox
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Search topics, notes, flashcards, quizzes..."
+              placeholder="Search topics, notes, flashcards, quizzes... (Ctrl+F)"
               onClear={handleSearchClear}
               onKeyDown={handleSearchKeyDown}
+              inputRef={searchInputRef}
             />
 
             {searchLoading && (
