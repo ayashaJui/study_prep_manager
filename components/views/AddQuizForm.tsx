@@ -5,6 +5,7 @@ import { Plus, Trash2, X } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import TagInput from "@/components/ui/TagInput";
 
 interface Question {
   id: string;
@@ -51,12 +52,14 @@ interface AddQuizFormProps {
   onClose: () => void;
   onSave: (quiz: QuizFormData) => void;
   initialData?: QuizFormData;
+  tagSuggestions?: string[];
 }
 
 export default function AddQuizForm({
   onClose,
   onSave,
   initialData,
+  tagSuggestions = [],
 }: AddQuizFormProps) {
   const [quizTitle, setQuizTitle] = useState(initialData?.title || "");
   const [quizDescription, setQuizDescription] = useState(
@@ -342,31 +345,14 @@ export default function AddQuizForm({
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 !mb-2">
-                  Tags (comma-separated)
+                  Tags
                 </label>
-                <Input
-                  placeholder="e.g., arrays, two-pointers, sliding-window"
-                  value={tags.join(", ")}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    const tagsArray = value.split(",").map((tag) => tag.trim());
-                    setTags(tagsArray);
-                  }}
+                <TagInput
+                  tags={tags}
+                  onChange={setTags}
+                  suggestions={tagSuggestions}
+                  placeholder="Add tags (Enter or , to confirm)..."
                 />
-                {tags.filter((t) => t).length > 0 && (
-                  <div className="flex gap-2 !mt-2 flex-wrap">
-                    {tags
-                      .filter((t) => t)
-                      .map((tag, index) => (
-                        <span
-                          key={index}
-                          className="!px-3 !py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                  </div>
-                )}
               </div>
             </div>
 

@@ -362,6 +362,7 @@ export default function TopicQuizzes({
         <AddQuizForm
           onClose={() => setIsAddQuizModalOpen(false)}
           onSave={handleCreateQuiz}
+          tagSuggestions={allTags}
         />
       )}
 
@@ -375,6 +376,7 @@ export default function TopicQuizzes({
             <AddQuizForm
               onClose={() => setEditingQuizId(null)}
               onSave={handleUpdateQuiz}
+              tagSuggestions={allTags}
               initialData={{
                 title: editQuiz.title,
                 description: editQuiz.description || "",
