@@ -241,85 +241,71 @@ function HomeContent() {
   }, [highlightIndex, searchItems.length]);
 
   const fetchTopics = useCallback(async () => {
+    if (!isAuthenticated) { setTopics([]); return; }
+    setError(null);
     try {
-      if (!isAuthenticated) {
-        setTopics([]);
-        return;
-      }
+      // Single request for all topics; tree is built client-side
+      const response = await topicAPI.getAll();
+      if (!response.success) return;
 
-      setError(null);
+      const all: ApiTopic[] = response.data;
 
-      // First fetch only top-level topics (parentId = null)
-      const response = await topicAPI.getAll("null");
+      // Group by parentId for O(n) tree construction
+      const byParent = new Map<string, ApiTopic[]>();
+      all.forEach((t) => {
+        const key = t.parentId ? String(t.parentId) : "root";
+        if (!byParent.has(key)) byParent.set(key, []);
+        byParent.get(key)!.push(t);
+      });
 
-      if (response.success) {
-        // Map API response to match UI structure
-        const apiTopics = await Promise.all(
-          response.data.map(async (topic: ApiTopic) => {
-            // Fetch subtopics for each topic
-            const subtopicsResponse = await topicAPI.getAll(topic._id);
-            const subtopics = subtopicsResponse.success
-              ? await Promise.all(
-                  subtopicsResponse.data.map(async (sub: ApiTopic) => {
-                    // Fetch nested subtopics (level 2)
-                    const nestedSubtopicsResponse = await topicAPI.getAll(
-                      sub._id,
-                    );
-                    const nestedSubtopics = nestedSubtopicsResponse.success
-                      ? nestedSubtopicsResponse.data.map((nested: ApiTopic) => ({
-                          id: nested._id,
-                          name: nested.name,
-                          slug: nested.slug,
-                          description: nested.description,
-                          status: nested.status,
-                          notesCount: nested.stats?.notesCount || 0,
-                          flashcardsCount: nested.stats?.flashcardsCount || 0,
-                          quizzesCount: nested.stats?.quizzesCount || 0,
-                          isPublic: nested.isPublic,
-                          shareId: nested.shareId,
-                          subtopics: [], // Level 3 not yet loaded
-                        }))
-                      : [];
+      const toNested = (t: ApiTopic) => ({
+        id: t._id,
+        name: t.name,
+        slug: t.slug,
+        description: t.description,
+        status: t.status,
+        notesCount: t.stats?.notesCount || 0,
+        flashcardsCount: t.stats?.flashcardsCount || 0,
+        quizzesCount: t.stats?.quizzesCount || 0,
+        isPublic: t.isPublic,
+        shareId: t.shareId,
+        subtopics: (byParent.get(t._id) || []).map((child) => ({
+          id: child._id,
+          name: child.name,
+          slug: child.slug,
+          description: child.description,
+          status: child.status,
+          notesCount: child.stats?.notesCount || 0,
+          flashcardsCount: child.stats?.flashcardsCount || 0,
+          quizzesCount: child.stats?.quizzesCount || 0,
+          isPublic: child.isPublic,
+          shareId: child.shareId,
+          subtopics: [],
+        })),
+      });
 
-                    return {
-                      id: sub._id, // MongoDB ObjectId as string
-                      name: sub.name,
-                      slug: sub.slug,
-                      description: sub.description,
-                      status: sub.status,
-                      notesCount: sub.stats?.notesCount || 0,
-                      flashcardsCount: sub.stats?.flashcardsCount || 0,
-                      quizzesCount: sub.stats?.quizzesCount || 0,
-                      count:
-                        (sub.stats?.notesCount || 0) +
-                        (sub.stats?.flashcardsCount || 0) +
-                        (sub.stats?.quizzesCount || 0),
-                      isPublic: sub.isPublic,
-                      shareId: sub.shareId,
-                      subtopics: nestedSubtopics,
-                    };
-                  }),
-                )
-              : [];
+      const roots = (byParent.get("root") || []).map((topic) => ({
+        id: topic._id,
+        name: topic.name,
+        slug: topic.slug,
+        description: topic.description,
+        status: topic.status,
+        progress: topic.stats?.completionPercentage || 0,
+        notesCount: topic.stats?.notesCount || 0,
+        flashcardsCount: topic.stats?.flashcardsCount || 0,
+        quizzesCount: topic.stats?.quizzesCount || 0,
+        favorite: topic.favorite ?? false,
+        createdAt: topic.createdAt,
+        subtopics: (byParent.get(topic._id) || []).map((sub) => ({
+          ...toNested(sub),
+          count:
+            (sub.stats?.notesCount || 0) +
+            (sub.stats?.flashcardsCount || 0) +
+            (sub.stats?.quizzesCount || 0),
+        })),
+      }));
 
-            return {
-              id: topic._id, // MongoDB ObjectId as string
-              name: topic.name,
-              slug: topic.slug,
-              description: topic.description,
-              status: topic.status,
-              progress: topic.stats?.completionPercentage || 0,
-              notesCount: topic.stats?.notesCount || 0,
-              flashcardsCount: topic.stats?.flashcardsCount || 0,
-              quizzesCount: topic.stats?.quizzesCount || 0,
-              favorite: topic.favorite ?? false,
-              createdAt: topic.createdAt,
-              subtopics,
-            };
-          }),
-        );
-        setTopics(apiTopics);
-      }
+      setTopics(roots);
     } catch (err) {
       console.error("Failed to fetch topics:", err);
       setError(err instanceof Error ? err.message : "Failed to load topics");
