@@ -5,9 +5,7 @@
 ## Do Later (Medium effort, good payoff)
 
 - **Short answer quiz type** — add to schema enum and quiz builder UI
-- **Keyboard shortcuts** — single global hook (Ctrl+N new topic, Ctrl+F focus search, Escape close modal)
-- **Tag au
-- tocomplete** — enhance existing tag input to suggest previously used tags
+- **Tag autocomplete** — enhance existing tag input to suggest previously used tags
 
 ---
 
