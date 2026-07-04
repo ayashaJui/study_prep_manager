@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Save, Download } from "lucide-react";
+import { Save, Download, Upload } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardTitle, CardSection } from "@/components/ui/Card";
+import ImportMarkdownModal from "@/components/views/ImportMarkdownModal";
 import { Textarea } from "@/components/ui/Input";
 import NoteList from "@/components/features/NoteList";
 import NoteArticle from "@/components/views/NoteArticle";
@@ -42,6 +43,7 @@ export default function TopicNotes({
   const [saving, setSaving] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
     isOpen: boolean;
     noteId: string | null;
@@ -145,6 +147,22 @@ export default function TopicNotes({
     showSuccess(`Exported ${notes.length} note(s)`);
   };
 
+  const handleImportMarkdown = async (imported: { content: string; tags: string[] }[]) => {
+    setIsImportModalOpen(false);
+    let created = 0;
+    for (const note of imported) {
+      try {
+        const newNote = await notesAPI.create({ topicId, content: note.content, tags: note.tags });
+        setNotes((prev) => [newNote, ...prev]);
+        created++;
+      } catch {
+        // continue importing remaining notes
+      }
+    }
+    if (created > 0) showSuccess(`Imported ${created} note${created !== 1 ? "s" : ""}`);
+    else showError("Failed to import notes");
+  };
+
   const handleDeleteNote = (id: string) => {
     setDeleteConfirmModal({ isOpen: true, noteId: id });
   };
@@ -224,10 +242,16 @@ export default function TopicNotes({
     <Card>
       <CardTitle
         action={
-          <Button variant="secondary" onClick={handleExportMarkdown} disabled={notes.length === 0}>
-            <Download size={16} />
-            Export MD
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setIsImportModalOpen(true)}>
+              <Upload size={16} />
+              Import MD
+            </Button>
+            <Button variant="secondary" onClick={handleExportMarkdown} disabled={notes.length === 0}>
+              <Download size={16} />
+              Export MD
+            </Button>
+          </div>
         }
       >
         General Notes - {topicName}
@@ -339,6 +363,13 @@ export default function TopicNotes({
           </div>
         </div>
       </Modal>
+
+      {isImportModalOpen && (
+        <ImportMarkdownModal
+          onClose={() => setIsImportModalOpen(false)}
+          onImport={handleImportMarkdown}
+        />
+      )}
     </Card>
   );
 }
