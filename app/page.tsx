@@ -48,6 +48,7 @@ function HomeContent() {
   } = useNavigation();
 
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [topicsLoaded, setTopicsLoaded] = useState(false);
   const [fetchedSubtopic, setFetchedSubtopic] = useState<import("@/lib/mockData").Subtopic | null>(null);
   const [subtopicLoading, setSubtopicLoading] = useState(false);
   const [subtopicFetchFailed, setSubtopicFetchFailed] = useState(false);
@@ -309,6 +310,8 @@ function HomeContent() {
     } catch (err) {
       console.error("Failed to fetch topics:", err);
       setError(err instanceof Error ? err.message : "Failed to load topics");
+    } finally {
+      setTopicsLoaded(true);
     }
   }, [isAuthenticated]);
 
@@ -952,7 +955,25 @@ function HomeContent() {
           ) : !activeTopic && view === "sessions" ? (
             <StudySessionHistory />
           ) : !activeTopic ? (
-            <Dashboard />
+            topicsLoaded && topics.length === 0 ? (
+              <div className="flex flex-col items-center justify-center !py-24 text-center">
+                <div
+                  className="rounded-2xl border !p-10 max-w-md w-full"
+                  style={{ background: "rgba(30,41,59,0.5)", borderColor: "rgba(71,85,105,0.4)" }}
+                >
+                  <div className="text-5xl !mb-4">📚</div>
+                  <h2 className="text-xl font-semibold text-slate-100 !mb-2">Welcome to StudyNest</h2>
+                  <p className="text-sm text-slate-400 !mb-6">
+                    Create your first topic to start organizing notes, flashcards, and quizzes.
+                  </p>
+                  <Button onClick={() => setIsAddTopicModalOpen(true)}>
+                    Add your first topic
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Dashboard />
+            )
           ) : subtopicPath.length > 0 && subtopicLoading ? (
             <div className="flex items-center justify-center py-20 text-slate-400 text-sm">
               Loading...

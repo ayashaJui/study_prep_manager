@@ -355,16 +355,22 @@ export default function TopicContent({
         onClose={() => setIsDeleteOpen(false)}
         title="Delete Topic"
       >
-        <p className="text-sm text-slate-300 !mb-6">
-          Are you sure you want to delete <strong>{topic?.name}</strong>? This cannot be undone. All subtopics must be deleted first.
-        </p>
+        {subtopics.length > 0 ? (
+          <p className="text-sm text-amber-400 !mb-6">
+            <strong>{topic?.name}</strong> has {subtopics.length} subtopic{subtopics.length !== 1 ? "s" : ""}. Delete all subtopics first before deleting this topic.
+          </p>
+        ) : (
+          <p className="text-sm text-slate-300 !mb-6">
+            Are you sure you want to delete <strong>{topic?.name}</strong>? This cannot be undone.
+          </p>
+        )}
         <div className="flex gap-3 justify-end">
           <Button variant="secondary" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>
             Cancel
           </Button>
           <Button
             onClick={handleDelete}
-            disabled={isDeleting}
+            disabled={isDeleting || subtopics.length > 0}
             style={{ background: "#ef4444", color: "#fff" }}
           >
             {isDeleting ? "Deleting..." : "Delete"}
