@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Save } from "lucide-react";
+import { Save, Download } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardTitle, CardSection } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
@@ -12,6 +12,8 @@ import Badge from "@/components/ui/Badge";
 import { notesAPI } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import TagInput from "@/components/ui/TagInput";
+import { downloadMarkdown } from "@/lib/csv";
+import { deriveNoteTitle } from "@/lib/noteUtils";
 
 interface Note {
   _id: string;
@@ -122,6 +124,27 @@ export default function TopicNotes({
     }
   };
 
+  const handleExportMarkdown = () => {
+    if (notes.length === 0) {
+      showError("No notes to export");
+      return;
+    }
+    const sorted = [...notes].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    const sections = sorted.map((note) => {
+      const title = deriveNoteTitle(note.content);
+      const date = new Date(note.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      const meta: string[] = [date];
+      if (note.pinned) meta.push("Pinned");
+      if (note.tags?.length) meta.push(`Tags: ${note.tags.join(", ")}`);
+      return `## ${title}\n\n*${meta.join(" · ")}*\n\n${note.content.trim()}`;
+    });
+    const content = `# ${topicName} — Notes\n\n> Exported ${new Date().toLocaleDateString()}\n\n---\n\n${sections.join("\n\n---\n\n")}`;
+    downloadMarkdown(content, `${topicName.replace(/\s+/g, "_")}_notes.md`);
+    showSuccess(`Exported ${notes.length} note(s)`);
+  };
+
   const handleDeleteNote = (id: string) => {
     setDeleteConfirmModal({ isOpen: true, noteId: id });
   };
@@ -199,7 +222,16 @@ export default function TopicNotes({
 
   return (
     <Card>
-      <CardTitle>General Notes - {topicName}</CardTitle>
+      <CardTitle
+        action={
+          <Button variant="secondary" onClick={handleExportMarkdown} disabled={notes.length === 0}>
+            <Download size={16} />
+            Export MD
+          </Button>
+        }
+      >
+        General Notes - {topicName}
+      </CardTitle>
 
       <div className="!mb-6">
         <label className="block font-medium !mb-2 text-sm text-slate-300">

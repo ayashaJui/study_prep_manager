@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Pin,
   PinOff,
+  Download,
 } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -17,6 +18,7 @@ import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
 import TagInput from "@/components/ui/TagInput";
+import { downloadMarkdown } from "@/lib/csv";
 import {
   deriveNoteTitle,
   estimateReadingMinutes,
@@ -87,6 +89,11 @@ export default function NoteArticle({
     setShowImageInsert(false);
   };
 
+  const handleExport = () => {
+    const title = deriveNoteTitle(note.content || "");
+    downloadMarkdown(note.content || "", `${title.replace(/\s+/g, "_")}.md`);
+  };
+
   const readingMinutes = estimateReadingMinutes(note.content || "");
   const title = deriveNoteTitle(note.content || "");
   const bodyContent = stripLeadingHeading(note.content || "");
@@ -101,6 +108,15 @@ export default function NoteArticle({
             Back to Notes
           </Button>
           <div className="flex items-center gap-3">
+            {!isEditing && (
+              <button
+                onClick={handleExport}
+                className="!p-2 text-slate-400 hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-800"
+                aria-label="Export as Markdown"
+              >
+                <Download size={18} />
+              </button>
+            )}
             {!isEditing && onTogglePin && (
               <button
                 onClick={() => onTogglePin(note.id, !note.pinned)}
