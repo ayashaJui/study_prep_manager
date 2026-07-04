@@ -2,14 +2,6 @@
 
 ---
 
----
-
-## Low Priority (Nice to have)
-
-- **Import from Markdown** — complements Markdown export
-
----
-
 ## Cut (Not worth building)
 
 - **AI features** — not free; no plans to integrate
