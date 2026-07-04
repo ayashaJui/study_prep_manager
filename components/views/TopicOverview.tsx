@@ -1,7 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import Badge from "@/components/ui/Badge";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardTitle, CardSection } from "@/components/ui/Card";
 import SubtopicGrid from "@/components/features/SubtopicGrid";
@@ -9,11 +8,13 @@ import StatCard from "@/components/ui/StatCard";
 import ProgressBar from "@/components/ui/ProgressBar";
 import { FileText, Inbox, HelpCircle } from "lucide-react";
 
+type TopicStatus = "not-started" | "in-progress" | "review" | "mastered";
+
 interface TopicOverviewProps {
   topic: {
     id: string;
     name: string;
-    status: "not-started" | "in-progress" | "review" | "mastered";
+    status: TopicStatus;
     progress: number;
     completedSubtopics: number;
     totalSubtopics: number;
@@ -40,6 +41,9 @@ interface TopicOverviewProps {
   onPublish?: () => void;
   onUnpublish?: () => void;
   onCopyShareUrl?: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
+  onStatusChange?: (status: TopicStatus) => void;
 }
 
 export default function TopicOverview({
@@ -53,10 +57,46 @@ export default function TopicOverview({
   onPublish,
   onUnpublish,
   onCopyShareUrl,
+  onRename,
+  onDelete,
+  onStatusChange,
 }: TopicOverviewProps) {
   return (
     <Card>
-      <CardTitle action={<Badge variant={topic.status}>{topic.status}</Badge>}>
+      <CardTitle
+        action={
+          <div className="flex items-center gap-2">
+            <select
+              value={topic.status}
+              onChange={(e) => onStatusChange?.(e.target.value as TopicStatus)}
+              className="text-xs rounded-md !px-2 !py-1 border border-slate-600 bg-slate-800 text-slate-300 cursor-pointer focus:outline-none focus:border-slate-500"
+            >
+              <option value="not-started">Not started</option>
+              <option value="in-progress">In progress</option>
+              <option value="review">Review</option>
+              <option value="mastered">Mastered</option>
+            </select>
+            {onRename && (
+              <button
+                onClick={onRename}
+                className="!p-1.5 text-slate-400 hover:text-purple-400 transition-colors rounded"
+                title="Rename"
+              >
+                <Pencil size={15} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                className="!p-1.5 text-slate-400 hover:text-red-400 transition-colors rounded"
+                title="Delete"
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
+          </div>
+        }
+      >
         {topic.name}
       </CardTitle>
 

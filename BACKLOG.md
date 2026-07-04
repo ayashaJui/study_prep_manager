@@ -6,11 +6,6 @@
 
 ---
 
-## Incomplete
-
-
-- **Topics and subtopics have no rename, delete, or status-change controls** — `PATCH /api/topics/[id]` and `DELETE /api/topics/[id]` are implemented; nothing in the UI calls them.
-
 ---
 
 ## Minor

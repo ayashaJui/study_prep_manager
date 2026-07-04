@@ -988,6 +988,20 @@ function HomeContent() {
                 fetchTopics();
                 setSubtopicRefreshKey((k) => k + 1);
               }}
+              onSubtopicDeleted={() => {
+                fetchTopics();
+                if (subtopicPath.length <= 1) {
+                  navigateToTopic(activeTopic);
+                } else {
+                  navigateToSubtopicPath(activeTopic, subtopicPath.slice(0, -1));
+                }
+              }}
+              onSubtopicRenamed={(name) => {
+                const currentId = subtopicPath[subtopicPath.length - 1];
+                setSubtopicNames((prev) => ({ ...prev, [currentId]: name }));
+                setSubtopicRefreshKey((k) => k + 1);
+                fetchTopics();
+              }}
             />
           ) : (
             <TopicContent
@@ -1000,6 +1014,18 @@ function HomeContent() {
               selectedNoteId={selectedNoteId}
               selectedFlashcardId={selectedFlashcardId}
               selectedQuizId={selectedQuizId}
+              onTopicDeleted={() => {
+                navigateToDashboard();
+                fetchTopics();
+              }}
+              onTopicRenamed={(name) => {
+                setTopics((prev) =>
+                  prev.map((t) =>
+                    t.id === currentTopic?.id ? { ...t, name } : t,
+                  ),
+                );
+                fetchTopics();
+              }}
             />
           )}
         </MainContent>

@@ -30,6 +30,7 @@ interface TopicData {
   id?: string;
   _id?: string;
   name?: string;
+  description?: string;
   status?: TopicStatus;
   progress?: number;
   shareId?: string | null;
@@ -44,12 +45,14 @@ interface TopicContentProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onSubtopicSelect: (id: string) => void;
-  topicId?: string; // Current topic ID
-  onSubtopicAdded?: () => void; // Callback to refresh parent data
-  topic?: TopicData; // Current topic data from API
+  topicId?: string;
+  onSubtopicAdded?: () => void;
+  topic?: TopicData;
   selectedNoteId?: string;
   selectedFlashcardId?: string;
   selectedQuizId?: string;
+  onTopicDeleted?: () => void;
+  onTopicRenamed?: (name: string) => void;
 }
 
 export default function TopicContent({
@@ -62,6 +65,8 @@ export default function TopicContent({
   selectedNoteId,
   selectedFlashcardId,
   selectedQuizId,
+  onTopicDeleted,
+  onTopicRenamed,
 }: TopicContentProps) {
   const { showSuccess, showError } = useToast();
   const [isAddSubtopicModalOpen, setIsAddSubtopicModalOpen] = useState(false);
@@ -72,6 +77,13 @@ export default function TopicContent({
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [localStatus, setLocalStatus] = useState<TopicStatus>(topic?.status || "not-started");
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameDesc, setRenameDesc] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const buildShareUrl = (id: string) => {
     if (typeof window === "undefined") {
@@ -87,7 +99,59 @@ export default function TopicContent({
     setShareId(nextShareId);
     setIsPublic(nextIsPublic);
     setShareUrl(nextShareId ? buildShareUrl(nextShareId) : null);
+    if (topic.status) setLocalStatus(topic.status);
   }, [topic]);
+
+  const handleOpenRename = () => {
+    setRenameValue(topic?.name || "");
+    setRenameDesc(topic?.description || "");
+    setIsRenameOpen(true);
+  };
+
+  const handleRename = async () => {
+    if (!topicId || !renameValue.trim()) return;
+    setIsRenaming(true);
+    try {
+      await topicAPI.update(topicId, {
+        name: renameValue.trim(),
+        description: renameDesc.trim() || undefined,
+      });
+      setIsRenameOpen(false);
+      onTopicRenamed?.(renameValue.trim());
+      showSuccess("Topic renamed.");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to rename topic.");
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!topicId) return;
+    setIsDeleting(true);
+    try {
+      await topicAPI.delete(topicId);
+      setIsDeleteOpen(false);
+      showSuccess("Topic deleted.");
+      onTopicDeleted?.();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to delete topic.");
+      setIsDeleting(false);
+    }
+  };
+
+  const handleStatusChange = async (status: TopicStatus) => {
+    if (!topicId) return;
+    const prev = localStatus;
+    setLocalStatus(status);
+    try {
+      await topicAPI.update(topicId, { status });
+      showSuccess("Status updated.");
+    } catch (err) {
+      setLocalStatus(prev);
+      showError(err instanceof Error ? err.message : "Failed to update status.");
+    }
+  };
 
   const handleAddSubtopic = async () => {
     if (!newSubtopicName.trim() || !topicId) return;
@@ -185,7 +249,7 @@ export default function TopicContent({
   const topicOverviewData = {
     id: topic?.id || topic?._id || "",
     name: topic?.name || "Topic",
-    status: topic?.status || "not-started",
+    status: localStatus,
     progress: topic?.progress || 0,
     completedSubtopics: subtopics.filter(
       (s: TopicSubtopic) => s.status === "mastered",
@@ -228,6 +292,9 @@ export default function TopicContent({
           onPublish={handlePublish}
           onUnpublish={handleUnpublish}
           onCopyShareUrl={handleCopyShareUrl}
+          onRename={handleOpenRename}
+          onDelete={() => setIsDeleteOpen(true)}
+          onStatusChange={handleStatusChange}
         />
       )}
 
@@ -254,6 +321,56 @@ export default function TopicContent({
           initialQuizId={selectedQuizId}
         />
       )}
+
+      <Modal
+        isOpen={isRenameOpen}
+        onClose={() => setIsRenameOpen(false)}
+        title="Rename Topic"
+      >
+        <form onSubmit={(e) => { e.preventDefault(); handleRename(); }}>
+          <Input
+            label="Topic Name"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            required
+          />
+          <Textarea
+            label="Description (Optional)"
+            value={renameDesc}
+            onChange={(e) => setRenameDesc(e.target.value)}
+          />
+          <div className="flex gap-3 justify-end !mt-6">
+            <Button type="button" variant="secondary" onClick={() => setIsRenameOpen(false)} disabled={isRenaming}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!renameValue.trim() || isRenaming}>
+              {isRenaming ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        title="Delete Topic"
+      >
+        <p className="text-sm text-slate-300 !mb-6">
+          Are you sure you want to delete <strong>{topic?.name}</strong>? This cannot be undone. All subtopics must be deleted first.
+        </p>
+        <div className="flex gap-3 justify-end">
+          <Button variant="secondary" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            style={{ background: "#ef4444", color: "#fff" }}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </Button>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isAddSubtopicModalOpen}

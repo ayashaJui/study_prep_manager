@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, Plus } from "lucide-react";
-import Badge from "@/components/ui/Badge";
+import { Edit2, Plus, Pencil, Trash2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardTitle, CardSection } from "@/components/ui/Card";
 import SubtopicGrid from "@/components/features/SubtopicGrid";
@@ -12,11 +11,13 @@ import { Textarea } from "@/components/ui/Input";
 import { topicAPI } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 
+type SubtopicStatus = "not-started" | "in-progress" | "review" | "mastered";
+
 interface SubtopicDetailProps {
   subtopic: {
     id: string; // MongoDB ObjectId as string
     name: string;
-    status: "not-started" | "in-progress" | "review" | "mastered";
+    status: SubtopicStatus;
     summary: string;
     isPublic?: boolean;
     shareId?: string | null;
@@ -41,6 +42,9 @@ interface SubtopicDetailProps {
   onPublish?: () => void;
   onUnpublish?: () => void;
   onCopyShareUrl?: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
+  onStatusChange?: (status: SubtopicStatus) => void;
 }
 
 export default function SubtopicDetail({
@@ -54,6 +58,9 @@ export default function SubtopicDetail({
   onPublish,
   onUnpublish,
   onCopyShareUrl,
+  onRename,
+  onDelete,
+  onStatusChange,
 }: SubtopicDetailProps) {
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [editedSummary, setEditedSummary] = useState(subtopic.summary);
@@ -106,7 +113,38 @@ export default function SubtopicDetail({
   return (
     <Card>
       <CardTitle
-        action={<Badge variant={subtopic.status}>{subtopic.status}</Badge>}
+        action={
+          <div className="flex items-center gap-2">
+            <select
+              value={subtopic.status}
+              onChange={(e) => onStatusChange?.(e.target.value as SubtopicStatus)}
+              className="text-xs rounded-md !px-2 !py-1 border border-slate-600 bg-slate-800 text-slate-300 cursor-pointer focus:outline-none focus:border-slate-500"
+            >
+              <option value="not-started">Not started</option>
+              <option value="in-progress">In progress</option>
+              <option value="review">Review</option>
+              <option value="mastered">Mastered</option>
+            </select>
+            {onRename && (
+              <button
+                onClick={onRename}
+                className="!p-1.5 text-slate-400 hover:text-purple-400 transition-colors rounded"
+                title="Rename"
+              >
+                <Pencil size={15} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                className="!p-1.5 text-slate-400 hover:text-red-400 transition-colors rounded"
+                title="Delete"
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
+          </div>
+        }
       >
         {subtopic.name}
       </CardTitle>

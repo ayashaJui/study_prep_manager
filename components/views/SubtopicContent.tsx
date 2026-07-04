@@ -21,6 +21,8 @@ interface SubtopicSummary {
   notesCount?: number;
 }
 
+type SubtopicStatus = "not-started" | "in-progress" | "review" | "mastered";
+
 interface SubtopicContentProps {
   subtopic: {
     id: string; // MongoDB ObjectId as string
@@ -30,7 +32,7 @@ interface SubtopicContentProps {
     flashcards?: number;
     quizzes?: number;
     subtopics?: SubtopicSummary[]; // Nested subtopics
-    status?: "not-started" | "in-progress" | "review" | "mastered";
+    status?: SubtopicStatus;
     flashcardsCount?: number;
     quizzesCount?: number;
     notesCount?: number;
@@ -42,6 +44,8 @@ interface SubtopicContentProps {
   onTabChange: (tab: string) => void;
   onSubtopicSelect?: (id: string) => void;
   onSubtopicAdded?: () => void;
+  onSubtopicDeleted?: () => void;
+  onSubtopicRenamed?: (name: string) => void;
 }
 
 export default function SubtopicContent({
@@ -51,6 +55,8 @@ export default function SubtopicContent({
   onTabChange,
   onSubtopicSelect,
   onSubtopicAdded,
+  onSubtopicDeleted,
+  onSubtopicRenamed,
 }: SubtopicContentProps) {
   const { showSuccess, showError } = useToast();
   const [isAddSubtopicModalOpen, setIsAddSubtopicModalOpen] = useState(false);
@@ -61,6 +67,13 @@ export default function SubtopicContent({
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [localStatus, setLocalStatus] = useState<SubtopicStatus>(subtopic.status || "not-started");
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameDesc, setRenameDesc] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const buildShareUrl = (id: string) => {
     if (typeof window === "undefined") {
@@ -75,7 +88,8 @@ export default function SubtopicContent({
     setShareId(nextShareId);
     setIsPublic(nextIsPublic);
     setShareUrl(nextShareId ? buildShareUrl(nextShareId) : null);
-  }, [subtopic.shareId, subtopic.isPublic]);
+    if (subtopic.status) setLocalStatus(subtopic.status);
+  }, [subtopic.shareId, subtopic.isPublic, subtopic.status]);
 
   const handlePublish = async () => {
     try {
@@ -123,6 +137,55 @@ export default function SubtopicContent({
       showSuccess("Share link copied to clipboard.");
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to copy link");
+    }
+  };
+
+  const handleOpenRename = () => {
+    setRenameValue(subtopic.name);
+    setRenameDesc(subtopic.description || "");
+    setIsRenameOpen(true);
+  };
+
+  const handleRename = async () => {
+    if (!renameValue.trim()) return;
+    setIsRenaming(true);
+    try {
+      await topicAPI.update(subtopic.id, {
+        name: renameValue.trim(),
+        description: renameDesc.trim() || undefined,
+      });
+      setIsRenameOpen(false);
+      onSubtopicRenamed?.(renameValue.trim());
+      showSuccess("Subtopic renamed.");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to rename subtopic.");
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await topicAPI.delete(subtopic.id);
+      setIsDeleteOpen(false);
+      showSuccess("Subtopic deleted.");
+      onSubtopicDeleted?.();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to delete subtopic.");
+      setIsDeleting(false);
+    }
+  };
+
+  const handleStatusChange = async (status: SubtopicStatus) => {
+    const prev = localStatus;
+    setLocalStatus(status);
+    try {
+      await topicAPI.update(subtopic.id, { status });
+      showSuccess("Status updated.");
+    } catch (err) {
+      setLocalStatus(prev);
+      showError(err instanceof Error ? err.message : "Failed to update status.");
     }
   };
 
@@ -187,7 +250,7 @@ export default function SubtopicContent({
           subtopic={{
             id: subtopic.id,
             name: subtopic.name,
-            status: subtopic.status || "in-progress",
+            status: localStatus,
             summary: subtopic.description || "",
             isPublic,
             shareId,
@@ -212,6 +275,9 @@ export default function SubtopicContent({
           onPublish={handlePublish}
           onUnpublish={handleUnpublish}
           onCopyShareUrl={handleCopyShareUrl}
+          onRename={handleOpenRename}
+          onDelete={() => setIsDeleteOpen(true)}
+          onStatusChange={handleStatusChange}
         />
       )}
 
@@ -226,6 +292,56 @@ export default function SubtopicContent({
       {activeTab === "quizzes" && (
         <TopicQuizzes topicId={subtopic.id} topicName={subtopic.name} />
       )}
+
+      <Modal
+        isOpen={isRenameOpen}
+        onClose={() => setIsRenameOpen(false)}
+        title="Rename Subtopic"
+      >
+        <form onSubmit={(e) => { e.preventDefault(); handleRename(); }}>
+          <Input
+            label="Subtopic Name"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            required
+          />
+          <Textarea
+            label="Description (Optional)"
+            value={renameDesc}
+            onChange={(e) => setRenameDesc(e.target.value)}
+          />
+          <div className="flex gap-3 justify-end !mt-6">
+            <Button type="button" variant="secondary" onClick={() => setIsRenameOpen(false)} disabled={isRenaming}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!renameValue.trim() || isRenaming}>
+              {isRenaming ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        title="Delete Subtopic"
+      >
+        <p className="text-sm text-slate-300 !mb-6">
+          Are you sure you want to delete <strong>{subtopic.name}</strong>? This cannot be undone. All sub-subtopics must be deleted first.
+        </p>
+        <div className="flex gap-3 justify-end">
+          <Button variant="secondary" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            style={{ background: "#ef4444", color: "#fff" }}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </Button>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isAddSubtopicModalOpen}
