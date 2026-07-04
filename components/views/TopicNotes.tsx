@@ -11,6 +11,7 @@ import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import { notesAPI } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
+import TagInput from "@/components/ui/TagInput";
 
 interface Note {
   _id: string;
@@ -34,6 +35,7 @@ export default function TopicNotes({
 }: TopicNotesProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNoteContent, setNewNoteContent] = useState("");
+  const [newNoteTags, setNewNoteTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -107,9 +109,11 @@ export default function TopicNotes({
       const newNote = await notesAPI.create({
         topicId,
         content: newNoteContent,
+        tags: newNoteTags,
       });
       setNotes([newNote, ...notes]);
       setNewNoteContent("");
+      setNewNoteTags([]);
       showSuccess("Note added successfully");
     } catch (error) {
       showError(error instanceof Error ? error.message : "Failed to add note");
@@ -207,6 +211,17 @@ export default function TopicNotes({
           onChange={(e) => setNewNoteContent(e.target.value)}
           disabled={saving}
         />
+        <div className="!mt-3">
+          <label className="block text-sm font-medium text-slate-300 !mb-2">
+            Tags
+          </label>
+          <TagInput
+            tags={newNoteTags}
+            onChange={setNewNoteTags}
+            suggestions={allTags}
+            placeholder="Add tags (Enter or , to confirm)..."
+          />
+        </div>
         <div className="flex gap-4 !mt-4">
           <Button
             onClick={handleAddNote}
