@@ -142,6 +142,30 @@ export interface ApiQuiz {
   updatedAt: string;
 }
 
+export interface QuizAttemptStat {
+  date: string;
+  scorePct: number;
+  timeTaken: number;
+}
+
+export interface QuizAnalyticsItem {
+  quizId: string;
+  title: string;
+  difficulty: "easy" | "medium" | "hard";
+  attempts: QuizAttemptStat[];
+}
+
+export interface QuizAnalyticsData {
+  summary: {
+    totalQuizzes: number;
+    quizzesAttempted: number;
+    totalAttempts: number;
+    avgScore: number;
+    bestScore: number;
+  };
+  quizzes: QuizAnalyticsItem[];
+}
+
 export interface QuizCreateInput {
   topicId?: string;
   title: string;
@@ -499,6 +523,13 @@ export const quizzesAPI = {
   getAll: async (topicId: string) => {
     const response = await fetchAPI<ApiResponse<ApiQuiz[]>>(
       `/quizzes?topicId=${topicId}`,
+    );
+    return response.data;
+  },
+
+  getAnalytics: async (topicId: string) => {
+    const response = await fetchAPI<ApiResponse<QuizAnalyticsData>>(
+      `/quizzes/analytics?topicId=${topicId}`,
     );
     return response.data;
   },

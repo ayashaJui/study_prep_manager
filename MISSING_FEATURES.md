@@ -4,8 +4,6 @@
 
 ## Do Next (High value, low effort)
 
-- **Aggregate flashcard view** — one API change to accept multiple topicIds + a "Study All" button on the topic overview
-- **Sort topics** — add a sort param to the existing topics API; sidebar sort control (alphabetical / date)
 - **Quiz analytics UI** — attempt data is already stored in the model; needs a score-over-time chart and per-quiz history view
 
 ---
@@ -22,7 +20,6 @@
 ## Low Priority (Nice to have)
 
 - **Filter by content type** — add difficulty/type dropdown alongside existing tag filter badges
-- **Study / focus mode** — make flashcard study modal full-screen; add study mode for quizzes
 - **Quiz analytics** — average scores, track incorrect answers, performance trends (extends "Do Next" item above)
 - **Export to Markdown** — useful for sharing notes outside the app
 - **Import from Markdown** — complements Markdown export

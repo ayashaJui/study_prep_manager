@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Upload, Download } from "lucide-react";
+import { Plus, Upload, Download, BarChart2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Card, CardTitle } from "@/components/ui/Card";
 import QuizList from "@/components/features/QuizList";
@@ -9,6 +9,7 @@ import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import AddQuizForm, { QuizFormData } from "@/components/views/AddQuizForm";
 import TakeQuiz from "@/components/views/TakeQuiz";
+import QuizAnalytics from "@/components/views/QuizAnalytics";
 import ImportFromFile from "@/components/views/ImportFromFile";
 import { quizzesAPI } from "@/lib/api";
 import { downloadCSV } from "@/lib/csv";
@@ -54,6 +55,7 @@ export default function TopicQuizzes({
   const [isAddQuizModalOpen, setIsAddQuizModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
     isOpen: boolean;
@@ -258,6 +260,17 @@ export default function TopicQuizzes({
     tags: quiz.tags,
   }));
 
+  // Show analytics view
+  if (showAnalytics) {
+    return (
+      <QuizAnalytics
+        topicId={topicId}
+        topicName={topicName}
+        onBack={() => setShowAnalytics(false)}
+      />
+    );
+  }
+
   // If taking a quiz, show TakeQuiz component
   if (activeQuizId) {
     const activeQuiz = quizzes.find((q) => q._id === activeQuizId);
@@ -285,6 +298,13 @@ export default function TopicQuizzes({
         <CardTitle
           action={
             <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="secondary"
+                onClick={() => setShowAnalytics(true)}
+              >
+                <BarChart2 size={16} />
+                Analytics
+              </Button>
               <Button
                 variant="secondary"
                 onClick={() => setIsImportModalOpen(true)}
