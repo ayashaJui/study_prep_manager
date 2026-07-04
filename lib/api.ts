@@ -113,9 +113,10 @@ export interface FlashcardImportInput {
 
 export interface ApiQuizQuestion {
   id: string;
+  kind?: "multiple-choice" | "true-false" | "short-answer";
   question: string;
   options: string[];
-  correctAnswer: number | number[];
+  correctAnswer: number | number[] | string;
   explanation?: string;
   points?: number;
   tags?: string[];
@@ -128,7 +129,7 @@ export interface ApiQuiz {
   description?: string;
   source?: string;
   difficulty: "easy" | "medium" | "hard";
-  type: "multiple-choice" | "true-false" | "mixed";
+  type: "multiple-choice" | "true-false" | "mixed" | "short-answer";
   timeLimit?: number;
   tags: string[];
   questions: ApiQuizQuestion[];

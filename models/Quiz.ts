@@ -3,9 +3,10 @@ import mongoose, { Document, Schema, Model } from "mongoose";
 // TypeScript interfaces
 export interface IQuizQuestion {
   id: string;
+  kind?: "multiple-choice" | "true-false" | "short-answer";
   question: string;
   options: string[];
-  correctAnswer: number | number[]; // Support both single and multiple answers
+  correctAnswer: number | number[] | string;
   explanation?: string;
   points: number;
   tags: string[];
@@ -40,7 +41,7 @@ export interface IQuiz {
   description?: string;
   source?: string;
   difficulty: "easy" | "medium" | "hard";
-  type: "multiple-choice" | "true-false" | "mixed";
+  type: "multiple-choice" | "true-false" | "mixed" | "short-answer";
   timeLimit?: number; // minutes
   tags: string[];
   questions: IQuizQuestion[];
@@ -68,6 +69,10 @@ const questionSchema = new Schema<IQuizQuestion>(
       type: String,
       required: true,
     },
+    kind: {
+      type: String,
+      enum: ["multiple-choice", "true-false", "short-answer"],
+    },
     question: {
       type: String,
       required: true,
@@ -76,24 +81,16 @@ const questionSchema = new Schema<IQuizQuestion>(
       type: [
         {
           type: String,
-          required: true,
         },
       ],
-      validate: {
-        validator: function (options: string[]) {
-          return options.length >= 2;
-        },
-        message: "Question must have at least 2 options",
-      },
     },
     correctAnswer: {
-      type: Schema.Types.Mixed, // Allows both number and array
+      type: Schema.Types.Mixed,
       required: true,
       validate: {
-        validator: function (value: number | number[]) {
-          if (typeof value === "number") {
-            return value >= 0;
-          }
+        validator: function (value: number | number[] | string) {
+          if (typeof value === "string") return value.trim().length > 0;
+          if (typeof value === "number") return value >= 0;
           if (Array.isArray(value)) {
             return (
               value.length > 0 &&
@@ -102,7 +99,7 @@ const questionSchema = new Schema<IQuizQuestion>(
           }
           return false;
         },
-        message: "correctAnswer must be a number or array of numbers",
+        message: "correctAnswer must be a number, array of numbers, or non-empty string",
       },
     },
     explanation: String,
@@ -189,7 +186,7 @@ const quizSchema = new Schema<IQuizDocument, IQuizModel>(
     },
     type: {
       type: String,
-      enum: ["multiple-choice", "true-false", "mixed"],
+      enum: ["multiple-choice", "true-false", "mixed", "short-answer"],
       default: "multiple-choice",
     },
     timeLimit: {
@@ -259,23 +256,19 @@ const quizSchema = new Schema<IQuizDocument, IQuizModel>(
 
 // Validate questions before saving
 quizSchema.pre("save", function () {
-  // Validate each question's correctAnswer is within options range
   for (const question of this.questions) {
+    // Short-answer questions use a string correctAnswer — no index validation needed
+    if (question.kind === "short-answer" || typeof question.correctAnswer === "string") continue;
+
     if (Array.isArray(question.correctAnswer)) {
-      // If correctAnswer is an array, check all indices
       for (const idx of question.correctAnswer) {
-        if (
-          typeof idx !== "number" ||
-          idx < 0 ||
-          idx >= question.options.length
-        ) {
+        if (typeof idx !== "number" || idx < 0 || idx >= question.options.length) {
           throw new Error(
             `Question "${question.question}" has invalid correctAnswer index ${idx} (only ${question.options.length} options)`,
           );
         }
       }
     } else {
-      // Single answer
       if (
         typeof question.correctAnswer !== "number" ||
         question.correctAnswer < 0 ||

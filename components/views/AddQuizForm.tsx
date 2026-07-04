@@ -9,9 +9,10 @@ import TagInput from "@/components/ui/TagInput";
 
 interface Question {
   id: string;
+  kind?: "multiple-choice" | "true-false" | "short-answer";
   question: string;
   options: string[];
-  correctAnswer: number | number[]; // Support both single and multiple answers
+  correctAnswer: number | number[] | string;
   explanation?: string;
 }
 
@@ -26,15 +27,20 @@ function isTrueFalseShaped(q: Question) {
 }
 
 function blankMultipleChoiceQuestion(q: Question): Question {
-  return { ...q, options: ["", "", "", ""], correctAnswer: [] };
+  return { ...q, kind: "multiple-choice" as const, options: ["", "", "", ""], correctAnswer: [] as number[] };
 }
 
 function blankTrueFalseQuestion(q: Question): Question {
   return {
     ...q,
+    kind: "true-false" as const,
     options: [...TRUE_FALSE_OPTIONS],
     correctAnswer: typeof q.correctAnswer === "number" ? q.correctAnswer : 0,
   };
+}
+
+function blankShortAnswerQuestion(q: Question): Question {
+  return { ...q, kind: "short-answer" as const, options: [] as string[], correctAnswer: "" };
 }
 
 export interface QuizFormData {
@@ -42,7 +48,7 @@ export interface QuizFormData {
   description: string;
   source: string;
   difficulty: "easy" | "medium" | "hard";
-  type: "multiple-choice" | "true-false" | "mixed";
+  type: "multiple-choice" | "true-false" | "mixed" | "short-answer";
   timeLimit?: number;
   tags: string[];
   questions: Question[];
@@ -69,7 +75,7 @@ export default function AddQuizForm({
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
     initialData?.difficulty || "medium",
   );
-  const [type, setType] = useState<"multiple-choice" | "true-false" | "mixed">(
+  const [type, setType] = useState<"multiple-choice" | "true-false" | "mixed" | "short-answer">(
     initialData?.type || "multiple-choice",
   );
   const [timeLimit, setTimeLimit] = useState<string>(
@@ -92,47 +98,56 @@ export default function AddQuizForm({
   // same shape, so this is inferred once from existing data and updated
   // explicitly when the user switches a question's kind.
   const [questionKinds, setQuestionKinds] = useState<
-    Record<string, "multiple-choice" | "true-false">
+    Record<string, "multiple-choice" | "true-false" | "short-answer">
   >(() => {
-    const map: Record<string, "multiple-choice" | "true-false"> = {};
+    const map: Record<string, "multiple-choice" | "true-false" | "short-answer"> = {};
     (initialData?.questions || []).forEach((q) => {
-      map[q.id] = isTrueFalseShaped(q) ? "true-false" : "multiple-choice";
+      map[q.id] = q.kind === "short-answer"
+        ? "short-answer"
+        : isTrueFalseShaped(q) ? "true-false" : "multiple-choice";
     });
     return map;
   });
 
-  const getQuestionKind = (q: Question): "multiple-choice" | "true-false" => {
+  const getQuestionKind = (q: Question): "multiple-choice" | "true-false" | "short-answer" => {
     if (type === "true-false") return "true-false";
     if (type === "multiple-choice") return "multiple-choice";
-    return questionKinds[q.id] || (isTrueFalseShaped(q) ? "true-false" : "multiple-choice");
+    if (type === "short-answer") return "short-answer";
+    return questionKinds[q.id] || (
+      q.kind === "short-answer" ? "short-answer" :
+      isTrueFalseShaped(q) ? "true-false" : "multiple-choice"
+    );
   };
 
   const setQuestionKind = (
     questionId: string,
-    kind: "multiple-choice" | "true-false",
+    kind: "multiple-choice" | "true-false" | "short-answer",
   ) => {
     setQuestionKinds((prev) => ({ ...prev, [questionId]: kind }));
     setQuestions(
-      questions.map((q) =>
-        q.id === questionId
-          ? kind === "true-false"
-            ? blankTrueFalseQuestion(q)
-            : blankMultipleChoiceQuestion(q)
-          : q,
-      ),
+      questions.map((q) => {
+        if (q.id !== questionId) return q;
+        if (kind === "true-false") return blankTrueFalseQuestion(q);
+        if (kind === "short-answer") return blankShortAnswerQuestion(q);
+        return blankMultipleChoiceQuestion(q);
+      }),
     );
   };
 
   const handleTypeChange = (
-    nextType: "multiple-choice" | "true-false" | "mixed",
+    nextType: "multiple-choice" | "true-false" | "mixed" | "short-answer",
   ) => {
     setType(nextType);
     if (nextType === "true-false") {
       setQuestions(questions.map((q) => blankTrueFalseQuestion(q)));
+    } else if (nextType === "short-answer") {
+      setQuestions(questions.map((q) => blankShortAnswerQuestion(q)));
     } else if (nextType === "multiple-choice") {
       setQuestions(
         questions.map((q) =>
-          isTrueFalseShaped(q) ? blankMultipleChoiceQuestion(q) : q,
+          isTrueFalseShaped(q) || q.kind === "short-answer"
+            ? blankMultipleChoiceQuestion(q)
+            : q,
         ),
       );
     }
@@ -140,17 +155,20 @@ export default function AddQuizForm({
 
   const addQuestion = () => {
     const newId = Date.now().toString();
+    const isShortAnswer = type === "short-answer";
+    const isTrueFalse = type === "true-false";
     const newQuestion: Question = {
       id: newId,
+      kind: isShortAnswer ? "short-answer" : isTrueFalse ? "true-false" : "multiple-choice",
       question: "",
-      options: type === "true-false" ? [...TRUE_FALSE_OPTIONS] : ["", "", "", ""],
-      correctAnswer: type === "true-false" ? 0 : [], // Array for multiple answers
+      options: isShortAnswer ? [] : isTrueFalse ? [...TRUE_FALSE_OPTIONS] : ["", "", "", ""],
+      correctAnswer: isShortAnswer ? "" : isTrueFalse ? 0 : [],
       explanation: "",
     };
     setQuestions([...questions, newQuestion]);
     setQuestionKinds((prev) => ({
       ...prev,
-      [newId]: type === "true-false" ? "true-false" : "multiple-choice",
+      [newId]: isShortAnswer ? "short-answer" : isTrueFalse ? "true-false" : "multiple-choice",
     }));
   };
 
@@ -199,10 +217,10 @@ export default function AddQuizForm({
     setQuestions(
       questions.map((q) => {
         if (q.id === questionId) {
-          const currentAnswers = Array.isArray(q.correctAnswer)
-            ? q.correctAnswer
-            : [q.correctAnswer];
-          const newAnswers = currentAnswers.includes(optionIndex)
+          const currentAnswers: number[] = Array.isArray(q.correctAnswer)
+            ? (q.correctAnswer as number[])
+            : typeof q.correctAnswer === "number" ? [q.correctAnswer] : [];
+          const newAnswers: number[] = currentAnswers.includes(optionIndex)
             ? currentAnswers.filter((idx) => idx !== optionIndex)
             : [...currentAnswers, optionIndex];
           return { ...q, correctAnswer: newAnswers };
@@ -219,17 +237,17 @@ export default function AddQuizForm({
     if (!quizTitle.trim()) return;
 
     const validQuestions = questions.filter((q) => {
+      if (!q.question.trim()) return false;
+      if (getQuestionKind(q) === "short-answer") {
+        return typeof q.correctAnswer === "string" && q.correctAnswer.trim().length > 0;
+      }
       const correctAnswers = Array.isArray(q.correctAnswer)
         ? q.correctAnswer
         : [q.correctAnswer];
       const hasCorrectAnswer =
         correctAnswers.length > 0 &&
         correctAnswers.every((idx) => typeof idx === "number");
-      return (
-        q.question.trim() &&
-        q.options.every((o) => o.trim()) &&
-        hasCorrectAnswer
-      );
+      return q.options.every((o) => o.trim()) && hasCorrectAnswer;
     });
 
     if (validQuestions.length === 0) {
@@ -322,13 +340,15 @@ export default function AddQuizForm({
                         e.target.value as
                           | "multiple-choice"
                           | "true-false"
-                          | "mixed",
+                          | "mixed"
+                          | "short-answer",
                       )
                     }
                     className="w-full !px-4 !py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     <option value="multiple-choice">Multiple Choice</option>
                     <option value="true-false">True/False</option>
+                    <option value="short-answer">Short Answer</option>
                     <option value="mixed">Mixed</option>
                   </select>
                 </div>
@@ -392,13 +412,14 @@ export default function AddQuizForm({
                         onChange={(e) =>
                           setQuestionKind(
                             q.id,
-                            e.target.value as "multiple-choice" | "true-false",
+                            e.target.value as "multiple-choice" | "true-false" | "short-answer",
                           )
                         }
                         className="w-full !px-4 !py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       >
                         <option value="multiple-choice">Multiple Choice</option>
                         <option value="true-false">True/False</option>
+                        <option value="short-answer">Short Answer</option>
                       </select>
                     </div>
                   )}
@@ -414,7 +435,20 @@ export default function AddQuizForm({
                     required
                   />
 
-                  {getQuestionKind(q) === "true-false" ? (
+                  {getQuestionKind(q) === "short-answer" ? (
+                    <div className="!mt-4">
+                      <Input
+                        label="Correct Answer"
+                        placeholder="Type the expected answer..."
+                        value={typeof q.correctAnswer === "string" ? q.correctAnswer : ""}
+                        onChange={(e) => updateQuestion(q.id, "correctAnswer", e.target.value)}
+                        required
+                      />
+                      <p className="text-xs text-slate-500 !mt-1.5">
+                        Grading is case-insensitive. Players can also manually mark their answer correct after submitting.
+                      </p>
+                    </div>
+                  ) : getQuestionKind(q) === "true-false" ? (
                     <div className="!mt-4">
                       <label className="block text-sm font-medium text-slate-300 !mb-3">
                         Correct Answer
@@ -428,7 +462,7 @@ export default function AddQuizForm({
                             <input
                               type="radio"
                               name={`correct-answer-${q.id}`}
-                              checked={q.correctAnswer === optIndex}
+                              checked={q.correctAnswer === optIndex || (Array.isArray(q.correctAnswer) && (q.correctAnswer as number[]).includes(optIndex))}
                               onChange={() =>
                                 setSingleCorrectAnswer(q.id, optIndex)
                               }
@@ -449,8 +483,8 @@ export default function AddQuizForm({
                       <div className="space-y-2">
                         {q.options.map((option, optIndex) => {
                           const correctAnswers = Array.isArray(q.correctAnswer)
-                            ? q.correctAnswer
-                            : [q.correctAnswer];
+                            ? q.correctAnswer as number[]
+                            : typeof q.correctAnswer === "number" ? [q.correctAnswer] : [];
                           return (
                             <div
                               key={optIndex}

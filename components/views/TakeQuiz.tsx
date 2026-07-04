@@ -16,9 +16,10 @@ import {
 
 interface QuizQuestion {
   id: string;
+  kind?: "multiple-choice" | "true-false" | "short-answer";
   question: string;
   options: string[];
-  correctAnswer: number | number[]; // Support both single and multiple
+  correctAnswer: number | number[] | string;
   explanation?: string;
 }
 
@@ -39,9 +40,12 @@ interface TakeQuizProps {
 
 export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<(number[] | null)[]>(
+  // number[] for MC/TF, string for short-answer, null = unanswered
+  const [selectedAnswers, setSelectedAnswers] = useState<(number[] | string | null)[]>(
     Array(quiz.questions.length).fill(null),
   );
+  // Post-submit manual overrides for short-answer questions
+  const [manualOverrides, setManualOverrides] = useState<Record<number, boolean>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(
     quiz.timeLimit ? quiz.timeLimit * 60 : null,
@@ -66,18 +70,24 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const isShortAnswer = (q: QuizQuestion) =>
+    q.kind === "short-answer" || typeof q.correctAnswer === "string";
+
   const handleAnswerSelect = (optionIndex: number) => {
     if (isSubmitted) return;
     const newAnswers = [...selectedAnswers];
-    const currentAnswers = newAnswers[currentQuestionIndex] || [];
-
-    // Toggle selection
+    const currentAnswers = (newAnswers[currentQuestionIndex] as number[]) || [];
     const updatedAnswers = currentAnswers.includes(optionIndex)
       ? currentAnswers.filter((idx) => idx !== optionIndex)
       : [...currentAnswers, optionIndex];
+    newAnswers[currentQuestionIndex] = updatedAnswers.length > 0 ? updatedAnswers : null;
+    setSelectedAnswers(newAnswers);
+  };
 
-    newAnswers[currentQuestionIndex] =
-      updatedAnswers.length > 0 ? updatedAnswers : null;
+  const handleShortAnswerChange = (value: string) => {
+    if (isSubmitted) return;
+    const newAnswers = [...selectedAnswers];
+    newAnswers[currentQuestionIndex] = value;
     setSelectedAnswers(newAnswers);
   };
 
@@ -100,15 +110,22 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
     return sortedA.every((val, idx) => val === sortedB[idx]);
   };
 
+  const gradeShortAnswer = (typed: string | null, correct: string) => {
+    if (!typed || typeof typed !== "string") return false;
+    return typed.trim().toLowerCase() === correct.trim().toLowerCase();
+  };
+
   const handleSubmit = useCallback(() => {
     setIsSubmitted(true);
     const score = selectedAnswers.reduce<number>((acc, answer, index) => {
       if (answer === null) return acc;
-      const correctAnswer = quiz.questions[index].correctAnswer;
-      const correctAnswers = Array.isArray(correctAnswer)
-        ? correctAnswer
-        : [correctAnswer];
-      const isCorrect = arraysEqual(answer, correctAnswers);
+      const q = quiz.questions[index];
+      if (isShortAnswer(q)) {
+        return acc + (gradeShortAnswer(answer as string, q.correctAnswer as string) ? 1 : 0);
+      }
+      const correctAnswer = q.correctAnswer;
+      const correctAnswers = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer as number];
+      const isCorrect = arraysEqual(answer as number[], correctAnswers);
       return acc + (isCorrect ? 1 : 0);
     }, 0);
 
@@ -118,7 +135,7 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
         quiz.id,
         quiz.questions.map((q, index) => ({
           questionId: q.id,
-          selectedAnswer: selectedAnswers[index],
+          selectedAnswer: (isShortAnswer(q) ? -1 : selectedAnswers[index]) as number | number[] | null,
         })),
         timeTaken,
       )
@@ -137,23 +154,27 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
   const getScore = (): number => {
     return selectedAnswers.reduce<number>((acc, answer, index) => {
       if (answer === null) return acc;
-      const correctAnswer = quiz.questions[index].correctAnswer;
-      const correctAnswers = Array.isArray(correctAnswer)
-        ? correctAnswer
-        : [correctAnswer];
-      const isCorrect = arraysEqual(answer, correctAnswers);
-      return acc + (isCorrect ? 1 : 0);
+      const q = quiz.questions[index];
+      if (isShortAnswer(q)) {
+        const autoCorrect = gradeShortAnswer(answer as string, q.correctAnswer as string);
+        return acc + ((manualOverrides[index] ?? autoCorrect) ? 1 : 0);
+      }
+      const correctAnswers = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer as number];
+      return acc + (arraysEqual(answer as number[], correctAnswers) ? 1 : 0);
     }, 0);
   };
 
   const isAnswerCorrect = (questionIndex: number) => {
     const answer = selectedAnswers[questionIndex];
+    if (answer === null) return false;
+    const q = quiz.questions[questionIndex];
+    if (isShortAnswer(q)) {
+      const autoCorrect = gradeShortAnswer(answer as string, q.correctAnswer as string);
+      return manualOverrides[questionIndex] ?? autoCorrect;
+    }
     if (!answer) return false;
-    const correctAnswer = quiz.questions[questionIndex].correctAnswer;
-    const correctAnswers = Array.isArray(correctAnswer)
-      ? correctAnswer
-      : [correctAnswer];
-    return arraysEqual(answer, correctAnswers);
+    const correctAnswers = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer as number];
+    return arraysEqual(answer as number[], correctAnswers);
   };
 
   return (
@@ -223,39 +244,54 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
                 {currentQuestion.question}
               </h3>
 
-              <div className="!space-y-3">
-                {currentQuestion.options.map((option, index) => {
-                  const currentAnswers =
-                    selectedAnswers[currentQuestionIndex] || [];
-                  const isSelected = currentAnswers.includes(index);
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleAnswerSelect(index)}
-                      className={`w-full !p-4 text-left rounded-lg border-2 transition-all ${
-                        isSelected
-                          ? "border-purple-500 bg-purple-500/20"
-                          : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 !mt-0.5 ${
-                            isSelected
-                              ? "border-purple-500 bg-purple-500"
-                              : "border-slate-600"
-                          }`}
-                        >
-                          {isSelected && (
-                            <CheckCircle2 size={16} className="text-white" />
-                          )}
+              {isShortAnswer(currentQuestion) ? (
+                <div>
+                  <textarea
+                    value={typeof selectedAnswers[currentQuestionIndex] === "string"
+                      ? (selectedAnswers[currentQuestionIndex] as string)
+                      : ""}
+                    onChange={(e) => handleShortAnswerChange(e.target.value)}
+                    placeholder="Type your answer here..."
+                    rows={4}
+                    className="w-full !px-4 !py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
+                  />
+                  <p className="text-xs text-slate-500 !mt-1.5">Grading is case-insensitive. You can adjust the result in the review.</p>
+                </div>
+              ) : (
+                <div className="!space-y-3">
+                  {currentQuestion.options.map((option, index) => {
+                    const currentAnswers =
+                      (selectedAnswers[currentQuestionIndex] as number[]) || [];
+                    const isSelected = currentAnswers.includes(index);
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => handleAnswerSelect(index)}
+                        className={`w-full !p-4 text-left rounded-lg border-2 transition-all ${
+                          isSelected
+                            ? "border-purple-500 bg-purple-500/20"
+                            : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 !mt-0.5 ${
+                              isSelected
+                                ? "border-purple-500 bg-purple-500"
+                                : "border-slate-600"
+                            }`}
+                          >
+                            {isSelected && (
+                              <CheckCircle2 size={16} className="text-white" />
+                            )}
+                          </div>
+                          <span className="text-slate-200 flex-1">{option}</span>
                         </div>
-                        <span className="text-slate-200 flex-1">{option}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Navigation */}
@@ -272,7 +308,11 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
               {currentQuestionIndex === quiz.questions.length - 1 ? (
                 <Button
                   onClick={handleSubmit}
-                  disabled={selectedAnswers.some((a) => a === null)}
+                  disabled={selectedAnswers.some((a, i) =>
+                    isShortAnswer(quiz.questions[i])
+                      ? !a || (typeof a === "string" && !a.trim())
+                      : a === null
+                  )}
                 >
                   Submit Quiz
                 </Button>
@@ -310,17 +350,17 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
                 </h4>
 
                 {quiz.questions.map((question, qIndex) => {
-                  const isCorrect = isAnswerCorrect(qIndex);
+                  const correct = isAnswerCorrect(qIndex);
                   const userAnswer = selectedAnswers[qIndex];
-                  const correctAnswer = question.correctAnswer;
-                  const userAnswerArr = Array.isArray(userAnswer)
-                    ? userAnswer
-                    : typeof userAnswer === "number"
-                      ? [userAnswer]
-                      : [];
-                  const correctAnswerArr = Array.isArray(correctAnswer)
-                    ? correctAnswer
-                    : [correctAnswer];
+                  const sa = isShortAnswer(question);
+
+                  // MC/TF answer arrays
+                  const userAnswerArr: number[] = !sa && Array.isArray(userAnswer) ? userAnswer as number[] : [];
+                  const correctAnswerArr: number[] = !sa
+                    ? (Array.isArray(question.correctAnswer)
+                        ? question.correctAnswer as number[]
+                        : [question.correctAnswer as number])
+                    : [];
 
                   return (
                     <div
@@ -328,75 +368,78 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
                       className="bg-slate-800/50 !p-5 rounded-xl border border-slate-700/50"
                     >
                       <div className="flex items-start gap-3 !mb-4">
-                        {isCorrect ? (
-                          <CheckCircle2
-                            size={24}
-                            className="text-green-500 flex-shrink-0 !mt-0.5"
-                          />
+                        {correct ? (
+                          <CheckCircle2 size={24} className="text-green-500 flex-shrink-0 !mt-0.5" />
                         ) : (
-                          <XCircle
-                            size={24}
-                            className="text-red-500 flex-shrink-0 !mt-0.5"
-                          />
+                          <XCircle size={24} className="text-red-500 flex-shrink-0 !mt-0.5" />
                         )}
                         <div className="flex-1">
                           <h5 className="font-medium text-slate-200 !mb-3">
                             Question {qIndex + 1}: {question.question}
                           </h5>
 
-                          <div className="!space-y-2">
-                            {question.options.map((option, oIndex) => {
-                              const isUserAnswer =
-                                userAnswerArr.includes(oIndex);
-                              const isCorrectAnswer =
-                                correctAnswerArr.includes(oIndex);
-
-                              return (
-                                <div
-                                  key={oIndex}
-                                  className={`!p-3 rounded-lg ${
-                                    isCorrectAnswer
-                                      ? "bg-green-500/20 border border-green-500/50"
-                                      : isUserAnswer
-                                        ? "bg-red-500/20 border border-red-500/50"
-                                        : "bg-slate-800/50"
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    {isCorrectAnswer && (
-                                      <CheckCircle2
-                                        size={16}
-                                        className="text-green-500"
-                                      />
-                                    )}
-                                    {isUserAnswer && !isCorrectAnswer && (
-                                      <XCircle
-                                        size={16}
-                                        className="text-red-500"
-                                      />
-                                    )}
-                                    <span
-                                      className={
-                                        isCorrectAnswer
-                                          ? "text-green-300"
-                                          : isUserAnswer
-                                            ? "text-red-300"
-                                            : "text-slate-400"
-                                      }
-                                    >
-                                      {option}
-                                    </span>
+                          {sa ? (
+                            <div className="!space-y-2">
+                              <div className="!p-3 rounded-lg bg-slate-700/50 border border-slate-600">
+                                <p className="text-xs text-slate-400 !mb-1">Your answer</p>
+                                <p className="text-slate-200 text-sm">
+                                  {userAnswer as string || <em className="text-slate-500">No answer</em>}
+                                </p>
+                              </div>
+                              <div className="!p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                                <p className="text-xs text-slate-400 !mb-1">Expected answer</p>
+                                <p className="text-green-300 text-sm">{question.correctAnswer as string}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setManualOverrides((prev) => ({
+                                    ...prev,
+                                    [qIndex]: !(prev[qIndex] ?? gradeShortAnswer(userAnswer as string, question.correctAnswer as string)),
+                                  }))
+                                }
+                                className={`text-xs !px-3 !py-1.5 rounded-lg border transition-colors ${
+                                  correct
+                                    ? "border-green-500/50 text-green-400 hover:bg-green-500/10"
+                                    : "border-red-500/50 text-red-400 hover:bg-red-500/10"
+                                }`}
+                              >
+                                {correct ? "Mark as incorrect" : "Mark as correct"}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="!space-y-2">
+                              {question.options.map((option, oIndex) => {
+                                const isUserAnswer = userAnswerArr.includes(oIndex);
+                                const isCorrectAnswer = correctAnswerArr.includes(oIndex);
+                                return (
+                                  <div
+                                    key={oIndex}
+                                    className={`!p-3 rounded-lg ${
+                                      isCorrectAnswer
+                                        ? "bg-green-500/20 border border-green-500/50"
+                                        : isUserAnswer
+                                          ? "bg-red-500/20 border border-red-500/50"
+                                          : "bg-slate-800/50"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {isCorrectAnswer && <CheckCircle2 size={16} className="text-green-500" />}
+                                      {isUserAnswer && !isCorrectAnswer && <XCircle size={16} className="text-red-500" />}
+                                      <span className={isCorrectAnswer ? "text-green-300" : isUserAnswer ? "text-red-300" : "text-slate-400"}>
+                                        {option}
+                                      </span>
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                );
+                              })}
+                            </div>
+                          )}
 
                           {question.explanation && (
                             <div className="!mt-3 !p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                               <p className="text-sm text-blue-300">
-                                <strong>Explanation:</strong>{" "}
-                                {question.explanation}
+                                <strong>Explanation:</strong> {question.explanation}
                               </p>
                             </div>
                           )}
