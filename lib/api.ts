@@ -319,52 +319,6 @@ export const topicAPI = {
 };
 
 // ============================================
-// Subtopic APIs
-// ============================================
-
-export const subtopicAPI = {
-  getAll: async (topicId: string) => {
-    return fetchAPI<ApiResponse<ApiTopic[]>>(`/topics/${topicId}/subtopics`);
-  },
-
-  getById: async (topicId: string, subtopicId: string) => {
-    return fetchAPI<ApiResponse<ApiTopic>>(
-      `/topics/${topicId}/subtopics/${subtopicId}`,
-    );
-  },
-
-  create: async (topicId: string, data: TopicCreateInput) => {
-    return fetchAPI<ApiResponse<ApiTopic>>(`/topics/${topicId}/subtopics`, {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
-
-  update: async (
-    topicId: string,
-    subtopicId: string,
-    data: Partial<TopicCreateInput>,
-  ) => {
-    return fetchAPI<ApiResponse<ApiTopic>>(
-      `/topics/${topicId}/subtopics/${subtopicId}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(data),
-      },
-    );
-  },
-
-  delete: async (topicId: string, subtopicId: string) => {
-    return fetchAPI<ApiResponse<null>>(
-      `/topics/${topicId}/subtopics/${subtopicId}`,
-      {
-        method: "DELETE",
-      },
-    );
-  },
-};
-
-// ============================================
 // Notes APIs
 // ============================================
 
