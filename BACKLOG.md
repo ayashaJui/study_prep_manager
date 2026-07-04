@@ -8,9 +8,8 @@
 
 ## Incomplete
 
-- **Topics and subtopics have no rename, delete, or status-change controls** — `PATCH /api/topics/[id]` and `DELETE /api/topics/[id]` are implemented; nothing in the UI calls them.
 
-- **Dashboard "Review 5 topics" goal actually counts notes created** — `app/api/dashboard/goals/route.ts` line 63. The metric label is misleading.
+- **Topics and subtopics have no rename, delete, or status-change controls** — `PATCH /api/topics/[id]` and `DELETE /api/topics/[id]` are implemented; nothing in the UI calls them.
 
 ---
 

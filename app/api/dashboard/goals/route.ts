@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import Flashcard from "@/models/Flashcard";
 import Quiz from "@/models/Quiz";
 import Note from "@/models/Note";
+import StudySession from "@/models/StudySession";
 import User, { IWeeklyGoal, WeeklyGoalMetric } from "@/models/User";
 import { requireAuth } from "@/lib/serverAuth";
 import { ApiError } from "@/lib/errorHandler";
@@ -31,12 +32,14 @@ export async function GET(request: NextRequest) {
       flashcardsThisWeek,
       quizzesThisWeek,
       notesThisWeek,
+      topicsReviewedThisWeek,
       totalFlashcards,
       user,
     ] = await Promise.all([
       Flashcard.countDocuments({ userId, createdAt: { $gte: sevenDaysAgo } }),
       Quiz.countDocuments({ userId, createdAt: { $gte: sevenDaysAgo } }),
       Note.countDocuments({ userId, createdAt: { $gte: sevenDaysAgo } }),
+      StudySession.distinct("topicId", { userId, topicId: { $ne: null }, createdAt: { $gte: sevenDaysAgo } }),
       Flashcard.countDocuments({ userId }),
       User.findById(userId).select("weeklyGoals").lean(),
     ]);
@@ -60,8 +63,7 @@ export async function GET(request: NextRequest) {
     const currentByMetric: Record<WeeklyGoalMetric, number> = {
       flashcards: flashcardsThisWeek,
       quizzes: quizzesThisWeek,
-      // Notes count is used as a proxy for topic review activity.
-      topics: notesThisWeek,
+      topics: topicsReviewedThisWeek.length,
       notes: notesThisWeek,
     };
 
