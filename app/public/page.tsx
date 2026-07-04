@@ -136,7 +136,7 @@ export default function ExplorePage() {
             <BookOpen size={52} className="mx-auto !mb-5 text-slate-700" />
             <p className="text-slate-400 text-lg font-medium">No shared topics yet.</p>
             <p className="text-slate-500 text-sm !mt-2">
-              Be the first to share a subtopic with the community.
+              Be the first to share a topic with the community.
             </p>
           </div>
         )}
