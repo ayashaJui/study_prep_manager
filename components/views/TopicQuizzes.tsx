@@ -63,6 +63,8 @@ export default function TopicQuizzes({
     quizId: string | null;
   }>({ isOpen: false, quizId: null });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [filterDifficulty, setFilterDifficulty] = useState<"" | "easy" | "medium" | "hard">("");
+  const [filterType, setFilterType] = useState<"" | "multiple-choice" | "true-false" | "mixed" | "short-answer">("");
   const { showSuccess, showError } = useToast();
 
   const allTags = Array.from(new Set(quizzes.flatMap((q) => q.tags || [])));
@@ -247,8 +249,9 @@ export default function TopicQuizzes({
 
   const filteredQuizzes = quizzes.filter(
     (q) =>
-      selectedTags.length === 0 ||
-      selectedTags.every((t) => (q.tags || []).includes(t)),
+      (selectedTags.length === 0 || selectedTags.every((t) => (q.tags || []).includes(t))) &&
+      (filterDifficulty === "" || q.difficulty === filterDifficulty) &&
+      (filterType === "" || q.type === filterType),
   );
 
   const formattedQuizzes = filteredQuizzes.map((quiz) => ({
@@ -333,15 +336,46 @@ export default function TopicQuizzes({
           Quizzes - {topicName}
         </CardTitle>
 
+        <div className="flex flex-wrap items-center gap-3 !mb-4">
+          <select
+            value={filterDifficulty}
+            onChange={(e) => setFilterDifficulty(e.target.value as "" | "easy" | "medium" | "hard")}
+            className="!px-3 !py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-500"
+          >
+            <option value="">All difficulties</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as "" | "multiple-choice" | "true-false" | "mixed" | "short-answer")}
+            className="!px-3 !py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-500"
+          >
+            <option value="">All types</option>
+            <option value="multiple-choice">Multiple choice</option>
+            <option value="true-false">True / False</option>
+            <option value="short-answer">Short answer</option>
+            <option value="mixed">Mixed</option>
+          </select>
+          {(filterDifficulty || filterType || selectedTags.length > 0) && (
+            <button
+              type="button"
+              onClick={() => { setFilterDifficulty(""); setFilterType(""); setSelectedTags([]); }}
+              className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
         {allTags.length > 0 && (
           <div className="flex flex-wrap gap-2 !mb-6">
             {allTags.map((tag) => (
               <Badge
                 key={tag}
                 variant={selectedTags.includes(tag) ? "default" : undefined}
-                className={
-                  selectedTags.includes(tag) ? "" : "!bg-slate-700/60"
-                }
+                className={selectedTags.includes(tag) ? "" : "!bg-slate-700/60"}
                 onClick={() => toggleTag(tag)}
               >
                 {tag}
