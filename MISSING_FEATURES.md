@@ -6,7 +6,6 @@
 
 ## Low Priority (Nice to have)
 
-- **Export to Markdown** — useful for sharing notes outside the app
 - **Import from Markdown** — complements Markdown export
 
 ---
