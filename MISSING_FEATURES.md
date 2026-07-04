@@ -2,25 +2,18 @@
 
 ---
 
-## Do Next (High value, low effort)
-
-- **Quiz analytics UI** — attempt data is already stored in the model; needs a score-over-time chart and per-quiz history view
-
----
-
 ## Do Later (Medium effort, good payoff)
 
 - **Short answer quiz type** — add to schema enum and quiz builder UI
 - **Keyboard shortcuts** — single global hook (Ctrl+N new topic, Ctrl+F focus search, Escape close modal)
-- **Image file upload in notes** — backend route already exists; wire up Cloudinary or similar free-tier storage and uncomment the upload button
-- **Tag autocomplete** — enhance existing tag input to suggest previously used tags
+- **Tag au
+- tocomplete** — enhance existing tag input to suggest previously used tags
 
 ---
 
 ## Low Priority (Nice to have)
 
 - **Filter by content type** — add difficulty/type dropdown alongside existing tag filter badges
-- **Quiz analytics** — average scores, track incorrect answers, performance trends (extends "Do Next" item above)
 - **Export to Markdown** — useful for sharing notes outside the app
 - **Import from Markdown** — complements Markdown export
 
