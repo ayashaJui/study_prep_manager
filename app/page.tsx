@@ -48,6 +48,12 @@ function HomeContent() {
   } = useNavigation();
 
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [fetchedSubtopic, setFetchedSubtopic] = useState<import("@/lib/mockData").Subtopic | null>(null);
+  const [subtopicLoading, setSubtopicLoading] = useState(false);
+  const [subtopicFetchFailed, setSubtopicFetchFailed] = useState(false);
+  const [subtopicRefreshKey, setSubtopicRefreshKey] = useState(0);
+  // id → name cache so breadcrumb labels work at any depth
+  const [subtopicNames, setSubtopicNames] = useState<Record<string, string>>({});
   const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false);
   const [newTopicName, setNewTopicName] = useState("");
   const [newTopicDescription, setNewTopicDescription] = useState("");
@@ -114,40 +120,68 @@ function HomeContent() {
     return () => window.clearTimeout(handle);
   }, [searchQuery, isAuthenticated]);
 
+  const getNavParams = (topicId: string): { rootTopicId: string; subtopics: string[] } => {
+    const info = searchResults?.topicMap?.[topicId];
+    if (!info || info.level === 0 || !info.path.length) {
+      return { rootTopicId: topicId, subtopics: [] };
+    }
+    return {
+      rootTopicId: info.path[0],
+      subtopics: [...info.path.slice(1), topicId],
+    };
+  };
+
   const searchItems = useMemo(() => {
     if (!searchResults) return [] as Array<{
       kind: "topic" | "note" | "flashcard" | "quiz";
       id: string;
-      topicId: string;
+      rootTopicId: string;
+      subtopics: string[];
       tab: string;
       extra?: Record<string, string>;
       label: string;
     }>;
 
+    const resolveNav = (topicId: string) => {
+      const info = searchResults.topicMap?.[topicId];
+      if (!info || info.level === 0 || !info.path.length) {
+        return { rootTopicId: topicId, subtopics: [] as string[] };
+      }
+      return {
+        rootTopicId: info.path[0],
+        subtopics: [...info.path.slice(1), topicId],
+      };
+    };
+
     const items: Array<{
       kind: "topic" | "note" | "flashcard" | "quiz";
       id: string;
-      topicId: string;
+      rootTopicId: string;
+      subtopics: string[];
       tab: string;
       extra?: Record<string, string>;
       label: string;
     }> = [];
 
     (searchResults.topics || []).forEach(item => {
+      const { rootTopicId, subtopics } = resolveNav(toId(item._id));
       items.push({
         kind: "topic",
         id: toId(item._id),
-        topicId: toId(item.slug || item._id),
+        rootTopicId,
+        subtopics,
         tab: "overview",
         label: item.name || "Untitled topic",
       });
     });
 
     (searchResults.notes || []).forEach(item => {
+      const { rootTopicId, subtopics } = resolveNav(toId(item.topicId));
       items.push({
         kind: "note",
         id: toId(item._id),
-        topicId: toId(item.topicId),
+        rootTopicId,
+        subtopics,
         tab: "notes",
         extra: { note: toId(item._id) },
         label: item.title || item.content?.slice(0, 40) || "Untitled note",
@@ -155,10 +189,12 @@ function HomeContent() {
     });
 
     (searchResults.flashcards || []).forEach(item => {
+      const { rootTopicId, subtopics } = resolveNav(toId(item.topicId));
       items.push({
         kind: "flashcard",
         id: toId(item._id),
-        topicId: toId(item.topicId),
+        rootTopicId,
+        subtopics,
         tab: "flashcards",
         extra: { flashcard: toId(item._id) },
         label: item.front || "Untitled flashcard",
@@ -166,10 +202,12 @@ function HomeContent() {
     });
 
     (searchResults.quizzes || []).forEach(item => {
+      const { rootTopicId, subtopics } = resolveNav(toId(item.topicId));
       items.push({
         kind: "quiz",
         id: toId(item._id),
-        topicId: toId(item.topicId),
+        rootTopicId,
+        subtopics,
         tab: "quizzes",
         extra: { quiz: toId(item._id) },
         label: item.title || "Untitled quiz",
@@ -294,34 +332,81 @@ function HomeContent() {
     }
   }, [authLoading, isAuthenticated, fetchTopics]);
 
+  // Lazy-fetch the current subtopic + its children whenever the path changes.
+  // This replaces tree-traversal and works at any nesting depth.
+  useEffect(() => {
+    if (!subtopicPath.length || !activeTopic) {
+      setFetchedSubtopic(null);
+      setSubtopicFetchFailed(false);
+      return;
+    }
+
+    const currentId = subtopicPath[subtopicPath.length - 1];
+    setSubtopicLoading(true);
+    setSubtopicFetchFailed(false);
+    setFetchedSubtopic(null);
+
+    Promise.all([
+      topicAPI.getById(currentId),
+      topicAPI.getAll(currentId),
+    ]).then(([nodeRes, childrenRes]) => {
+      if (!nodeRes.success) {
+        setSubtopicFetchFailed(true);
+        return;
+      }
+      const node = nodeRes.data;
+      const children = childrenRes.success
+        ? childrenRes.data.map((c: ApiTopic) => ({
+            id: c._id,
+            name: c.name,
+            slug: c.slug,
+            description: c.description,
+            status: c.status,
+            notesCount: c.stats?.notesCount || 0,
+            flashcardsCount: c.stats?.flashcardsCount || 0,
+            quizzesCount: c.stats?.quizzesCount || 0,
+            subtopics: [],
+          }))
+        : [];
+
+      const subtopic: import("@/lib/mockData").Subtopic = {
+        id: node._id,
+        name: node.name,
+        slug: node.slug,
+        description: node.description,
+        status: node.status,
+        notesCount: node.stats?.notesCount || 0,
+        flashcardsCount: node.stats?.flashcardsCount || 0,
+        quizzesCount: node.stats?.quizzesCount || 0,
+        isPublic: node.isPublic,
+        shareId: node.shareId,
+        subtopics: children,
+      };
+
+      setFetchedSubtopic(subtopic);
+      setSubtopicNames((prev) => ({ ...prev, [currentId]: node.name }));
+    }).catch(() => {
+      setSubtopicFetchFailed(true);
+    }).finally(() => {
+      setSubtopicLoading(false);
+    });
+  }, [subtopicPath, activeTopic, subtopicRefreshKey]);
+
   const currentTopic = topics.find(
     (t) => t.slug === activeTopic || t.id === activeTopic,
   );
 
-  // Navigate through subtopic path to find current subtopic
-  const getCurrentSubtopic = () => {
-    if (!currentTopic || subtopicPath.length === 0) return null;
-
-    let current: Topic | Subtopic = currentTopic;
-    for (const subtopicId of subtopicPath) {
-      const found = (current.subtopics || []).find(
-        (s) => s.slug === subtopicId || s.id === subtopicId,
-      );
-      if (!found) return null;
-      current = found;
-    }
-    return current;
-  };
-
-  const currentSubtopic = getCurrentSubtopic();
+  const currentSubtopic = fetchedSubtopic;
 
   const navigateToTopicTab = (
     topicId: string,
     tab: string,
     extra?: Record<string, string>,
+    subtopics?: string[],
   ) => {
     if (!topicId) return;
     const params = new URLSearchParams({ topic: topicId, tab });
+    if (subtopics?.length) params.set("subtopics", subtopics.join(","));
     if (extra) {
       Object.entries(extra).forEach(([key, value]) => {
         if (value) params.set(key, value);
@@ -335,8 +420,9 @@ function HomeContent() {
     topicId: string,
     tab: string,
     extra?: Record<string, string>,
+    subtopics?: string[],
   ) => {
-    navigateToTopicTab(topicId, tab, extra);
+    navigateToTopicTab(topicId, tab, extra, subtopics);
     handleSearchClear();
   };
 
@@ -370,7 +456,7 @@ function HomeContent() {
       event.preventDefault();
       const target = searchItems[highlightIndex];
       if (!target) return;
-      handleSearchNavigate(target.topicId, target.tab, target.extra);
+      handleSearchNavigate(target.rootTopicId, target.tab, target.extra, target.subtopics.length ? target.subtopics : undefined);
       return;
     }
 
@@ -594,28 +680,13 @@ function HomeContent() {
             label: currentTopic?.name || "Topic",
             onClick: () => navigateToTopic(activeTopic),
           },
-          ...subtopicPath.map((_, index) => {
-            // Navigate through path to get subtopic name
-            let current: Topic | Subtopic | undefined = currentTopic;
-            for (let i = 0; i <= index; i++) {
-              current = (current?.subtopics || []).find(
-                (s) =>
-                  s.slug === subtopicPath[i] || s.id === subtopicPath[i],
-              );
-            }
-
-            return {
-              label: current?.name || "Subtopic",
-              onClick:
-                index < subtopicPath.length - 1
-                  ? () =>
-                      navigateToSubtopicPath(
-                        activeTopic,
-                        subtopicPath.slice(0, index + 1),
-                      )
-                  : undefined,
-            };
-          }),
+          ...subtopicPath.map((id, index) => ({
+            label: subtopicNames[id] || "Subtopic",
+            onClick:
+              index < subtopicPath.length - 1
+                ? () => navigateToSubtopicPath(activeTopic, subtopicPath.slice(0, index + 1))
+                : undefined,
+          })),
         ]
       : [{ label: currentTopic?.name || "Topic" }];
 
@@ -701,12 +772,10 @@ function HomeContent() {
                             padding: "4px 6px",
                           }}
                           onMouseEnter={() => setHighlightIndex(idx)}
-                          onClick={() =>
-                            handleSearchNavigate(
-                              toId(item.slug || item._id),
-                              "overview",
-                            )
-                          }
+                          onClick={() => {
+                            const { rootTopicId, subtopics } = getNavParams(toId(item._id));
+                            handleSearchNavigate(rootTopicId, "overview", undefined, subtopics.length ? subtopics : undefined);
+                          }}
                         >
                           {item.name}
                         </li>
@@ -748,11 +817,10 @@ function HomeContent() {
                           onMouseEnter={() =>
                             setHighlightIndex(topicCount + idx)
                           }
-                          onClick={() =>
-                            handleSearchNavigate(toId(item.topicId), "notes", {
-                              note: toId(item._id),
-                            })
-                          }
+                          onClick={() => {
+                            const { rootTopicId, subtopics } = getNavParams(toId(item.topicId));
+                            handleSearchNavigate(rootTopicId, "notes", { note: toId(item._id) }, subtopics.length ? subtopics : undefined);
+                          }}
                         >
                           {item.title || item.content?.slice(0, 40)}
                         </li>
@@ -795,13 +863,10 @@ function HomeContent() {
                           onMouseEnter={() =>
                             setHighlightIndex(topicCount + noteCount + idx)
                           }
-                          onClick={() =>
-                            handleSearchNavigate(
-                              toId(item.topicId),
-                              "flashcards",
-                              { flashcard: toId(item._id) },
-                            )
-                          }
+                          onClick={() => {
+                            const { rootTopicId, subtopics } = getNavParams(toId(item.topicId));
+                            handleSearchNavigate(rootTopicId, "flashcards", { flashcard: toId(item._id) }, subtopics.length ? subtopics : undefined);
+                          }}
                         >
                           {item.front}
                         </li>
@@ -848,15 +913,10 @@ function HomeContent() {
                               topicCount + noteCount + flashcardCount + idx,
                             )
                           }
-                          onClick={() =>
-                            handleSearchNavigate(
-                              toId(item.topicId),
-                              "quizzes",
-                              {
-                                quiz: toId(item._id),
-                              },
-                            )
-                          }
+                          onClick={() => {
+                            const { rootTopicId, subtopics } = getNavParams(toId(item.topicId));
+                            handleSearchNavigate(rootTopicId, "quizzes", { quiz: toId(item._id) }, subtopics.length ? subtopics : undefined);
+                          }}
                         >
                           {item.title}
                         </li>
@@ -907,15 +967,27 @@ function HomeContent() {
             <StudySessionHistory />
           ) : !activeTopic ? (
             <Dashboard />
+          ) : subtopicPath.length > 0 && subtopicLoading ? (
+            <div className="flex items-center justify-center py-20 text-slate-400 text-sm">
+              Loading...
+            </div>
+          ) : subtopicPath.length > 0 && subtopicFetchFailed ? (
+            <div className="flex items-center justify-center py-20 text-slate-400 text-sm">
+              Failed to load subtopic.
+            </div>
           ) : subtopicPath.length > 0 && currentSubtopic ? (
             <SubtopicContent
               subtopic={currentSubtopic}
+              level={subtopicPath.length}
               activeTab={activeTab}
               onTabChange={setActiveTab}
               onSubtopicSelect={(id) =>
                 navigateToSubtopicPath(activeTopic, [...subtopicPath, id])
               }
-              onSubtopicAdded={fetchTopics}
+              onSubtopicAdded={() => {
+                fetchTopics();
+                setSubtopicRefreshKey((k) => k + 1);
+              }}
             />
           ) : (
             <TopicContent

@@ -325,6 +325,17 @@ export default function TopicFlashcards({
     advanceStudyCard();
   };
 
+  const handleShuffle = () => {
+    setFlashcards((prev) => {
+      const shuffled = [...prev];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    });
+  };
+
   if (loading) {
     return (
       <Card>
@@ -374,7 +385,7 @@ export default function TopicFlashcards({
             <Play size={16} />
             Study Mode
           </Button>
-          <Button variant="secondary">
+          <Button variant="secondary" onClick={handleShuffle}>
             <Shuffle size={16} />
             Shuffle
           </Button>

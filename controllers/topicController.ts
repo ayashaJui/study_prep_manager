@@ -23,8 +23,13 @@ export const topicController = {
     if (parentId) {
       if (parentId === "null" || parentId === "root") {
         query.parentId = null;
-      } else {
+      } else if (mongoose.Types.ObjectId.isValid(parentId)) {
         query.parentId = parentId;
+      } else {
+        // parentId is a slug — resolve it to an ObjectId first
+        const parent = await Topic.findOne({ slug: parentId, userId: query.userId }).select("_id").lean();
+        if (!parent) return [];
+        query.parentId = parent._id.toString();
       }
     }
 
@@ -36,17 +41,22 @@ export const topicController = {
     return topics;
   },
 
-  // Get a single topic by ID
+  // Get a single topic by ID or slug
   async getTopicById(id: string, userId: string) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new BadRequestError("Invalid topic ID");
-    }
-
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       throw new BadRequestError("Invalid user ID");
     }
 
-    const topic = await Topic.findOne({ _id: id, userId });
+    const userObjId = new mongoose.Types.ObjectId(userId);
+
+    let topic;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      topic = await Topic.findOne({ _id: id, userId: userObjId });
+    } else {
+      // Treat as slug
+      topic = await Topic.findOne({ slug: id, userId: userObjId });
+    }
+
     if (!topic) {
       throw new NotFoundError("Topic not found");
     }

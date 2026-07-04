@@ -37,14 +37,16 @@ interface SubtopicContentProps {
     isPublic?: boolean;
     shareId?: string | null;
   };
+  level?: number; // depth of this subtopic (1 = direct child of a root topic)
   activeTab: string;
   onTabChange: (tab: string) => void;
   onSubtopicSelect?: (id: string) => void;
-  onSubtopicAdded?: () => void; // Callback to refresh parent data
+  onSubtopicAdded?: () => void;
 }
 
 export default function SubtopicContent({
   subtopic,
+  level = 1,
   activeTab,
   onTabChange,
   onSubtopicSelect,
@@ -134,8 +136,8 @@ export default function SubtopicContent({
       const response = await topicAPI.create({
         name: newSubtopicName.trim(),
         description: newSubtopicDescription.trim() || undefined,
-        parentId: subtopic.id, // This subtopic becomes the parent
-        level: 2, // Increment from parent level
+        parentId: subtopic.id,
+        level: level + 1,
         status: "not-started",
         tags: [],
         favorite: false,

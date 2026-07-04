@@ -111,10 +111,31 @@ export async function GET(request: NextRequest) {
         .lean(),
     ]);
 
+    // Build a topicMap so the client can construct correct subtopic navigation URLs.
+    // The Topic.path field holds ancestor IDs from root down to parent (not including self).
+    const topicIdsToResolve = new Set<string>();
+    topics.forEach((t: { _id: unknown }) => topicIdsToResolve.add(String(t._id)));
+    (notes as Array<{ topicId?: unknown }>).forEach((n) => { if (n.topicId) topicIdsToResolve.add(String(n.topicId)); });
+    (flashcards as Array<{ topicId?: unknown }>).forEach((f) => { if (f.topicId) topicIdsToResolve.add(String(f.topicId)); });
+    (quizzes as Array<{ topicId?: unknown }>).forEach((q) => { if (q.topicId) topicIdsToResolve.add(String(q.topicId)); });
+
+    const topicMap: Record<string, { path: string[]; level: number }> = {};
+    if (topicIdsToResolve.size > 0) {
+      const ancestorDocs = await Topic.find({ _id: { $in: Array.from(topicIdsToResolve) } })
+        .select("_id path level")
+        .lean();
+      ancestorDocs.forEach((t) => {
+        topicMap[String(t._id)] = {
+          path: (t.path || []).map(String),
+          level: t.level ?? 0,
+        };
+      });
+    }
+
     return NextResponse.json(
       {
         success: true,
-        data: { topics, notes, flashcards, quizzes },
+        data: { topics, notes, flashcards, quizzes, topicMap },
       },
       { status: 200 },
     );

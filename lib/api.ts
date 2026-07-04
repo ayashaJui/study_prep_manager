@@ -610,6 +610,7 @@ export interface SearchResults {
   notes?: SearchResultItem[];
   flashcards?: SearchResultItem[];
   quizzes?: SearchResultItem[];
+  topicMap?: Record<string, { path: string[]; level: number }>;
 }
 
 export const searchAPI = {
