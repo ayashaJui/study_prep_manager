@@ -140,9 +140,9 @@ export default function TopicNotes({
     }
   };
 
-  const handleUpdateNote = async (id: string, content: string) => {
+  const handleUpdateNote = async (id: string, content: string, tags: string[]) => {
     try {
-      const updatedNote = await notesAPI.update(id, { content });
+      const updatedNote = await notesAPI.update(id, { content, tags });
       setNotes(notes.map((n) => (n._id === id ? updatedNote : n)));
       showSuccess("Note updated successfully");
     } catch (error) {
@@ -173,12 +173,14 @@ export default function TopicNotes({
         note={{
           id: selectedNote._id,
           content: selectedNote.content,
+          tags: selectedNote.tags,
           date: new Date(selectedNote.createdAt).toLocaleDateString(),
           editedDate: wasEdited
             ? new Date(selectedNote.updatedAt).toLocaleDateString()
             : undefined,
           pinned: selectedNote.pinned,
         }}
+        allTagSuggestions={allTags}
         onClose={() => setSelectedNoteId(null)}
         onSave={handleUpdateNote}
         onTogglePin={handleTogglePin}

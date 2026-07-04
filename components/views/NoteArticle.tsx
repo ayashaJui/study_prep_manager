@@ -16,6 +16,7 @@ import remarkGfm from "remark-gfm";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
+import TagInput from "@/components/ui/TagInput";
 import {
   deriveNoteTitle,
   estimateReadingMinutes,
@@ -26,23 +27,27 @@ interface NoteArticleProps {
   note: {
     id: string;
     content: string;
+    tags?: string[];
     date: string;
     editedDate?: string;
     pinned?: boolean;
   };
+  allTagSuggestions?: string[];
   onClose: () => void;
-  onSave?: (id: string, content: string) => void | Promise<void>;
+  onSave?: (id: string, content: string, tags: string[]) => void | Promise<void>;
   onTogglePin?: (id: string, pinned: boolean) => void;
 }
 
 export default function NoteArticle({
   note,
+  allTagSuggestions = [],
   onClose,
   onSave,
   onTogglePin,
 }: NoteArticleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(note.content || "");
+  const [editedTags, setEditedTags] = useState<string[]>(note.tags || []);
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [showImageInsert, setShowImageInsert] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -52,7 +57,7 @@ export default function NoteArticle({
 
     setSaving(true);
     try {
-      await onSave(note.id, editedContent);
+      await onSave(note.id, editedContent, editedTags);
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to save note:", error);
@@ -63,6 +68,7 @@ export default function NoteArticle({
 
   const handleCancel = () => {
     setEditedContent(note.content || "");
+    setEditedTags(note.tags || []);
     setShowImageInsert(false);
     setIsEditing(false);
   };
@@ -219,6 +225,17 @@ export default function NoteArticle({
               className="!p-4 font-mono text-sm"
               placeholder="Write your note in Markdown..."
             />
+            <div className="!mt-4">
+              <label className="block text-sm font-medium text-slate-300 !mb-2">
+                Tags
+              </label>
+              <TagInput
+                tags={editedTags}
+                onChange={setEditedTags}
+                suggestions={allTagSuggestions}
+                placeholder="Add tags (Enter or , to confirm)..."
+              />
+            </div>
           </div>
         ) : (
           <article className="!pb-8 max-w-2xl !mx-auto">
