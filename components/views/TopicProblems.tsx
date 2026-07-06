@@ -67,7 +67,9 @@ export default function TopicProblems({ topicId, topicName }: TopicProblemsProps
     }
   }, [topicId, showError]);
 
-  useEffect(() => { fetchProblems(); }, [fetchProblems]);
+  useEffect(() => {
+    fetchProblems();
+  }, [fetchProblems]);
 
   const handleAdd = async () => {
     if (!form.title.trim() || !form.platform.trim()) {
@@ -109,45 +111,60 @@ export default function TopicProblems({ topicId, topicName }: TopicProblemsProps
     return res.data;
   };
 
-  const handleReview = async (id: string, confidence: "easy" | "medium" | "hard" | "again") => {
+  const handleReview = async (
+    id: string,
+    confidence: "easy" | "medium" | "hard" | "again",
+  ) => {
     const res = await problemsAPI.review(id, confidence);
     return res.data;
   };
 
   return (
     <>
-      <div className={`flex gap-4 ${selectedProblem ? "items-start" : ""}`}>
+      <div className="flex gap-4 items-start">
+        {/* List panel */}
         <div className={selectedProblem ? "flex-1 min-w-0" : "w-full"}>
           <Card>
-            <CardTitle action={
-              <Button onClick={() => setIsAddOpen(true)}>
-                <Plus size={16} />
-                Add Problem
-              </Button>
-            }>
-              Problems — {topicName}
+            <CardTitle
+              action={
+                <Button onClick={() => setIsAddOpen(true)}>
+                  <Plus size={16} />
+                  Add Problem
+                </Button>
+              }
+            >
+              Problems
+              <span className="text-sm font-normal text-slate-400 ml-2">
+                {problems.length}
+              </span>
             </CardTitle>
 
             {loading ? (
-              <p className="text-slate-400 text-sm !py-8 text-center">Loading...</p>
+              <p className="text-slate-400 text-sm py-8 text-center">Loading...</p>
             ) : problems.length === 0 ? (
-              <div className="text-center !py-12 text-slate-400">
-                <p className="text-sm !mb-4">No problems yet. Add one to start tracking.</p>
+              <div className="text-center py-12 text-slate-400">
+                <p className="text-sm mb-4">
+                  No problems for {topicName} yet.
+                </p>
                 <Button onClick={() => setIsAddOpen(true)}>
                   <Plus size={16} />
                   Add Problem
                 </Button>
               </div>
             ) : (
-              <div className="!mt-4 space-y-1">
+              <div className="space-y-0.5">
                 {problems.map((p) => (
                   <div
                     key={p._id}
-                    onClick={() => setSelectedProblem(selectedProblem?._id === p._id ? null : p)}
-                    className={`flex items-center gap-3 !px-3 !py-2.5 rounded-lg cursor-pointer transition-all border ${
+                    onClick={() =>
+                      setSelectedProblem(
+                        selectedProblem?._id === p._id ? null : p,
+                      )
+                    }
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all border ${
                       selectedProblem?._id === p._id
                         ? "border-purple-500/50 bg-purple-500/10"
-                        : "border-transparent hover:border-slate-600 hover:bg-slate-700/40"
+                        : "border-transparent hover:border-slate-600/60 hover:bg-slate-700/40"
                     }`}
                   >
                     <span
@@ -155,11 +172,15 @@ export default function TopicProblems({ topicId, topicName }: TopicProblemsProps
                       style={{ background: DIFFICULTY_COLORS[p.difficulty] }}
                     />
                     <span className="text-sm text-slate-200 flex-1 truncate font-medium">
-                      {p.platform}{p.problemNumber ? ` #${p.problemNumber}` : ""} — {p.title}
+                      {p.platform}
+                      {p.problemNumber ? ` #${p.problemNumber}` : ""} — {p.title}
                     </span>
                     <span
-                      className="text-xs !px-2 !py-0.5 rounded-full flex-shrink-0"
-                      style={{ background: STATUS_COLORS[p.status] + "22", color: STATUS_COLORS[p.status] }}
+                      className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{
+                        background: STATUS_COLORS[p.status] + "22",
+                        color: STATUS_COLORS[p.status],
+                      }}
                     >
                       {p.status}
                     </span>
@@ -181,8 +202,9 @@ export default function TopicProblems({ topicId, topicName }: TopicProblemsProps
           </Card>
         </div>
 
+        {/* Detail panel */}
         {selectedProblem && (
-          <div className="w-[420px] flex-shrink-0">
+          <div className="w-[400px] flex-shrink-0">
             <ProblemDetail
               problem={selectedProblem}
               topics={[{ id: topicId, name: topicName }]}
@@ -196,7 +218,15 @@ export default function TopicProblems({ topicId, topicName }: TopicProblemsProps
         )}
       </div>
 
-      <Modal isOpen={isAddOpen} onClose={() => { setIsAddOpen(false); setForm({ ...EMPTY_FORM, topicId }); }} title="Add Problem">
+      {/* Add Problem Modal */}
+      <Modal
+        isOpen={isAddOpen}
+        onClose={() => {
+          setIsAddOpen(false);
+          setForm({ ...EMPTY_FORM, topicId });
+        }}
+        title="Add Problem"
+      >
         <div className="space-y-3">
           <Input
             label="Title *"
@@ -209,13 +239,17 @@ export default function TopicProblems({ topicId, topicName }: TopicProblemsProps
               label="Platform *"
               placeholder="LeetCode"
               value={form.platform}
-              onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, platform: e.target.value }))
+              }
             />
             <Input
               label="Problem #"
               placeholder="1"
               value={form.problemNumber ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, problemNumber: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, problemNumber: e.target.value }))
+              }
             />
           </div>
           <Input
@@ -226,11 +260,16 @@ export default function TopicProblems({ topicId, topicName }: TopicProblemsProps
           />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 !mb-1">Difficulty</label>
+              <label className="block text-xs text-slate-400 mb-1">Difficulty</label>
               <select
                 value={form.difficulty}
-                onChange={(e) => setForm((f) => ({ ...f, difficulty: e.target.value as Difficulty }))}
-                className="w-full text-sm rounded-md !px-3 !py-2 border border-slate-600 bg-slate-800 text-slate-200 focus:outline-none"
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    difficulty: e.target.value as Difficulty,
+                  }))
+                }
+                className="w-full text-sm rounded-md px-3 py-2 border border-slate-600 bg-slate-800 text-slate-200 focus:outline-none"
               >
                 <option value="easy">Easy</option>
                 <option value="medium">Medium</option>
@@ -238,11 +277,13 @@ export default function TopicProblems({ topicId, topicName }: TopicProblemsProps
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-400 !mb-1">Status</label>
+              <label className="block text-xs text-slate-400 mb-1">Status</label>
               <select
                 value={form.status}
-                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as Status }))}
-                className="w-full text-sm rounded-md !px-3 !py-2 border border-slate-600 bg-slate-800 text-slate-200 focus:outline-none"
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, status: e.target.value as Status }))
+                }
+                className="w-full text-sm rounded-md px-3 py-2 border border-slate-600 bg-slate-800 text-slate-200 focus:outline-none"
               >
                 <option value="unsolved">Unsolved</option>
                 <option value="attempted">Attempted</option>
@@ -255,23 +296,29 @@ export default function TopicProblems({ topicId, topicName }: TopicProblemsProps
               label="Time Complexity"
               placeholder="O(n)"
               value={form.timeComplexity ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, timeComplexity: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, timeComplexity: e.target.value }))
+              }
             />
             <Input
               label="Space Complexity"
               placeholder="O(1)"
               value={form.spaceComplexity ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, spaceComplexity: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, spaceComplexity: e.target.value }))
+              }
             />
           </div>
           <Input
             label="Language"
             placeholder="Python"
             value={form.language ?? ""}
-            onChange={(e) => setForm((f) => ({ ...f, language: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, language: e.target.value }))
+            }
           />
           <div>
-            <label className="block text-xs text-slate-400 !mb-1">Tags</label>
+            <label className="block text-xs text-slate-400 mb-1">Tags</label>
             <TagInput
               tags={form.tags ?? []}
               onChange={(tags) => setForm((f) => ({ ...f, tags }))}
@@ -281,11 +328,20 @@ export default function TopicProblems({ topicId, topicName }: TopicProblemsProps
             label="Notes / Approach / Intuition"
             rows={4}
             value={form.notes ?? ""}
-            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, notes: e.target.value }))
+            }
           />
         </div>
-        <div className="flex gap-3 justify-end !mt-6">
-          <Button variant="secondary" onClick={() => { setIsAddOpen(false); setForm({ ...EMPTY_FORM, topicId }); }} disabled={isSaving}>
+        <div className="flex gap-3 justify-end mt-6">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setIsAddOpen(false);
+              setForm({ ...EMPTY_FORM, topicId });
+            }}
+            disabled={isSaving}
+          >
             Cancel
           </Button>
           <Button onClick={handleAdd} disabled={isSaving}>

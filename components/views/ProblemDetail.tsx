@@ -42,9 +42,9 @@ const STATUS_COLORS: Record<Status, string> = {
 
 const REVIEW_BUTTONS: { label: string; value: Confidence; days: string }[] = [
   { label: "Again", value: "again", days: "now" },
-  { label: "Hard", value: "hard", days: "+1 day" },
-  { label: "Medium", value: "medium", days: "+3 days" },
-  { label: "Easy", value: "easy", days: "+7 days" },
+  { label: "Hard", value: "hard", days: "+1d" },
+  { label: "Medium", value: "medium", days: "+3d" },
+  { label: "Easy", value: "easy", days: "+7d" },
 ];
 
 export default function ProblemDetail({
@@ -101,7 +101,15 @@ export default function ProblemDetail({
     try {
       const updated = await onReview(problem._id, confidence);
       onUpdate(updated);
-      showSuccess(`Scheduled: ${confidence === "again" ? "due now" : confidence === "easy" ? "+7 days" : confidence === "medium" ? "+3 days" : "+1 day"}`);
+      const label =
+        confidence === "again"
+          ? "due now"
+          : confidence === "easy"
+          ? "+7 days"
+          : confidence === "medium"
+          ? "+3 days"
+          : "+1 day";
+      showSuccess(`Scheduled: ${label}`);
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to submit review.");
     } finally {
@@ -126,20 +134,27 @@ export default function ProblemDetail({
       : new Date(problem.nextReview).toLocaleDateString()
     : null;
 
-  const canReview = problem.status === "solved" || problem.status === "attempted";
+  const canReview =
+    problem.status === "solved" || problem.status === "attempted";
 
+  /* ── Edit form ── */
   if (isEditing) {
     return (
       <Card>
-        <CardTitle action={
-          <button onClick={() => setIsEditing(false)} className="text-slate-400 hover:text-slate-200">
-            <X size={18} />
-          </button>
-        }>
+        <CardTitle
+          action={
+            <button
+              onClick={() => setIsEditing(false)}
+              className="text-slate-400 hover:text-slate-200"
+            >
+              <X size={18} />
+            </button>
+          }
+        >
           Edit Problem
         </CardTitle>
 
-        <div className="space-y-4 !mt-4">
+        <div className="space-y-3">
           <Input
             label="Title *"
             value={form.title}
@@ -150,13 +165,17 @@ export default function ProblemDetail({
               label="Platform *"
               placeholder="LeetCode"
               value={form.platform}
-              onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, platform: e.target.value }))
+              }
             />
             <Input
               label="Problem #"
               placeholder="42"
               value={form.problemNumber ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, problemNumber: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, problemNumber: e.target.value }))
+              }
             />
           </div>
           <Input
@@ -167,11 +186,18 @@ export default function ProblemDetail({
           />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 !mb-1">Difficulty</label>
+              <label className="block text-xs text-slate-400 mb-1">
+                Difficulty
+              </label>
               <select
                 value={form.difficulty}
-                onChange={(e) => setForm((f) => ({ ...f, difficulty: e.target.value as Difficulty }))}
-                className="w-full text-sm rounded-md !px-3 !py-2 border border-slate-600 bg-slate-800 text-slate-200 focus:outline-none"
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    difficulty: e.target.value as Difficulty,
+                  }))
+                }
+                className="w-full text-sm rounded-md px-3 py-2 border border-slate-600 bg-slate-800 text-slate-200 focus:outline-none"
               >
                 <option value="easy">Easy</option>
                 <option value="medium">Medium</option>
@@ -179,11 +205,13 @@ export default function ProblemDetail({
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-400 !mb-1">Status</label>
+              <label className="block text-xs text-slate-400 mb-1">Status</label>
               <select
                 value={form.status}
-                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as Status }))}
-                className="w-full text-sm rounded-md !px-3 !py-2 border border-slate-600 bg-slate-800 text-slate-200 focus:outline-none"
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, status: e.target.value as Status }))
+                }
+                className="w-full text-sm rounded-md px-3 py-2 border border-slate-600 bg-slate-800 text-slate-200 focus:outline-none"
               >
                 <option value="unsolved">Unsolved</option>
                 <option value="attempted">Attempted</option>
@@ -192,15 +220,19 @@ export default function ProblemDetail({
             </div>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 !mb-1">Topic</label>
+            <label className="block text-xs text-slate-400 mb-1">Topic</label>
             <select
               value={form.topicId ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, topicId: e.target.value || null }))}
-              className="w-full text-sm rounded-md !px-3 !py-2 border border-slate-600 bg-slate-800 text-slate-200 focus:outline-none"
+              onChange={(e) =>
+                setForm((f) => ({ ...f, topicId: e.target.value || null }))
+              }
+              className="w-full text-sm rounded-md px-3 py-2 border border-slate-600 bg-slate-800 text-slate-200 focus:outline-none"
             >
               <option value="">No topic</option>
               {topics.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
               ))}
             </select>
           </div>
@@ -209,23 +241,29 @@ export default function ProblemDetail({
               label="Time Complexity"
               placeholder="O(n)"
               value={form.timeComplexity ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, timeComplexity: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, timeComplexity: e.target.value }))
+              }
             />
             <Input
               label="Space Complexity"
               placeholder="O(1)"
               value={form.spaceComplexity ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, spaceComplexity: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, spaceComplexity: e.target.value }))
+              }
             />
           </div>
           <Input
             label="Language"
             placeholder="Python"
             value={form.language ?? ""}
-            onChange={(e) => setForm((f) => ({ ...f, language: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, language: e.target.value }))
+            }
           />
           <div>
-            <label className="block text-xs text-slate-400 !mb-1">Tags</label>
+            <label className="block text-xs text-slate-400 mb-1">Tags</label>
             <TagInput
               tags={form.tags ?? []}
               onChange={(tags) => setForm((f) => ({ ...f, tags }))}
@@ -235,12 +273,18 @@ export default function ProblemDetail({
             label="Notes / Approach / Intuition"
             rows={6}
             value={form.notes ?? ""}
-            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, notes: e.target.value }))
+            }
           />
         </div>
 
-        <div className="flex gap-3 justify-end !mt-6">
-          <Button variant="secondary" onClick={() => setIsEditing(false)} disabled={isSaving}>
+        <div className="flex gap-3 justify-end mt-6">
+          <Button
+            variant="secondary"
+            onClick={() => setIsEditing(false)}
+            disabled={isSaving}
+          >
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
@@ -251,35 +295,38 @@ export default function ProblemDetail({
     );
   }
 
+  /* ── Detail view ── */
   return (
     <Card>
-      <CardTitle action={
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsEditing(true)}
-            className="!p-1.5 text-slate-400 hover:text-purple-400 transition-colors rounded"
-            title="Edit"
-          >
-            <Pencil size={15} />
-          </button>
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="!p-1.5 text-slate-400 hover:text-red-400 transition-colors rounded"
-            title="Delete"
-          >
-            <Trash2 size={15} />
-          </button>
-          <button
-            onClick={onClose}
-            className="!p-1.5 text-slate-400 hover:text-slate-200 transition-colors rounded"
-            title="Close"
-          >
-            <X size={15} />
-          </button>
-        </div>
-      }>
-        <div className="flex items-start gap-2 flex-wrap">
-          <span>{problem.title}</span>
+      <CardTitle
+        action={
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="p-1.5 text-slate-400 hover:text-purple-400 transition-colors rounded"
+              title="Edit"
+            >
+              <Pencil size={15} />
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm((v) => !v)}
+              className="p-1.5 text-slate-400 hover:text-red-400 transition-colors rounded"
+              title="Delete"
+            >
+              <Trash2 size={15} />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors rounded"
+              title="Close"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        }
+      >
+        <span className="flex items-center gap-2 flex-wrap">
+          {problem.title}
           {problem.url && (
             <a
               href={problem.url}
@@ -290,121 +337,166 @@ export default function ProblemDetail({
               <ExternalLink size={14} />
             </a>
           )}
-        </div>
+        </span>
       </CardTitle>
 
-      {showDeleteConfirm ? (
-        <div className="!mt-4 !p-4 rounded-lg border border-red-500/30 bg-red-500/10">
-          <p className="text-sm text-slate-300 !mb-4">
+      {/* Delete confirm */}
+      {showDeleteConfirm && (
+        <div className="mb-4 p-3 rounded-lg border border-red-500/30 bg-red-500/10">
+          <p className="text-sm text-slate-300 mb-3">
             Delete <strong>{problem.title}</strong>? This cannot be undone.
           </p>
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
+            >
               Cancel
             </Button>
-            <Button onClick={handleDelete} disabled={isDeleting} style={{ background: "#ef4444", color: "#fff" }}>
+            <Button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              style={{ background: "#ef4444", color: "#fff" }}
+            >
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </div>
         </div>
-      ) : null}
+      )}
 
-      <div className="!mt-4 space-y-4">
-        {/* Meta row */}
-        <div className="flex flex-wrap gap-2 items-center">
-          <span
-            className="text-xs font-semibold !px-2 !py-0.5 rounded-full"
-            style={{ background: DIFFICULTY_COLORS[problem.difficulty] + "22", color: DIFFICULTY_COLORS[problem.difficulty] }}
-          >
-            {problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1)}
-          </span>
-          <span
-            className="text-xs font-semibold !px-2 !py-0.5 rounded-full"
-            style={{ background: STATUS_COLORS[problem.status] + "22", color: STATUS_COLORS[problem.status] }}
-          >
-            {problem.status.charAt(0).toUpperCase() + problem.status.slice(1)}
-          </span>
-          <span className="text-xs text-slate-400">
-            {problem.platform}{problem.problemNumber ? ` #${problem.problemNumber}` : ""}
-          </span>
-          {topicName && (
-            <span className="text-xs text-slate-400">· {topicName}</span>
-          )}
-        </div>
-
-        {/* Complexity + Language */}
-        {(problem.timeComplexity || problem.spaceComplexity || problem.language) && (
-          <div className="flex flex-wrap gap-4 text-xs text-slate-400">
-            {problem.timeComplexity && <span>Time: <span className="text-slate-200">{problem.timeComplexity}</span></span>}
-            {problem.spaceComplexity && <span>Space: <span className="text-slate-200">{problem.spaceComplexity}</span></span>}
-            {problem.language && <span>Lang: <span className="text-slate-200">{problem.language}</span></span>}
-          </div>
-        )}
-
-        {/* Tags */}
-        {problem.tags?.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {problem.tags.map((tag) => (
-              <span
-                key={tag}
-                className="text-xs !px-2 !py-0.5 rounded-full border border-slate-600 text-slate-300"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Notes */}
-        {problem.notes ? (
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wide !mb-1">Notes</p>
-            <div className="bg-slate-800/60 rounded-lg !p-3 text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
-              {problem.notes}
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="text-xs text-slate-500 hover:text-purple-400 transition-colors"
-          >
-            + Add notes, approach, intuition...
-          </button>
-        )}
-
-        {/* Review section */}
-        {canReview && (
-          <div className="border-t border-slate-700 !pt-4">
-            <div className="flex items-center justify-between !mb-3">
-              <p className="text-xs text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
-                <RotateCcw size={12} />
-                Review
-              </p>
-              {nextReviewText && (
-                <span className={`text-xs ${nextReviewText === "Due now" ? "text-amber-400" : "text-slate-500"}`}>
-                  Next: {nextReviewText}
-                </span>
-              )}
-            </div>
-            {problem.reviewCount > 0 && (
-              <p className="text-xs text-slate-500 !mb-3">Reviewed {problem.reviewCount} time{problem.reviewCount !== 1 ? "s" : ""}</p>
-            )}
-            <div className="grid grid-cols-4 gap-2">
-              {REVIEW_BUTTONS.map(({ label, value, days }) => (
-                <button
-                  key={value}
-                  onClick={() => handleReview(value)}
-                  disabled={isReviewing}
-                  className="flex flex-col items-center gap-0.5 !py-2 rounded-lg border border-slate-600 hover:border-purple-500/50 hover:bg-purple-500/10 transition-all disabled:opacity-50"
-                >
-                  <span className="text-xs font-semibold text-slate-200">{label}</span>
-                  <span className="text-[10px] text-slate-500">{days}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Meta badges */}
+      <div className="flex flex-wrap gap-2 items-center mb-3">
+        <span
+          className="text-xs font-semibold px-2 py-0.5 rounded-full"
+          style={{
+            background: DIFFICULTY_COLORS[problem.difficulty] + "22",
+            color: DIFFICULTY_COLORS[problem.difficulty],
+          }}
+        >
+          {problem.difficulty.charAt(0).toUpperCase() +
+            problem.difficulty.slice(1)}
+        </span>
+        <span
+          className="text-xs font-semibold px-2 py-0.5 rounded-full"
+          style={{
+            background: STATUS_COLORS[problem.status] + "22",
+            color: STATUS_COLORS[problem.status],
+          }}
+        >
+          {problem.status.charAt(0).toUpperCase() + problem.status.slice(1)}
+        </span>
+        <span className="text-xs text-slate-400">
+          {problem.platform}
+          {problem.problemNumber ? ` #${problem.problemNumber}` : ""}
+        </span>
+        {topicName && (
+          <span className="text-xs text-slate-500">· {topicName}</span>
         )}
       </div>
+
+      {/* Complexity + language */}
+      {(problem.timeComplexity ||
+        problem.spaceComplexity ||
+        problem.language) && (
+        <div className="flex flex-wrap gap-4 text-xs text-slate-400 mb-3">
+          {problem.timeComplexity && (
+            <span>
+              Time:{" "}
+              <span className="text-slate-200">{problem.timeComplexity}</span>
+            </span>
+          )}
+          {problem.spaceComplexity && (
+            <span>
+              Space:{" "}
+              <span className="text-slate-200">{problem.spaceComplexity}</span>
+            </span>
+          )}
+          {problem.language && (
+            <span>
+              Lang:{" "}
+              <span className="text-slate-200">{problem.language}</span>
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Tags */}
+      {problem.tags?.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {problem.tags.map((tag) => (
+            <span
+              key={tag}
+              className="text-xs px-2 py-0.5 rounded-full border border-slate-600 text-slate-300"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Notes */}
+      {problem.notes ? (
+        <div className="mb-3">
+          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">
+            Notes
+          </p>
+          <div className="bg-slate-800/60 rounded-lg p-3 text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
+            {problem.notes}
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setIsEditing(true)}
+          className="text-xs text-slate-500 hover:text-purple-400 transition-colors mb-3 block"
+        >
+          + Add notes, approach, intuition...
+        </button>
+      )}
+
+      {/* Review section */}
+      {canReview && (
+        <div className="border-t border-slate-700 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+              <RotateCcw size={12} />
+              Review
+            </p>
+            {nextReviewText && (
+              <span
+                className={`text-xs ${
+                  nextReviewText === "Due now"
+                    ? "text-amber-400"
+                    : "text-slate-500"
+                }`}
+              >
+                Next: {nextReviewText}
+              </span>
+            )}
+          </div>
+          {problem.reviewCount > 0 && (
+            <p className="text-xs text-slate-500 mb-2">
+              Reviewed {problem.reviewCount} time
+              {problem.reviewCount !== 1 ? "s" : ""}
+            </p>
+          )}
+          <div className="grid grid-cols-4 gap-2">
+            {REVIEW_BUTTONS.map(({ label, value, days }) => (
+              <button
+                key={value}
+                onClick={() => handleReview(value)}
+                disabled={isReviewing}
+                className="flex flex-col items-center gap-0.5 py-2 rounded-lg border border-slate-600 hover:border-purple-500/50 hover:bg-purple-500/10 transition-all disabled:opacity-50"
+              >
+                <span className="text-xs font-semibold text-slate-200">
+                  {label}
+                </span>
+                <span className="text-[10px] text-slate-500">{days}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
