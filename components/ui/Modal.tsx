@@ -36,17 +36,17 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center !p-4 overflow-y-auto"
-      style={{
-        background: "rgba(0, 0, 0, 0.7)",
-      }}
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto !py-8 !px-4"
+      style={{ background: "rgba(0, 0, 0, 0.7)" }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-xl rounded-lg border border-slate-700 bg-slate-800 my-8"
+        className="relative w-full max-w-xl rounded-lg border border-slate-700 bg-slate-800 flex flex-col"
+        style={{ maxHeight: "calc(100vh - 4rem)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between !p-4 border-b border-slate-700">
+        {/* Sticky header */}
+        <div className="flex items-center justify-between !px-5 !py-4 border-b border-slate-700 flex-shrink-0">
           <h2 className="text-xl font-semibold text-slate-100">{title}</h2>
           <button
             onClick={onClose}
@@ -55,7 +55,8 @@ export default function Modal({
             <X size={20} />
           </button>
         </div>
-        <div className="!p-4">{children}</div>
+        {/* Scrollable body */}
+        <div className="!p-5 overflow-y-auto">{children}</div>
       </div>
     </div>
   );
