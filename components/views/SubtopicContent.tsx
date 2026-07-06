@@ -74,6 +74,7 @@ export default function SubtopicContent({
   const [isRenaming, setIsRenaming] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRecursiveDeleting, setIsRecursiveDeleting] = useState(false);
 
   const buildShareUrl = (id: string) => {
     if (typeof window === "undefined") {
@@ -174,6 +175,19 @@ export default function SubtopicContent({
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to delete subtopic.");
       setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteRecursive = async () => {
+    setIsRecursiveDeleting(true);
+    try {
+      await topicAPI.deleteRecursive(subtopic.id);
+      setIsDeleteOpen(false);
+      showSuccess("Subtopic and all sub-subtopics deleted.");
+      onSubtopicDeleted?.();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to delete subtopic.");
+      setIsRecursiveDeleting(false);
     }
   };
 
@@ -327,26 +341,42 @@ export default function SubtopicContent({
         title="Delete Subtopic"
       >
         {(subtopic.subtopics?.length ?? 0) > 0 ? (
-          <p className="text-sm text-amber-400 !mb-6">
-            <strong>{subtopic.name}</strong> has {subtopic.subtopics!.length} sub-subtopic{subtopic.subtopics!.length !== 1 ? "s" : ""}. Delete them first before deleting this subtopic.
-          </p>
+          <>
+            <p className="text-sm text-amber-400 !mb-6">
+              <strong>{subtopic.name}</strong> has {subtopic.subtopics!.length} sub-subtopic{subtopic.subtopics!.length !== 1 ? "s" : ""}. You can delete just this subtopic after removing sub-subtopics, or delete everything at once.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="secondary" onClick={() => setIsDeleteOpen(false)} disabled={isRecursiveDeleting}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteRecursive}
+                disabled={isRecursiveDeleting}
+                style={{ background: "#ef4444", color: "#fff" }}
+              >
+                {isRecursiveDeleting ? "Deleting..." : `Delete subtopic + ${subtopic.subtopics!.length} sub-subtopic${subtopic.subtopics!.length !== 1 ? "s" : ""}`}
+              </Button>
+            </div>
+          </>
         ) : (
-          <p className="text-sm text-slate-300 !mb-6">
-            Are you sure you want to delete <strong>{subtopic.name}</strong>? This cannot be undone.
-          </p>
+          <>
+            <p className="text-sm text-slate-300 !mb-6">
+              Are you sure you want to delete <strong>{subtopic.name}</strong>? This cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="secondary" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                style={{ background: "#ef4444", color: "#fff" }}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </>
         )}
-        <div className="flex gap-3 justify-end">
-          <Button variant="secondary" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleDelete}
-            disabled={isDeleting || (subtopic.subtopics?.length ?? 0) > 0}
-            style={{ background: "#ef4444", color: "#fff" }}
-          >
-            {isDeleting ? "Deleting..." : "Delete"}
-          </Button>
-        </div>
       </Modal>
 
       <Modal

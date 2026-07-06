@@ -10,7 +10,7 @@ import NoteList from "@/components/features/NoteList";
 import NoteArticle from "@/components/views/NoteArticle";
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
-import { notesAPI } from "@/lib/api";
+import { notesAPI, studySessionsAPI } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import TagInput from "@/components/ui/TagInput";
 import { downloadMarkdown } from "@/lib/csv";
@@ -119,6 +119,7 @@ export default function TopicNotes({
       setNewNoteContent("");
       setNewNoteTags([]);
       showSuccess("Note added successfully");
+      studySessionsAPI.create({ topicId, activityType: "note", duration: 1 }).catch(() => {});
     } catch (error) {
       showError(error instanceof Error ? error.message : "Failed to add note");
     } finally {

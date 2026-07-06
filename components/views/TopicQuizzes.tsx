@@ -11,7 +11,7 @@ import AddQuizForm, { QuizFormData } from "@/components/views/AddQuizForm";
 import TakeQuiz from "@/components/views/TakeQuiz";
 import QuizAnalytics from "@/components/views/QuizAnalytics";
 import ImportFromFile from "@/components/views/ImportFromFile";
-import { quizzesAPI } from "@/lib/api";
+import { quizzesAPI, studySessionsAPI } from "@/lib/api";
 import { downloadCSV } from "@/lib/csv";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -122,10 +122,13 @@ export default function TopicQuizzes({
     setEditingQuizId(id);
   };
 
-  const handleQuizComplete = (score: number) => {
+  const handleQuizComplete = (score: number, durationSeconds: number) => {
     showSuccess(`Quiz completed! Score: ${Math.round(score)}%`);
     setActiveQuizId(null);
-    // Optionally refresh quizzes to update lastScore
+    const duration = Math.max(1, Math.round(durationSeconds / 60));
+    studySessionsAPI
+      .create({ topicId, activityType: "quiz", duration, score: Math.round(score) })
+      .catch(() => {});
     fetchQuizzes();
   };
 

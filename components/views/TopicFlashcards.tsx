@@ -16,7 +16,7 @@ import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import FlashcardGrid from "@/components/features/FlashcardGrid";
 import ImportFromFile from "@/components/views/ImportFromFile";
-import { flashcardsAPI } from "@/lib/api";
+import { flashcardsAPI, studySessionsAPI } from "@/lib/api";
 import { downloadCSV } from "@/lib/csv";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -72,6 +72,7 @@ export default function TopicFlashcards({
   const [studyStartedAt, setStudyStartedAt] = useState<number | null>(null);
   const [isReviewing, setIsReviewing] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const sessionStartRef = useRef<number | null>(null);
   const { showSuccess, showError } = useToast();
 
   const allTags = Array.from(new Set(flashcards.flatMap((f) => f.tags || [])));
@@ -270,10 +271,16 @@ export default function TopicFlashcards({
     setStudyIndex(0);
     setIsStudyFlipped(false);
     setStudyStartedAt(Date.now());
+    sessionStartRef.current = Date.now();
     setIsStudyModeOpen(true);
   };
 
   const closeStudyMode = () => {
+    if (sessionStartRef.current !== null) {
+      const duration = Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 60000));
+      studySessionsAPI.create({ topicId, activityType: "flashcard", duration }).catch(() => {});
+      sessionStartRef.current = null;
+    }
     setIsStudyModeOpen(false);
     setIsReviewing(false);
   };
@@ -281,6 +288,11 @@ export default function TopicFlashcards({
   const advanceStudyCard = () => {
     const nextIndex = studyIndex + 1;
     if (nextIndex >= studyQueue.length) {
+      if (sessionStartRef.current !== null) {
+        const duration = Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 60000));
+        studySessionsAPI.create({ topicId, activityType: "flashcard", duration }).catch(() => {});
+        sessionStartRef.current = null;
+      }
       setIsStudyModeOpen(false);
       showSuccess("Study session complete");
       return;

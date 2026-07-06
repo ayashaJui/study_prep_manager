@@ -1,4 +1,7 @@
 import Topic from "@/models/Topic";
+import Note from "@/models/Note";
+import Flashcard from "@/models/Flashcard";
+import Quiz from "@/models/Quiz";
 import mongoose from "mongoose";
 import {
   BadRequestError,
@@ -229,6 +232,14 @@ export const topicController = {
       throw new NotFoundError("Topic not found");
     }
 
+    // Recalculate parent's completion percentage when status changes
+    if (data.status && topic.parentId) {
+      const siblings = await Topic.find({ parentId: topic.parentId, userId }).select("status").lean();
+      const mastered = siblings.filter((s) => s.status === "mastered").length;
+      const percentage = siblings.length > 0 ? Math.round((mastered / siblings.length) * 100) : 0;
+      await Topic.findByIdAndUpdate(topic.parentId, { "stats.completionPercentage": percentage });
+    }
+
     return topic;
   },
 
@@ -254,6 +265,36 @@ export const topicController = {
     if (!topic) {
       throw new NotFoundError("Topic not found");
     }
+
+    return topic;
+  },
+
+  // Delete a topic and all its descendants recursively
+  async deleteTopicRecursive(id: string, userId: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestError("Invalid topic ID");
+    }
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new BadRequestError("Invalid user ID");
+    }
+
+    const topicObjId = new mongoose.Types.ObjectId(id);
+    const userObjId = new mongoose.Types.ObjectId(userId);
+
+    const topic = await Topic.findOne({ _id: topicObjId, userId: userObjId });
+    if (!topic) {
+      throw new NotFoundError("Topic not found");
+    }
+
+    // Find all descendants — topics whose path array contains this topic's _id
+    const descendants = await Topic.find({ path: topicObjId, userId: userObjId }).select("_id").lean();
+    const allIds = [topicObjId, ...descendants.map((d) => d._id)];
+
+    await Note.deleteMany({ topicId: { $in: allIds } });
+    await Flashcard.deleteMany({ topicId: { $in: allIds } });
+    await Quiz.deleteMany({ topicId: { $in: allIds } });
+    await Topic.deleteMany({ path: topicObjId, userId: userObjId });
+    await Topic.findOneAndDelete({ _id: topicObjId, userId: userObjId });
 
     return topic;
   },

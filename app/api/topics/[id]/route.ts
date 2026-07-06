@@ -118,7 +118,10 @@ export async function DELETE(
       );
     }
 
-    const topic = await topicController.deleteTopic(id, userId);
+    const recursive = request.nextUrl.searchParams.get("recursive") === "true";
+    const topic = recursive
+      ? await topicController.deleteTopicRecursive(id, userId)
+      : await topicController.deleteTopic(id, userId);
 
     return NextResponse.json({
       success: true,

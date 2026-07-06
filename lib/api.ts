@@ -316,6 +316,12 @@ export const topicAPI = {
       method: "DELETE",
     });
   },
+
+  deleteRecursive: async (id: string) => {
+    return fetchAPI<ApiResponse<null>>(`/topics/${id}?recursive=true`, {
+      method: "DELETE",
+    });
+  },
 };
 
 // ============================================

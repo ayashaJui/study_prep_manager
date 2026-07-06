@@ -35,7 +35,7 @@ interface Quiz {
 interface TakeQuizProps {
   quiz: Quiz;
   onClose: () => void;
-  onComplete: (score: number) => void;
+  onComplete: (score: number, durationSeconds: number) => void;
 }
 
 export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
@@ -141,7 +141,7 @@ export default function TakeQuiz({ quiz, onClose, onComplete }: TakeQuizProps) {
       )
       .catch((err) => console.error("Failed to log quiz attempt", err));
 
-    onComplete((score / quiz.questions.length) * 100);
+    onComplete((score / quiz.questions.length) * 100, timeTaken);
   }, [selectedAnswers, quiz.questions, quiz.id, startedAt, onComplete]);
 
   // Auto-submit when the countdown reaches zero
