@@ -13,13 +13,14 @@ import Dashboard from "@/components/views/Dashboard";
 import PinnedNotes from "@/components/views/PinnedNotes";
 import StudySessionHistory from "@/components/views/StudySessionHistory";
 import FavoriteTopics from "@/components/views/FavoriteTopics";
+import ProblemsPage from "@/components/views/ProblemsPage";
 import TopicContent from "@/components/views/TopicContent";
 import SubtopicContent from "@/components/views/SubtopicContent";
 import Modal from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Topic, Subtopic } from "@/lib/mockData";
-import { topicAPI, searchAPI, ApiTopic, SearchResults } from "@/lib/api";
+import { topicAPI, searchAPI, problemsAPI, ApiTopic, SearchResults } from "@/lib/api";
 import SearchBox from "@/components/ui/SearchBox";
 import { useNavigation } from "@/hooks/useNavigation";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -42,6 +43,7 @@ function HomeContent() {
     navigateToPinnedNotes,
     navigateToSessionHistory,
     navigateToFavorites,
+    navigateToProblems,
     navigateToTopic,
     navigateToSubtopic,
     navigateToSubtopicPath,
@@ -55,6 +57,7 @@ function HomeContent() {
   const [subtopicRefreshKey, setSubtopicRefreshKey] = useState(0);
   // id → name cache so breadcrumb labels work at any depth
   const [subtopicNames, setSubtopicNames] = useState<Record<string, string>>({});
+  const [dueProblemsCount, setDueProblemsCount] = useState(0);
   const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false);
   const [newTopicName, setNewTopicName] = useState("");
   const [newTopicDescription, setNewTopicDescription] = useState("");
@@ -318,6 +321,9 @@ function HomeContent() {
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       fetchTopics();
+      problemsAPI.getAll({ due: true }).then((res) => {
+        setDueProblemsCount(res.data?.length ?? 0);
+      }).catch(() => {});
     }
   }, [authLoading, isAuthenticated, fetchTopics]);
 
@@ -660,7 +666,9 @@ function HomeContent() {
                 ? "Session History"
                 : view === "favorites"
                   ? "Favorites"
-                  : "Dashboard",
+                  : view === "problems"
+                    ? "Problems"
+                    : "Dashboard",
         },
       ]
     : subtopicPath.length > 0
@@ -695,10 +703,12 @@ function HomeContent() {
             activeTopic={activeTopic}
             activeSubtopic={activeSubtopic}
             activeView={view}
+            dueProblemsCount={dueProblemsCount}
             onDashboardSelect={navigateToDashboard}
             onPinnedNotesSelect={navigateToPinnedNotes}
             onSessionHistorySelect={navigateToSessionHistory}
             onFavoritesSelect={navigateToFavorites}
+            onProblemsSelect={navigateToProblems}
             onToggleFavorite={handleToggleFavorite}
             onTopicSelect={navigateToTopic}
             onSubtopicSelect={navigateToSubtopic}
@@ -951,6 +961,10 @@ function HomeContent() {
               topics={topics.filter((t) => t.favorite)}
               onTopicSelect={navigateToTopic}
               onUnfavorite={(topicId) => handleToggleFavorite(topicId, true)}
+            />
+          ) : !activeTopic && view === "problems" ? (
+            <ProblemsPage
+              topics={topics.map((t) => ({ id: t.id, name: t.name }))}
             />
           ) : !activeTopic && view === "sessions" ? (
             <StudySessionHistory />

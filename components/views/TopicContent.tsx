@@ -6,6 +6,7 @@ import TopicOverview from "@/components/views/TopicOverview";
 import TopicNotes from "@/components/views/TopicNotes";
 import TopicFlashcards from "@/components/views/TopicFlashcards";
 import TopicQuizzes from "@/components/views/TopicQuizzes";
+import TopicProblems from "@/components/views/TopicProblems";
 import Modal from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -289,6 +290,7 @@ export default function TopicContent({
     { id: "notes", label: "Notes", count: stats.notes },
     { id: "flashcards", label: "Flashcards", count: stats.flashcards },
     { id: "quizzes", label: "Quizzes", count: stats.quizzes },
+    { id: "problems", label: "Problems" },
   ];
 
   return (
@@ -335,6 +337,10 @@ export default function TopicContent({
           topicName={topic?.name || "Topic"}
           initialQuizId={selectedQuizId}
         />
+      )}
+
+      {activeTab === "problems" && topicId && (
+        <TopicProblems topicId={topicId} topicName={topic?.name || "Topic"} />
       )}
 
       <Modal

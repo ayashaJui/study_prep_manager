@@ -720,6 +720,102 @@ export const studySessionsAPI = {
 };
 
 // ============================================
+// Problems APIs
+// ============================================
+
+export interface ApiProblem {
+  _id: string;
+  userId: string;
+  topicId?: string | null;
+  title: string;
+  platform: string;
+  problemNumber?: string;
+  url?: string;
+  difficulty: "easy" | "medium" | "hard";
+  status: "unsolved" | "attempted" | "solved";
+  tags: string[];
+  notes?: string;
+  timeComplexity?: string;
+  spaceComplexity?: string;
+  language?: string;
+  nextReview?: string;
+  reviewInterval?: number;
+  reviewCount: number;
+  lastReviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProblemCreateInput {
+  topicId?: string | null;
+  title: string;
+  platform: string;
+  problemNumber?: string;
+  url?: string;
+  difficulty: "easy" | "medium" | "hard";
+  status?: "unsolved" | "attempted" | "solved";
+  tags?: string[];
+  notes?: string;
+  timeComplexity?: string;
+  spaceComplexity?: string;
+  language?: string;
+}
+
+export const problemsAPI = {
+  getAll: async (filters?: {
+    topicId?: string;
+    status?: string;
+    difficulty?: string;
+    platform?: string;
+    tag?: string;
+    due?: boolean;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.topicId) params.set("topicId", filters.topicId);
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.difficulty) params.set("difficulty", filters.difficulty);
+    if (filters?.platform) params.set("platform", filters.platform);
+    if (filters?.tag) params.set("tag", filters.tag);
+    if (filters?.due) params.set("due", "true");
+    const query = params.toString();
+    return fetchAPI<ApiResponse<ApiProblem[]>>(`/problems${query ? `?${query}` : ""}`);
+  },
+
+  getById: async (id: string) => {
+    return fetchAPI<ApiResponse<ApiProblem>>(`/problems/${id}`);
+  },
+
+  create: async (data: ProblemCreateInput) => {
+    return fetchAPI<ApiResponse<ApiProblem>>("/problems", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: string, data: Partial<ProblemCreateInput>) => {
+    return fetchAPI<ApiResponse<ApiProblem>>(`/problems/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete: async (id: string) => {
+    return fetchAPI<ApiResponse<null>>(`/problems/${id}`, { method: "DELETE" });
+  },
+
+  review: async (id: string, confidence: "easy" | "medium" | "hard" | "again") => {
+    return fetchAPI<ApiResponse<ApiProblem>>(`/problems/${id}/review`, {
+      method: "POST",
+      body: JSON.stringify({ confidence }),
+    });
+  },
+
+  getDueCount: async () => {
+    return fetchAPI<ApiResponse<ApiProblem[]>>("/problems?due=true");
+  },
+};
+
+// ============================================
 // Authentication APIs
 // ============================================
 

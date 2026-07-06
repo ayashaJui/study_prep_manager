@@ -6,6 +6,7 @@ import SubtopicDetail from "@/components/views/SubtopicDetail";
 import TopicNotes from "@/components/views/TopicNotes";
 import TopicFlashcards from "@/components/views/TopicFlashcards";
 import TopicQuizzes from "@/components/views/TopicQuizzes";
+import TopicProblems from "@/components/views/TopicProblems";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -253,6 +254,7 @@ export default function SubtopicContent({
     { id: "notes", label: "Notes", count: notesCount },
     { id: "flashcards", label: "Flashcards", count: flashcardsCount },
     { id: "quizzes", label: "Quizzes", count: quizzesCount },
+    { id: "problems", label: "Problems" },
   ];
 
   return (
@@ -305,6 +307,10 @@ export default function SubtopicContent({
 
       {activeTab === "quizzes" && (
         <TopicQuizzes topicId={subtopic.id} topicName={subtopic.name} />
+      )}
+
+      {activeTab === "problems" && (
+        <TopicProblems topicId={subtopic.id} topicName={subtopic.name} />
       )}
 
       <Modal

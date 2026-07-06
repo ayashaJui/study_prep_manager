@@ -11,6 +11,7 @@ import {
   History,
   Star,
   ArrowUpDown,
+  Code2,
 } from "lucide-react";
 
 type SortOrder = "newest" | "oldest" | "az" | "za";
@@ -35,11 +36,13 @@ interface SidebarProps {
   topics: Topic[];
   activeTopic?: string;
   activeSubtopic?: string;
-  activeView?: "dashboard" | "pinned" | "sessions" | "favorites";
+  activeView?: "dashboard" | "pinned" | "sessions" | "favorites" | "problems";
+  dueProblemsCount?: number;
   onDashboardSelect: () => void;
   onPinnedNotesSelect: () => void;
   onSessionHistorySelect: () => void;
   onFavoritesSelect: () => void;
+  onProblemsSelect: () => void;
   onToggleFavorite: (topicId: string, current: boolean) => void;
   onTopicSelect: (topicSlug: string) => void;
   onSubtopicSelect: (topicSlug: string, subtopicSlug: string) => void;
@@ -51,10 +54,12 @@ export default function Sidebar({
   activeTopic,
   activeSubtopic,
   activeView,
+  dueProblemsCount = 0,
   onDashboardSelect,
   onPinnedNotesSelect,
   onSessionHistorySelect,
   onFavoritesSelect,
+  onProblemsSelect,
   onToggleFavorite,
   onTopicSelect,
   onSubtopicSelect,
@@ -194,6 +199,26 @@ export default function Sidebar({
           >
             <Star size={16} className="flex-shrink-0" />
             <span className="flex-1 text-sm font-medium">Favorites</span>
+          </div>
+        </li>
+
+        {/* Problems Item */}
+        <li>
+          <div
+            className={`flex items-center gap-2 !px-3 !py-2.5 rounded-md cursor-pointer transition-all border-l-3 ${
+              !activeTopic && activeView === "problems"
+                ? "border-purple-500 bg-purple-500/10 text-white"
+                : "border-transparent text-slate-300 hover:bg-slate-700/50 hover:border-slate-600"
+            }`}
+            onClick={onProblemsSelect}
+          >
+            <Code2 size={16} className="flex-shrink-0" />
+            <span className="flex-1 text-sm font-medium">Problems</span>
+            {dueProblemsCount > 0 && (
+              <span className="bg-amber-500 text-white text-xs rounded-full !px-1.5 !py-0.5 leading-none">
+                {dueProblemsCount}
+              </span>
+            )}
           </div>
         </li>
 

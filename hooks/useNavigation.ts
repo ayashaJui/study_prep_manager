@@ -8,7 +8,7 @@ export function useNavigation() {
   const [activeTopic, setActiveTopic] = useState<string | undefined>();
   const [subtopicPath, setSubtopicPath] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
-  const [view, setView] = useState<"dashboard" | "pinned" | "sessions" | "favorites">(
+  const [view, setView] = useState<"dashboard" | "pinned" | "sessions" | "favorites" | "problems">(
     "dashboard",
   );
   const [selectedNoteId, setSelectedNoteId] = useState<string | undefined>();
@@ -45,7 +45,9 @@ export function useNavigation() {
           ? "sessions"
           : viewParam === "favorites"
             ? "favorites"
-            : "dashboard",
+            : viewParam === "problems"
+              ? "problems"
+              : "dashboard",
     );
   }
 
@@ -79,6 +81,14 @@ export function useNavigation() {
     setSubtopicPath([]);
     setActiveTab("overview");
     setView("favorites");
+  };
+
+  const navigateToProblems = () => {
+    router.push("/?view=problems");
+    setActiveTopic(undefined);
+    setSubtopicPath([]);
+    setActiveTab("overview");
+    setView("problems");
   };
 
   const navigateToTopic = (slug: string) => {
@@ -119,6 +129,7 @@ export function useNavigation() {
     navigateToPinnedNotes,
     navigateToSessionHistory,
     navigateToFavorites,
+    navigateToProblems,
     navigateToTopic,
     navigateToSubtopic,
     navigateToSubtopicPath,
