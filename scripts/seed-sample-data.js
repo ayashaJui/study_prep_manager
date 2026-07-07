@@ -13,6 +13,10 @@ const SAMPLE_USER_EMAIL    = process.env.SAMPLE_USER_EMAIL    || "sample.user@ex
 const SAMPLE_USER_PASSWORD = process.env.SAMPLE_USER_PASSWORD || "SamplePass123!";
 const SAMPLE_USER_NAME     = process.env.SAMPLE_USER_NAME     || "Sample User";
 
+const SAMPLE_USER2_EMAIL    = "alex.dev@example.com";
+const SAMPLE_USER2_PASSWORD = "AlexPass123!";
+const SAMPLE_USER2_NAME     = "Alex Dev";
+
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
 const userSchema = new mongoose.Schema(
@@ -113,18 +117,22 @@ async function seed() {
   await mongoose.connect(MONGODB_URI);
   console.log("✅ Connected to MongoDB");
 
-  let user = await User.findOne({ email: SAMPLE_USER_EMAIL.toLowerCase() });
+  let user  = await User.findOne({ email: SAMPLE_USER_EMAIL.toLowerCase() });
+  let user2 = await User.findOne({ email: SAMPLE_USER2_EMAIL.toLowerCase() });
 
   if (shouldClear) {
-    if (!user) { console.log("ℹ️  No sample user found to clear."); await mongoose.disconnect(); process.exit(0); }
-    const uid = user._id;
-    await Promise.all([
-      Note.deleteMany({ userId: uid }), Flashcard.deleteMany({ userId: uid }),
-      Quiz.deleteMany({ userId: uid }), Topic.deleteMany({ userId: uid }),
-      StudySession.deleteMany({ userId: uid }), Problem.deleteMany({ userId: uid }),
-      User.deleteOne({ _id: uid }),
-    ]);
-    console.log("✅ Sample data cleared.");
+    const toDelete = [user, user2].filter(Boolean);
+    if (!toDelete.length) { console.log("ℹ️  No sample users found to clear."); await mongoose.disconnect(); process.exit(0); }
+    await Promise.all(toDelete.map(async (u) => {
+      const uid = u._id;
+      await Promise.all([
+        Note.deleteMany({ userId: uid }), Flashcard.deleteMany({ userId: uid }),
+        Quiz.deleteMany({ userId: uid }), Topic.deleteMany({ userId: uid }),
+        StudySession.deleteMany({ userId: uid }), Problem.deleteMany({ userId: uid }),
+        User.deleteOne({ _id: uid }),
+      ]);
+    }));
+    console.log("✅ Sample data cleared (both users).");
     await mongoose.disconnect(); process.exit(0);
   }
 
@@ -132,9 +140,18 @@ async function seed() {
     const hashedPassword = await bcryptjs.hash(SAMPLE_USER_PASSWORD, 10);
     user = await User.create({ name: SAMPLE_USER_NAME, email: SAMPLE_USER_EMAIL.toLowerCase(),
                                password: hashedPassword, provider: "credentials", emailVerified: true });
-    console.log("✅ Created sample user");
+    console.log("✅ Created user 1 (Sample User)");
   } else {
-    console.log("ℹ️  Sample user already exists");
+    console.log("ℹ️  User 1 already exists");
+  }
+
+  if (!user2) {
+    const hashedPassword2 = await bcryptjs.hash(SAMPLE_USER2_PASSWORD, 10);
+    user2 = await User.create({ name: SAMPLE_USER2_NAME, email: SAMPLE_USER2_EMAIL.toLowerCase(),
+                                password: hashedPassword2, provider: "credentials", emailVerified: true });
+    console.log("✅ Created user 2 (Alex Dev)");
+  } else {
+    console.log("ℹ️  User 2 already exists");
   }
 
   const userId = user._id;
@@ -531,28 +548,150 @@ async function seed() {
       "stats.flashcardsCount": flashcardsCount, "stats.quizzesCount": quizzesCount } });
   }));
 
+  // ── User 2 data ───────────────────────────────────────────────────────────────
+
+  const userId2 = user2._id;
+
+  const [u2frontend, u2backend] = await Topic.insertMany([
+    { name: "Frontend", slug: slugify("Frontend-alex"),
+      description: "React, TypeScript, performance.",
+      level: 0, parentId: null, path: [], status: "in-progress",
+      tags: ["frontend", "react"], favorite: true, isPublic: false,
+      stats: { notesCount: 0, flashcardsCount: 0, quizzesCount: 0, completionPercentage: 60 }, userId: userId2 },
+
+    { name: "Backend", slug: slugify("Backend-alex"),
+      description: "Node.js, REST APIs, databases.",
+      level: 0, parentId: null, path: [], status: "not-started",
+      tags: ["backend", "node"], favorite: false,
+      stats: { notesCount: 0, flashcardsCount: 0, quizzesCount: 0, completionPercentage: 20 }, userId: userId2 },
+  ]);
+
+  const [u2react, u2perf] = await Topic.insertMany([
+    { name: "React Hooks", slug: slugify("React Hooks-alex"),
+      description: "useState, useEffect, useContext, custom hooks.",
+      level: 1, parentId: u2frontend._id, path: [u2frontend._id], status: "mastered",
+      tags: ["react", "hooks"], favorite: false,
+      stats: { notesCount: 0, flashcardsCount: 0, quizzesCount: 0, completionPercentage: 100 }, userId: userId2 },
+
+    { name: "Performance", slug: slugify("Performance-alex"),
+      description: "Memoization, lazy loading, bundle optimization.",
+      level: 1, parentId: u2frontend._id, path: [u2frontend._id], status: "in-progress",
+      tags: ["performance"], favorite: false,
+      stats: { notesCount: 0, flashcardsCount: 0, quizzesCount: 0, completionPercentage: 50 }, userId: userId2 },
+  ]);
+
+  await Note.insertMany([
+    { topicId: u2react._id, title: "useEffect Cheatsheet",
+      content: "# useEffect\n\n## Runs after every render\n```js\nuseEffect(() => { ... });\n```\n## Runs once (mount)\n```js\nuseEffect(() => { ... }, []);\n```\n## Runs when dep changes\n```js\nuseEffect(() => { ... }, [dep]);\n```\n## Cleanup\n```js\nuseEffect(() => {\n  const sub = subscribe();\n  return () => sub.unsubscribe();\n}, []);\n```",
+      pinned: true, tags: ["react", "hooks"], userId: userId2 },
+
+    { topicId: u2perf._id, title: "React Performance Tricks",
+      content: "# React Performance\n\n- `React.memo` — skip re-render if props unchanged\n- `useMemo` — memoize expensive computation\n- `useCallback` — stable function reference for child props\n- Code splitting: `React.lazy` + `Suspense`\n- Avoid inline object/function props in JSX",
+      pinned: false, tags: ["performance", "react"], userId: userId2 },
+
+    { topicId: u2backend._id, title: "REST API Design Notes",
+      content: "# REST API Design\n\n## Status Codes\n- 200 OK, 201 Created, 204 No Content\n- 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found\n- 500 Internal Server Error\n\n## Naming\n- Use nouns not verbs: `/users` not `/getUsers`\n- Use plural: `/users/:id`\n- Nest for relationships: `/users/:id/posts`",
+      pinned: false, tags: ["api", "rest"], userId: userId2 },
+  ]);
+
+  await Flashcard.insertMany([
+    { topicId: u2react._id, front: "When does useEffect run?", back: "After every render by default. Pass [] to run only on mount. Pass [dep] to run when dep changes.",
+      tags: ["react", "hooks"], difficulty: "easy", status: "review", confidence: "easy",
+      reviewCount: 3, intervalDays: 5, easeFactor: 2.6, lastReviewed: daysAgo(2), nextReview: daysFrom(3), userId: userId2 },
+    { topicId: u2react._id, front: "What is the difference between useMemo and useCallback?", back: "useMemo memoizes a computed value. useCallback memoizes a function reference. Both take a dependency array.",
+      tags: ["react", "performance"], difficulty: "medium", status: "learning", confidence: "medium",
+      reviewCount: 1, intervalDays: 2, easeFactor: 2.4, lastReviewed: daysAgo(1), nextReview: daysFrom(1), userId: userId2 },
+    { topicId: u2perf._id, front: "What does React.memo do?", back: "Wraps a component to skip re-rendering if props haven't changed (shallow comparison).",
+      tags: ["performance"], difficulty: "easy", status: "new", confidence: "medium",
+      reviewCount: 0, intervalDays: 0, easeFactor: 2.5, userId: userId2 },
+  ]);
+
+  await Quiz.insertMany([
+    { topicId: u2react._id, title: "React Hooks Quiz", description: "Test your hooks knowledge.",
+      difficulty: "easy", type: "multiple-choice", tags: ["react"],
+      questions: [
+        { id: "q-u2-1", question: "Which hook replaces componentDidMount?",
+          options: ["useState", "useRef", "useEffect with []", "useContext"], correctAnswer: 2,
+          explanation: "useEffect with an empty dependency array runs once after the initial render.", points: 1, tags: [] },
+        { id: "q-u2-2", question: "What does useCallback return?",
+          options: ["A memoized value", "A memoized function", "A ref object", "A context value"], correctAnswer: 1,
+          explanation: "useCallback returns a memoized version of the callback that only changes if dependencies change.", points: 1, tags: [] },
+      ],
+      shuffleQuestions: false, shuffleOptions: false, showAnswersImmediately: false, userId: userId2 },
+  ]);
+
+  await Problem.insertMany([
+    { userId: userId2, topicId: u2react._id, title: "Debounce Function", platform: "Custom",
+      difficulty: "medium", status: "solved",
+      tags: ["javascript", "closures"], notes: "Use closure to hold timer. clearTimeout on each call, setTimeout at end.",
+      timeComplexity: "O(1)", spaceComplexity: "O(1)", language: "JavaScript",
+      nextReview: daysAgo(1), reviewInterval: 7, reviewCount: 2, lastReviewedAt: daysAgo(8) },
+    { userId: userId2, topicId: u2perf._id, title: "Flatten Nested Array", platform: "Custom",
+      difficulty: "easy", status: "solved",
+      tags: ["arrays", "recursion"], notes: "Array.flat(Infinity) or recursive reduce.",
+      timeComplexity: "O(n)", spaceComplexity: "O(n)", language: "JavaScript",
+      nextReview: daysFrom(4), reviewInterval: 7, reviewCount: 1, lastReviewedAt: daysAgo(3) },
+    { userId: userId2, topicId: null, title: "Implement Promise.all", platform: "Custom",
+      difficulty: "hard", status: "attempted",
+      tags: ["promises", "async"], notes: "Counter for resolved count. Reject on first rejection.",
+      timeComplexity: "O(n)", spaceComplexity: "O(n)", language: "JavaScript" },
+  ]);
+
+  await StudySession.insertMany([
+    { userId: userId2, topicId: u2react._id, activityType: "flashcard", duration: 10, createdAt: daysAgo(0) },
+    { userId: userId2, topicId: u2react._id, activityType: "quiz",      duration: 8, score: 100, createdAt: daysAgo(1) },
+    { userId: userId2, topicId: u2perf._id,  activityType: "note",      duration: 1, createdAt: daysAgo(2) },
+    { userId: userId2, topicId: u2backend._id, activityType: "note",    duration: 1, createdAt: daysAgo(3) },
+    { userId: userId2, topicId: u2react._id, activityType: "review",    duration: 15, createdAt: daysAgo(4) },
+    { userId: userId2, topicId: u2react._id, activityType: "flashcard", duration: 12, createdAt: daysAgo(5) },
+  ]);
+
+  // Update user2 topic stats
+  const u2TopicIds = [u2frontend._id, u2backend._id, u2react._id, u2perf._id];
+  await Promise.all(u2TopicIds.map(async (tid) => {
+    const [notesCount, flashcardsCount, quizzesCount] = await Promise.all([
+      Note.countDocuments({ topicId: tid }),
+      Flashcard.countDocuments({ topicId: tid }),
+      Quiz.countDocuments({ topicId: tid }),
+    ]);
+    await Topic.updateOne({ _id: tid }, { $set: { "stats.notesCount": notesCount,
+      "stats.flashcardsCount": flashcardsCount, "stats.quizzesCount": quizzesCount } });
+  }));
+
   // ── Summary ───────────────────────────────────────────────────────────────────
 
   console.log("\n✅ Sample data seeded:");
-  console.log(`   👤 User:             ${SAMPLE_USER_EMAIL}`);
+  console.log("─────────────────────────────────────────");
+  console.log("   USER 1 — Sample User");
+  console.log(`   👤 Email:            ${SAMPLE_USER_EMAIL}`);
   console.log(`   🔑 Password:         ${SAMPLE_USER_PASSWORD}`);
   console.log(`   📁 Root topics:      3 (DSA ⭐, System Design ⭐, Behavioral)`);
   console.log(`   📂 Subtopics:        ${[arrays,twoPointers,slidingWindow,dp,trees,caching,databases,star,leadership].length}`);
   console.log(`   📝 Notes:            ${notes.length} (2 pinned)`);
   console.log(`   🃏 Flashcards:       ${flashcards.length}`);
   console.log(`   🧠 Quizzes:          ${quizzes.length} (3 questions each)`);
-  console.log(`   💻 Problems:         ${problems.length} (mix of easy/medium/hard, solved/attempted/unsolved, 5 due for review)`);
+  console.log(`   💻 Problems:         ${problems.length} (5 due for review)`);
   console.log(`   📊 Study sessions:   ${sessionDocs.length} (last 14 days)`);
-  console.log("\n   Features you can test:");
-  console.log("   • Dashboard — recent sessions and stats");
-  console.log("   • Pinned Notes — 2 pinned notes visible");
-  console.log("   • Session History — 14 days of activity");
-  console.log("   • Favorites — DSA and System Design starred");
-  console.log("   • Problems › All Problems — 16 problems across topics");
-  console.log("   • Problems › Review Queue — 5 problems due now");
-  console.log("   • Topic › Arrays — notes, flashcards, quiz, 5 problems");
-  console.log("   • Flashcard study mode — open Arrays or DP flashcards");
-  console.log("   • Quiz — take the Arrays or Caching quiz");
+  console.log("─────────────────────────────────────────");
+  console.log("   USER 2 — Alex Dev");
+  console.log(`   👤 Email:            ${SAMPLE_USER2_EMAIL}`);
+  console.log(`   🔑 Password:         ${SAMPLE_USER2_PASSWORD}`);
+  console.log("   📁 Root topics:      2 (Frontend ⭐, Backend)");
+  console.log("   📂 Subtopics:        2 (React Hooks, Performance)");
+  console.log("   📝 Notes:            3 (1 pinned)");
+  console.log("   🃏 Flashcards:       3");
+  console.log("   🧠 Quizzes:          1");
+  console.log("   💻 Problems:         3 (1 due for review)");
+  console.log("   📊 Study sessions:   6");
+  console.log("─────────────────────────────────────────");
+  console.log("\n   What to test:");
+  console.log("   • Login as User 1 — full DSA + System Design data");
+  console.log("   • Login as User 2 — completely separate Frontend data");
+  console.log("   • Data isolation — each user sees only their own content");
+  console.log("   • Pinned Notes — User 1 has 2, User 2 has 1");
+  console.log("   • Problems › Review Queue — User 1 has 5 due");
+  console.log("   • Favorites — User 1: DSA + System Design, User 2: Frontend");
+  console.log("   • Flashcard study / Quiz — try both accounts");
 
   await mongoose.disconnect();
   console.log("\n👋 Disconnected from MongoDB");
