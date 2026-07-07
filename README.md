@@ -1,5 +1,7 @@
 # StudyNest
 
+**Live:** https://studynest-z0r3.onrender.com
+
 A hierarchical study management system built for interview preparation and continuous learning. Organize topics and subtopics with notes, flashcards, quizzes, and a coding problems tracker — all in one place.
 
 ## Features
@@ -130,30 +132,47 @@ npm run dev
 
 ### Seed Sample Data
 
-The seed script creates a demo account pre-loaded with data covering every feature:
+The seed script creates **two demo accounts**, each with independent data, so you can test all features and verify data isolation between users.
 
 ```bash
 node scripts/seed-sample-data.js
 ```
+
+**User 1 — Sample User** (full DSA + System Design data)
 
 ```
 Email:    sample.user@example.com
 Password: SamplePass123!
 ```
 
-What gets seeded:
-
 | Data | Count | Notes |
 |---|---|---|
 | Root topics | 3 | DSA ⭐, System Design ⭐, Behavioral |
 | Subtopics | 9 | Arrays, Two Pointers, Sliding Window, DP, Trees, Caching, Databases, STAR, Leadership |
 | Notes | 11 | 2 pinned (visible in Pinned Notes view) |
-| Flashcards | 12 | Mix of statuses and intervals |
-| Quizzes | 4 | 2–3 questions each with explanations |
+| Flashcards | 12 | Mix of statuses and SRS intervals |
+| Quizzes | 4 | 3 questions each with explanations |
 | Problems | 16 | Easy/Medium/Hard, all statuses, 5 due for Review Queue |
-| Study sessions | 19 | Last 14 days — flashcard, quiz, note, review types |
+| Study sessions | 19 | Last 14 days — all 4 activity types |
 
-To clear seed data:
+**User 2 — Alex Dev** (Frontend/Backend data)
+
+```
+Email:    alex.dev@example.com
+Password: AlexPass123!
+```
+
+| Data | Count | Notes |
+|---|---|---|
+| Root topics | 2 | Frontend ⭐, Backend |
+| Subtopics | 2 | React Hooks, Performance |
+| Notes | 3 | 1 pinned |
+| Flashcards | 3 | React hooks + performance |
+| Quizzes | 1 | React Hooks quiz |
+| Problems | 3 | 1 due for Review Queue |
+| Study sessions | 6 | Last 5 days |
+
+To clear all seed data (both users):
 
 ```bash
 node scripts/seed-sample-data.js --clear
