@@ -12,6 +12,9 @@ import {
   Star,
   ArrowUpDown,
   Code2,
+  Play,
+  Square,
+  Timer,
 } from "lucide-react";
 
 type SortOrder = "newest" | "oldest" | "az" | "za";
@@ -38,6 +41,11 @@ interface SidebarProps {
   activeSubtopic?: string;
   activeView?: "dashboard" | "pinned" | "sessions" | "favorites" | "problems";
   dueProblemsCount?: number;
+  sessionStartedAt: number | null;
+  sessionElapsedMs: number;
+  loggingSession: boolean;
+  onStartSession: () => void;
+  onStopSession: () => void;
   onDashboardSelect: () => void;
   onPinnedNotesSelect: () => void;
   onSessionHistorySelect: () => void;
@@ -49,12 +57,24 @@ interface SidebarProps {
   onAddTopic: () => void;
 }
 
+function formatElapsed(ms: number) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
 export default function Sidebar({
   topics,
   activeTopic,
   activeSubtopic,
   activeView,
   dueProblemsCount = 0,
+  sessionStartedAt,
+  sessionElapsedMs,
+  loggingSession,
+  onStartSession,
+  onStopSession,
   onDashboardSelect,
   onPinnedNotesSelect,
   onSessionHistorySelect,
@@ -296,6 +316,45 @@ export default function Sidebar({
           </li>
         ))}
       </ul>
+
+      {/* Study Session Timer */}
+      <div className="!mt-4 !pt-4 border-t border-slate-700/50">
+        {sessionStartedAt === null ? (
+          <button
+            onClick={onStartSession}
+            className="w-full flex items-center justify-center !gap-2 !py-2.5 rounded-lg text-sm font-medium transition-all"
+            style={{ background: "rgba(124,58,237,0.15)", color: "#a78bfa", border: "1px solid rgba(124,58,237,0.25)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(124,58,237,0.25)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(124,58,237,0.15)"; }}
+          >
+            <Play size={14} />
+            Start Studying
+          </button>
+        ) : (
+          <div className="flex items-center !gap-2">
+            <div
+              className="flex-1 flex items-center !gap-2 !px-3 !py-2 rounded-lg"
+              style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}
+            >
+              <Timer size={13} style={{ color: "#4ade80" }} />
+              <span className="text-sm font-mono font-semibold" style={{ color: "#4ade80" }}>
+                {formatElapsed(sessionElapsedMs)}
+              </span>
+            </div>
+            <button
+              onClick={onStopSession}
+              disabled={loggingSession}
+              className="flex items-center !gap-1.5 !px-3 !py-2 rounded-lg text-xs font-medium transition-all"
+              style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }}
+              onMouseEnter={(e) => { if (!loggingSession) e.currentTarget.style.background = "rgba(239,68,68,0.25)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; }}
+            >
+              <Square size={12} />
+              {loggingSession ? "..." : "Stop"}
+            </button>
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

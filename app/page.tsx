@@ -20,11 +20,12 @@ import Modal from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Topic, Subtopic } from "@/lib/mockData";
-import { topicAPI, searchAPI, problemsAPI, ApiTopic, SearchResults } from "@/lib/api";
+import { topicAPI, searchAPI, problemsAPI, studySessionsAPI, ApiTopic, SearchResults } from "@/lib/api";
 import SearchBox from "@/components/ui/SearchBox";
 import { useNavigation } from "@/hooks/useNavigation";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 
 function HomeContent() {
   const router = useRouter();
@@ -58,6 +59,10 @@ function HomeContent() {
   // id → name cache so breadcrumb labels work at any depth
   const [subtopicNames, setSubtopicNames] = useState<Record<string, string>>({});
   const [dueProblemsCount, setDueProblemsCount] = useState(0);
+  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
+  const [sessionElapsedMs, setSessionElapsedMs] = useState(0);
+  const [loggingSession, setLoggingSession] = useState(false);
+  const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false);
   const [newTopicName, setNewTopicName] = useState("");
   const [newTopicDescription, setNewTopicDescription] = useState("");
@@ -243,6 +248,40 @@ function HomeContent() {
     if (!target) return;
     target.scrollIntoView({ block: "nearest" });
   }, [highlightIndex, searchItems.length]);
+
+  useEffect(() => {
+    if (sessionStartedAt === null) return;
+    const interval = setInterval(() => setSessionElapsedMs(Date.now() - sessionStartedAt), 1000);
+    return () => clearInterval(interval);
+  }, [sessionStartedAt]);
+
+  const { showSuccess, showError } = useToast();
+
+  const handleStartSession = () => {
+    setSessionElapsedMs(0);
+    setSessionStartedAt(Date.now());
+  };
+
+  const handleStopSession = async () => {
+    if (sessionStartedAt === null) return;
+    const durationMinutes = Math.max(1, Math.round((Date.now() - sessionStartedAt) / 60000));
+    try {
+      setLoggingSession(true);
+      const res = await studySessionsAPI.create({ activityType: "review", duration: durationMinutes });
+      if (res.success) {
+        showSuccess(`Logged a ${durationMinutes} min study session`);
+        setSessionStartedAt(null);
+        setSessionElapsedMs(0);
+        setDashboardRefreshKey((k) => k + 1);
+      } else {
+        showError(res.message || "Failed to log study session");
+      }
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to log study session");
+    } finally {
+      setLoggingSession(false);
+    }
+  };
 
   const fetchTopics = useCallback(async () => {
     if (!isAuthenticated) { setTopics([]); return; }
@@ -704,6 +743,11 @@ function HomeContent() {
             activeSubtopic={activeSubtopic}
             activeView={view}
             dueProblemsCount={dueProblemsCount}
+            sessionStartedAt={sessionStartedAt}
+            sessionElapsedMs={sessionElapsedMs}
+            loggingSession={loggingSession}
+            onStartSession={handleStartSession}
+            onStopSession={handleStopSession}
             onDashboardSelect={navigateToDashboard}
             onPinnedNotesSelect={navigateToPinnedNotes}
             onSessionHistorySelect={navigateToSessionHistory}
@@ -986,7 +1030,7 @@ function HomeContent() {
                 </div>
               </div>
             ) : (
-              <Dashboard />
+              <Dashboard refreshKey={dashboardRefreshKey} />
             )
           ) : subtopicPath.length > 0 && subtopicLoading ? (
             <div className="flex items-center justify-center py-20 text-slate-400 text-sm">

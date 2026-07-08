@@ -17,8 +17,6 @@ import {
   Clock,
   Target,
   Pencil,
-  Play,
-  Square,
 } from "lucide-react";
 import {
   dashboardAPI,
@@ -64,16 +62,7 @@ interface Goal {
   total: number;
 }
 
-function formatElapsed(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
-  return `${minutes}:${seconds}`;
-}
-
-export default function Dashboard() {
+export default function Dashboard({ refreshKey }: { refreshKey?: number }) {
   const { isLoading: authLoading } = useAuth();
   const { showSuccess, showError } = useToast();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -81,11 +70,6 @@ export default function Dashboard() {
   const [topicProgress, setTopicProgress] = useState<TopicProgressItem[]>([]);
   const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
   const [studyStreak, setStudyStreak] = useState(0);
-  const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(
-    null,
-  );
-  const [sessionElapsedMs, setSessionElapsedMs] = useState(0);
-  const [loggingSession, setLoggingSession] = useState(false);
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditGoalsOpen, setIsEditGoalsOpen] = useState(false);
@@ -93,19 +77,12 @@ export default function Dashboard() {
   const [savingGoals, setSavingGoals] = useState(false);
 
   useEffect(() => {
-    // Fetch once auth initialization completes.
-    if (!authLoading) {
-      fetchDashboardData();
-    }
+    if (!authLoading) fetchDashboardData();
   }, [authLoading]);
 
   useEffect(() => {
-    if (sessionStartedAt === null) return;
-    const interval = setInterval(() => {
-      setSessionElapsedMs(Date.now() - sessionStartedAt);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [sessionStartedAt]);
+    if (refreshKey !== undefined && refreshKey > 0) fetchDashboardData();
+  }, [refreshKey]);
 
   const fetchDashboardData = async () => {
     try {
@@ -134,41 +111,6 @@ export default function Dashboard() {
       );
     } finally {
       setDashboardLoading(false);
-    }
-  };
-
-  const handleStartSession = () => {
-    setSessionElapsedMs(0);
-    setSessionStartedAt(Date.now());
-  };
-
-  const handleStopSession = async () => {
-    if (sessionStartedAt === null) return;
-    const durationMinutes = Math.max(
-      1,
-      Math.round((Date.now() - sessionStartedAt) / 60000),
-    );
-
-    try {
-      setLoggingSession(true);
-      const res = await studySessionsAPI.create({
-        activityType: "review",
-        duration: durationMinutes,
-      });
-      if (res.success) {
-        showSuccess(`Logged a ${durationMinutes} min study session`);
-        setSessionStartedAt(null);
-        setSessionElapsedMs(0);
-        await fetchDashboardData();
-      } else {
-        showError(res.message || "Failed to log study session");
-      }
-    } catch (err) {
-      showError(
-        err instanceof Error ? err.message : "Failed to log study session",
-      );
-    } finally {
-      setLoggingSession(false);
     }
   };
 
@@ -494,29 +436,6 @@ export default function Dashboard() {
             </p>
 
             <div className="!mt-6 !pt-4 border-t border-slate-700/50">
-              {sessionStartedAt === null ? (
-                <Button onClick={handleStartSession} className="!mx-auto">
-                  <Play size={16} />
-                  Start Studying
-                </Button>
-              ) : (
-                <div className="flex flex-col items-center gap-3">
-                  <span
-                    className="text-2xl font-mono font-semibold"
-                    style={{ color: "#e2e8f0" }}
-                  >
-                    {formatElapsed(sessionElapsedMs)}
-                  </span>
-                  <Button
-                    onClick={handleStopSession}
-                    disabled={loggingSession}
-                    className="!bg-red-600 hover:!bg-red-700 !mx-auto"
-                  >
-                    <Square size={16} />
-                    {loggingSession ? "Logging..." : "Stop & Log Session"}
-                  </Button>
-                </div>
-              )}
               <AllFlashcardsStudy />
             </div>
           </div>
