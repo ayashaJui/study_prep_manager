@@ -5,8 +5,6 @@ import {
   useContext,
   useEffect,
   useState,
-  useMemo,
-  useCallback,
   ReactNode,
 } from "react";
 
@@ -41,15 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is already logged in
   useEffect(() => {
     checkAuth();
   }, []);
 
-  const checkAuth = useCallback(async () => {
+  const checkAuth = async () => {
     try {
       setIsLoading(true);
       const response = await fetch("/api/auth/me");
+
       if (response.ok) {
         const data = await response.json();
         setUser(data.data.user);
@@ -62,19 +60,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Login failed");
       }
+
       const data = await response.json();
       setToken(data.data.token);
       setUser(data.data.user);
@@ -82,9 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Login error:", error);
       throw error;
     }
-  }, []);
+  };
 
-  const register = useCallback(async (
+  const register = async (
     name: string,
     email: string,
     password: string,
@@ -96,10 +96,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, confirmPassword }),
       });
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Registration failed");
       }
+
       const data = await response.json();
       setToken(data.data.token);
       setUser(data.data.user);
@@ -107,9 +109,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Register error:", error);
       throw error;
     }
-  }, []);
+  };
 
-  const logout = useCallback(async () => {
+  const logout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     } catch (error) {
@@ -118,13 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setToken(null);
     }
-  }, []);
+  };
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = async () => {
     await checkAuth();
-  }, [checkAuth]);
+  };
 
-  const value = useMemo<AuthContextType>(() => ({
+  const value: AuthContextType = {
     user,
     isLoading,
     isAuthenticated: !!user,
@@ -133,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     refreshUser,
-  }), [user, isLoading, token, login, register, logout, refreshUser]);
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
