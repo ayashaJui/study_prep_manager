@@ -5,6 +5,8 @@ import {
   useContext,
   useEffect,
   useState,
+  useMemo,
+  useCallback,
   ReactNode,
 } from "react";
 
@@ -44,17 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       setIsLoading(true);
-      // Prefer server-set HttpOnly cookie. Attempt to fetch current user.
       const response = await fetch("/api/auth/me");
-
       if (response.ok) {
         const data = await response.json();
         setUser(data.data.user);
       } else {
-        // No valid session / token
         setUser(null);
         setToken(null);
       }
@@ -63,36 +62,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Login failed");
       }
-
       const data = await response.json();
-      const newToken = data.data.token;
-
-      // Server sets HttpOnly cookie; keep token in memory only
-      setToken(newToken);
+      setToken(data.data.token);
       setUser(data.data.user);
     } catch (error) {
       console.error("Login error:", error);
       throw error;
     }
-  };
+  }, []);
 
-  const register = async (
+  const register = useCallback(async (
     name: string,
     email: string,
     password: string,
@@ -101,50 +93,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, confirmPassword }),
       });
-
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Registration failed");
       }
-
       const data = await response.json();
-      const newToken = data.data.token;
-
-      // Server sets HttpOnly cookie; keep token in memory only
-      setToken(newToken);
+      setToken(data.data.token);
       setUser(data.data.user);
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error("Register error:", error);
       throw error;
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
-      // Call logout; cookie will be cleared server-side
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
       setUser(null);
       setToken(null);
-      // client state cleared; rely on server-side cookie clearing
     }
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     await checkAuth();
-  };
+  }, [checkAuth]);
 
-  const value: AuthContextType = {
+  const value = useMemo<AuthContextType>(() => ({
     user,
     isLoading,
     isAuthenticated: !!user,
@@ -153,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     refreshUser,
-  };
+  }), [user, isLoading, token, login, register, logout, refreshUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
