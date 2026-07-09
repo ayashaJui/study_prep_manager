@@ -255,17 +255,33 @@ function HomeContent() {
     return () => clearInterval(interval);
   }, [sessionStartedAt]);
 
-  // Track whether a session is already running without making it a dep of the auto-start effect
+  // Refs so effects can read current session state without adding them to dep arrays
   const sessionActiveRef = useRef(false);
-  useEffect(() => { sessionActiveRef.current = sessionStartedAt !== null; }, [sessionStartedAt]);
+  const sessionStartedAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    sessionActiveRef.current = sessionStartedAt !== null;
+    sessionStartedAtRef.current = sessionStartedAt;
+  }, [sessionStartedAt]);
 
-  // Auto-start when user opens a topic or the Problems view
+  // Auto-start when user opens a topic or Problems; auto-stop when they leave
   useEffect(() => {
     if (!isAuthenticated || authLoading) return;
     const isStudyingContent = !!activeTopic || view === "problems";
+
     if (isStudyingContent && !sessionActiveRef.current) {
       setSessionElapsedMs(0);
       setSessionStartedAt(Date.now());
+    } else if (!isStudyingContent && sessionActiveRef.current) {
+      const startedAt = sessionStartedAtRef.current;
+      setSessionStartedAt(null);
+      setSessionElapsedMs(0);
+      if (startedAt !== null) {
+        const durationMinutes = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
+        studySessionsAPI
+          .create({ activityType: "review", duration: durationMinutes })
+          .then((res) => { if (res.success) setDashboardRefreshKey((k) => k + 1); })
+          .catch(() => {});
+      }
     }
   }, [activeTopic, view, isAuthenticated, authLoading]);
 
