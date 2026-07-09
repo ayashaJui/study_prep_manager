@@ -266,7 +266,8 @@ function HomeContent() {
   // Auto-start when user opens a topic or Problems; auto-stop when they leave
   useEffect(() => {
     if (!isAuthenticated || authLoading) return;
-    const isStudyingContent = !!activeTopic || view === "problems";
+    const isLoadingContent = subtopicPath.length > 0 && subtopicLoading;
+    const isStudyingContent = (!!activeTopic && !isLoadingContent) || view === "problems";
 
     if (isStudyingContent && !sessionActiveRef.current) {
       setSessionElapsedMs(0);
@@ -283,7 +284,7 @@ function HomeContent() {
           .catch(() => {});
       }
     }
-  }, [activeTopic, view, isAuthenticated, authLoading]);
+  }, [activeTopic, view, isAuthenticated, authLoading, subtopicLoading, subtopicPath.length]);
 
   // Auto-log session when user closes/refreshes the tab
   useEffect(() => {
