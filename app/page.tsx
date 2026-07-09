@@ -255,6 +255,36 @@ function HomeContent() {
     return () => clearInterval(interval);
   }, [sessionStartedAt]);
 
+  // Track whether a session is already running without making it a dep of the auto-start effect
+  const sessionActiveRef = useRef(false);
+  useEffect(() => { sessionActiveRef.current = sessionStartedAt !== null; }, [sessionStartedAt]);
+
+  // Auto-start when user opens a topic or the Problems view
+  useEffect(() => {
+    if (!isAuthenticated || authLoading) return;
+    const isStudyingContent = !!activeTopic || view === "problems";
+    if (isStudyingContent && !sessionActiveRef.current) {
+      setSessionElapsedMs(0);
+      setSessionStartedAt(Date.now());
+    }
+  }, [activeTopic, view, isAuthenticated, authLoading]);
+
+  // Auto-log session when user closes/refreshes the tab
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (sessionStartedAt === null) return;
+      const durationMinutes = Math.max(1, Math.round((Date.now() - sessionStartedAt) / 60000));
+      navigator.sendBeacon(
+        "/api/study-sessions",
+        new Blob([JSON.stringify({ activityType: "review", duration: durationMinutes })], {
+          type: "application/json",
+        }),
+      );
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [sessionStartedAt]);
+
   const { showSuccess, showError } = useToast();
 
   const handleStartSession = () => {
@@ -526,7 +556,24 @@ function HomeContent() {
     resultItemRefs.current[index] = element;
   };
 
-  if (!authLoading && !isAuthenticated) {
+  if (authLoading) {
+    return (
+      <div
+        className="h-screen w-screen flex items-center justify-center"
+        style={{ background: "#0f1419" }}
+      >
+        <div className="flex flex-col items-center !gap-3">
+          <div
+            className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+            style={{ borderColor: "rgba(124,58,237,0.4)", borderTopColor: "transparent" }}
+          />
+          <p className="text-sm" style={{ color: "#475569" }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
     return (
       <div
         className="min-h-screen w-full flex flex-col overflow-x-hidden"

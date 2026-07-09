@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardTitle } from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
@@ -71,6 +71,7 @@ export default function Dashboard({ refreshKey }: { refreshKey?: number }) {
   const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
   const [studyStreak, setStudyStreak] = useState(0);
   const [dashboardLoading, setDashboardLoading] = useState(true);
+  const hasLoadedOnce = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditGoalsOpen, setIsEditGoalsOpen] = useState(false);
   const [editGoals, setEditGoals] = useState<WeeklyGoalInput[]>([]);
@@ -86,7 +87,7 @@ export default function Dashboard({ refreshKey }: { refreshKey?: number }) {
 
   const fetchDashboardData = async () => {
     try {
-      setDashboardLoading(true);
+      if (!hasLoadedOnce.current) setDashboardLoading(true);
       setError(null);
 
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -111,6 +112,7 @@ export default function Dashboard({ refreshKey }: { refreshKey?: number }) {
       );
     } finally {
       setDashboardLoading(false);
+      hasLoadedOnce.current = true;
     }
   };
 

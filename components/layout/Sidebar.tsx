@@ -126,11 +126,10 @@ export default function Sidebar({
 
   return (
     <aside
-      className="w-full h-full overflow-y-auto flex-shrink-0 border-r border-slate-700/50 !p-3"
-      style={{
-        background: "#1a1f2e",
-      }}
+      className="w-full h-full flex flex-col flex-shrink-0 border-r border-slate-700/50"
+      style={{ background: "#1a1f2e" }}
     >
+      <div className="flex-1 overflow-y-auto !p-3">
       <SearchBox
         value={searchQuery}
         onChange={setSearchQuery}
@@ -316,9 +315,10 @@ export default function Sidebar({
           </li>
         ))}
       </ul>
+      </div>{/* end scrollable area */}
 
-      {/* Study Session Timer */}
-      <div className="!mt-4 !pt-4 border-t border-slate-700/50">
+      {/* Study Session Timer — always pinned to bottom */}
+      <div className="flex-shrink-0 !px-3 !pb-3 !pt-3 border-t border-slate-700/50">
         {sessionStartedAt === null ? (
           <button
             onClick={onStartSession}
