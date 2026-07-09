@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     const notes = await Note.find({ userId, pinned: true })
       .sort({ updatedAt: -1 })
-      .populate("topicId", "name slug");
+      .populate("topicId", "name slug parentId path level");
 
     return NextResponse.json(
       {

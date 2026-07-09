@@ -74,7 +74,9 @@ export interface NoteCreateInput {
 }
 
 export interface PinnedNote extends Omit<ApiNote, "topicId"> {
-  topicId: { _id: string; name: string; slug?: string } | string;
+  topicId:
+    | { _id: string; name: string; slug?: string; parentId?: string | null; path?: string[]; level?: number }
+    | string;
 }
 
 export interface ApiFlashcard {

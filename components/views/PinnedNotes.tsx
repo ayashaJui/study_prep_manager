@@ -13,7 +13,7 @@ import {
 } from "@/lib/noteUtils";
 
 interface PinnedNotesProps {
-  onOpenNote: (topicId: string, noteId: string) => void;
+  onOpenNote: (topicId: string, noteId: string, subtopics?: string[]) => void;
 }
 
 export default function PinnedNotes({ onOpenNote }: PinnedNotesProps) {
@@ -85,6 +85,16 @@ export default function PinnedNotes({ onOpenNote }: PinnedNotesProps) {
               typeof note.topicId === "object" ? note.topicId : null;
             const topicId = topic?._id ||
               (typeof note.topicId === "string" ? note.topicId : "");
+
+            // If the note belongs to a subtopic, resolve the root topic and path
+            // using the Topic's `path` field (ancestor IDs from root to parent).
+            let navTopicId = topicId;
+            let navSubtopics: string[] | undefined;
+            if (topic && topic.level && topic.level > 0 && topic.path?.length) {
+              navTopicId = topic.path[0];
+              navSubtopics = [...topic.path.slice(1), topicId];
+            }
+
             const title = deriveNoteTitle(note.content || "");
             const body = stripLeadingHeading(note.content || "");
             const preview =
@@ -122,8 +132,8 @@ export default function PinnedNotes({ onOpenNote }: PinnedNotesProps) {
                     {readingMinutes} min read
                   </span>
                   <button
-                    onClick={() => topicId && onOpenNote(topicId, note._id)}
-                    disabled={!topicId}
+                    onClick={() => navTopicId && onOpenNote(navTopicId, note._id, navSubtopics)}
+                    disabled={!navTopicId}
                     className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors font-medium disabled:opacity-50"
                   >
                     <BookOpen size={16} />

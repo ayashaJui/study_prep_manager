@@ -1060,8 +1060,8 @@ function HomeContent() {
 
           {!activeTopic && view === "pinned" ? (
             <PinnedNotes
-              onOpenNote={(topicId, noteId) =>
-                navigateToTopicTab(topicId, "notes", { note: noteId })
+              onOpenNote={(topicId, noteId, subtopics) =>
+                navigateToTopicTab(topicId, "notes", { note: noteId }, subtopics)
               }
             />
           ) : !activeTopic && view === "favorites" ? (
