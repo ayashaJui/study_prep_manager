@@ -43,15 +43,17 @@ export class AuthService {
   private buildCookieHeader(token: string): string {
     const isProd = this.config.get('NODE_ENV') === 'production';
     const secure = isProd ? '; Secure' : '';
-    const sameSite = isProd ? 'Strict' : 'Lax';
-    const maxAge = isProd ? 60 * 60 * 24 : 60 * 60 * 24 * 7;
+    // SameSite=None is required for cross-origin cookies (frontend and backend on different domains).
+    // SameSite=None MUST be paired with Secure.
+    const sameSite = isProd ? 'None' : 'Lax';
+    const maxAge = isProd ? 60 * 60 * 24 * 7 : 60 * 60 * 24 * 7;
     return `auth_token=${token}; Path=/; HttpOnly${secure}; SameSite=${sameSite}; Max-Age=${maxAge}`;
   }
 
   buildClearCookieHeader(): string {
     const isProd = this.config.get('NODE_ENV') === 'production';
     const secure = isProd ? '; Secure' : '';
-    const sameSite = isProd ? 'Strict' : 'Lax';
+    const sameSite = isProd ? 'None' : 'Lax';
     return `auth_token=; Path=/; HttpOnly${secure}; SameSite=${sameSite}; Max-Age=0`;
   }
 
