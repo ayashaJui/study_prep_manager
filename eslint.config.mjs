@@ -30,6 +30,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // NestJS backend — has its own tsconfig/eslint, don't lint from root
+    "backend/**",
   ]),
 ]);
 

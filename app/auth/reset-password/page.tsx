@@ -44,6 +44,8 @@ function ResetPasswordContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!token) return;
+
     if (!formData.password || !formData.confirmPassword) {
       showError("Please fill in all fields");
       return;

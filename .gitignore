@@ -43,5 +43,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# NestJS backend build output and dependencies (deployed separately)
+backend/dist/
+backend/node_modules/
+
 # claude code agent worktrees
 .claude/worktrees/

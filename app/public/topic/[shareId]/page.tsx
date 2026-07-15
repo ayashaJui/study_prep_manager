@@ -833,8 +833,8 @@ export default function PublicTopicPage() {
     publicAPI.getTopic(shareId)
       .then((res) => {
         if (!res.success) throw new Error("Not found");
-        setData(res.data);
-        const d = res.data;
+        const d = res.data as PublicTopicData;
+        setData(d);
         if (d.notes.length === 0 && d.flashcards.length > 0) setActiveTab("flashcards");
         else if (d.notes.length === 0 && d.quizzes.length > 0) setActiveTab("quizzes");
       })
