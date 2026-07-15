@@ -7,7 +7,7 @@
 
 import { handleError } from "./errorHandler";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface ApiClientError extends Error {
   statusCode?: number;
@@ -228,14 +228,11 @@ async function fetchAPI<T>(
       }
 
       if (response.status === 401 && typeof window !== "undefined") {
-        const currentPath = `${window.location.pathname}${window.location.search}`;
-        const loginUrl =
-          currentPath === "/"
-            ? "/auth/login"
-            : `/auth/login?redirectTo=${encodeURIComponent(currentPath)}`;
-
-        if (window.location.pathname !== "/auth/login") {
-          window.location.assign(loginUrl);
+        const pathname = window.location.pathname;
+        if (pathname !== "/" && pathname !== "/auth/login") {
+          window.location.assign(
+            `/auth/login?redirectTo=${encodeURIComponent(pathname + window.location.search)}`,
+          );
         }
       }
 
@@ -250,13 +247,16 @@ async function fetchAPI<T>(
 
     return await response.json();
   } catch (error) {
-    // Use global error handler
+    // 401 is expected (unauthenticated), not worth logging
+    if ((error as ApiClientError).statusCode === 401) {
+      throw error;
+    }
+
     const parsedError = handleError(
       error,
       `API ${options.method || "GET"} ${endpoint}`,
     );
 
-    // Re-throw with parsed error info
     const enhancedError: ApiClientError = new Error(parsedError.message);
     enhancedError.statusCode = parsedError.statusCode;
     enhancedError.code = parsedError.code;
@@ -863,5 +863,70 @@ export const authAPI = {
 
   getMe: async () => {
     return fetchAPI<ApiResponse<{ user: ApiAuthUser }>>("/auth/me");
+  },
+
+  forgotPassword: async (email: string) => {
+    return fetchAPI<ApiResponse<{ message: string }>>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  resetPassword: async (
+    token: string,
+    password: string,
+    confirmPassword: string,
+  ) => {
+    return fetchAPI<ApiResponse<{ message: string }>>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password, confirmPassword }),
+    });
+  },
+
+  changePassword: async (
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string,
+  ) => {
+    return fetchAPI<ApiResponse<{ message: string }>>("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+    });
+  },
+
+  updateProfile: async (name: string, avatar?: string | null) => {
+    return fetchAPI<ApiResponse<{ user: ApiAuthUser }>>("/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify({ name, avatar }),
+    });
+  },
+};
+
+interface ApiPublicTopic {
+  shareId: string;
+  name: string;
+  description: string | null;
+  tags: string[];
+  stats: { notesCount: number; flashcardsCount: number; quizzesCount: number };
+  authorName: string | null;
+  createdAt: string;
+}
+
+interface PublicTopicsResponse {
+  success: boolean;
+  data: ApiPublicTopic[];
+  pagination: { page: number; pages: number; total: number };
+}
+
+export const publicAPI = {
+  getTopics: async (page = 1, limit = 20): Promise<PublicTopicsResponse> => {
+    const response = await fetch(
+      `${API_BASE_URL}/public/topics?page=${page}&limit=${limit}`,
+    );
+    return response.json();
+  },
+
+  getTopic: async (shareId: string) => {
+    return fetchAPI<ApiResponse<unknown>>(`/public/topics/${shareId}`);
   },
 };

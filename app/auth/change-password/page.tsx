@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
+import { authAPI } from "@/lib/api";
 import { Lock, ArrowLeft } from "lucide-react";
 
 export default function ChangePasswordPage() {
@@ -56,32 +57,13 @@ export default function ChangePasswordPage() {
 
     try {
       setIsLoading(true);
-      const response = await fetch("/api/auth/change-password", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          currentPassword: formData.currentPassword,
-          newPassword: formData.newPassword,
-          confirmPassword: formData.confirmPassword,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        showError(data.message || "Failed to change password");
-        return;
-      }
-
+      await authAPI.changePassword(
+        formData.currentPassword,
+        formData.newPassword,
+        formData.confirmPassword,
+      );
       showSuccess("Password updated successfully!");
-      setFormData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       router.push("/user/profile");
     } catch (error) {
       showError(error instanceof Error ? error.message : "An error occurred");

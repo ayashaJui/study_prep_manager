@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { useToast } from "@/contexts/ToastContext";
+import { authAPI } from "@/lib/api";
 import { Lock } from "lucide-react";
 import { Suspense } from "react";
 
@@ -60,25 +61,7 @@ function ResetPasswordContent() {
 
     try {
       setIsLoading(true);
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token,
-          password: formData.password,
-          confirmPassword: formData.confirmPassword,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        showError(data.message || "Failed to reset password");
-        return;
-      }
-
+      await authAPI.resetPassword(token, formData.password, formData.confirmPassword);
       showSuccess("Password reset successfully!");
       router.push("/auth/login");
     } catch (error) {

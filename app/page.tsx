@@ -20,7 +20,9 @@ import Modal from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Topic, Subtopic } from "@/lib/mockData";
-import { topicAPI, searchAPI, problemsAPI, studySessionsAPI, ApiTopic, SearchResults } from "@/lib/api";
+import { topicAPI, searchAPI, problemsAPI, studySessionsAPI, ApiTopic, SearchResults, API_BASE_URL } from "@/lib/api";
+
+const API_DOCS_URL = API_BASE_URL.replace(/\/api$/, "/api/docs");
 import SearchBox from "@/components/ui/SearchBox";
 import { useNavigation } from "@/hooks/useNavigation";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -291,12 +293,13 @@ function HomeContent() {
     const handleBeforeUnload = () => {
       if (sessionStartedAt === null) return;
       const durationMinutes = Math.max(1, Math.round((Date.now() - sessionStartedAt) / 60000));
-      navigator.sendBeacon(
-        "/api/study-sessions",
-        new Blob([JSON.stringify({ activityType: "review", duration: durationMinutes })], {
-          type: "application/json",
-        }),
-      );
+      fetch(`${API_BASE_URL}/study-sessions`, {
+        method: "POST",
+        keepalive: true,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activityType: "review", duration: durationMinutes }),
+      });
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
@@ -612,6 +615,14 @@ function HomeContent() {
               >
                 Explore
               </Link>
+              <a
+                href={API_DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-slate-400 hover:text-slate-200 transition-colors !px-3 !py-2"
+              >
+                API Docs
+              </a>
               <Link href="/auth/login">
                 <Button
                   variant="secondary"

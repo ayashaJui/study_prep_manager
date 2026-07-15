@@ -6,6 +6,7 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
+import { authAPI } from "@/lib/api";
 import {
   ArrowLeft,
   Save,
@@ -74,25 +75,7 @@ export default function ProfilePage() {
 
     try {
       setIsLoading(true);
-      const response = await fetch("/api/auth/profile", {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          avatar: formData.avatar || null,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        showError(data.message || "Failed to update profile");
-        return;
-      }
-
+      await authAPI.updateProfile(formData.name.trim(), formData.avatar || null);
       showSuccess("Profile updated successfully!");
       await refreshUser();
     } catch (error) {

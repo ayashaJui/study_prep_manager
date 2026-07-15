@@ -7,6 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
+import { authAPI } from "@/lib/api";
 
 interface User {
   id: string;
@@ -20,7 +21,6 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (
     name: string,
@@ -36,7 +36,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -46,42 +45,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/auth/me");
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.data.user);
-      } else {
-        setUser(null);
-        setToken(null);
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error);
+      // authAPI.getMe() calls the NestJS backend via NEXT_PUBLIC_API_URL
+      const response = await authAPI.getMe();
+      setUser(response.data.user as User);
+    } catch {
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Login failed");
-      }
-
-      const data = await response.json();
-      setToken(data.data.token);
-      setUser(data.data.user);
-    } catch (error) {
-      console.error("Login error:", error);
-      throw error;
-    }
+    const response = await authAPI.login(email, password);
+    // NestJS sets the HttpOnly cookie automatically in the response
+    setUser(response.data.user as User);
   };
 
   const register = async (
@@ -90,35 +67,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     confirmPassword: string,
   ) => {
-    try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, confirmPassword }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Registration failed");
-      }
-
-      const data = await response.json();
-      setToken(data.data.token);
-      setUser(data.data.user);
-    } catch (error) {
-      console.error("Register error:", error);
-      throw error;
-    }
+    const response = await authAPI.register(name, email, password, confirmPassword);
+    setUser(response.data.user as User);
   };
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-    } catch (error) {
-      console.error("Logout error:", error);
+      await authAPI.logout();
     } finally {
       setUser(null);
-      setToken(null);
     }
   };
 
@@ -130,7 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isLoading,
     isAuthenticated: !!user,
-    token,
     login,
     register,
     logout,

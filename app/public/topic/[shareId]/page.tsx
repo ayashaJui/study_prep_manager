@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { publicAPI } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -829,10 +830,9 @@ export default function PublicTopicPage() {
 
   useEffect(() => {
     if (!shareId) return;
-    fetch(`/api/public/topics/${shareId}`)
-      .then((r) => r.json())
+    publicAPI.getTopic(shareId)
       .then((res) => {
-        if (!res.success) throw new Error(res.message || "Not found");
+        if (!res.success) throw new Error("Not found");
         setData(res.data);
         const d = res.data;
         if (d.notes.length === 0 && d.flashcards.length > 0) setActiveTab("flashcards");

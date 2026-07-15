@@ -6,6 +6,7 @@ import { BookOpen, FileText, Layers, HelpCircle, Globe } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { publicAPI } from "@/lib/api";
 
 interface PublicTopic {
   shareId: string;
@@ -49,10 +50,9 @@ export default function ExplorePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/public/topics?page=${page}&limit=20`)
-      .then((r) => r.json())
+    publicAPI.getTopics(page, 20)
       .then((res) => {
-        if (!res.success) throw new Error(res.message || "Failed to load");
+        if (!res.success) throw new Error("Failed to load");
         setTopics(res.data);
         setPagination(res.pagination);
         setError(null);
