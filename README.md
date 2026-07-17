@@ -1,266 +1,286 @@
-# StudyNest
+<div align="center">
 
-**Frontend:** https://studynest-z0r3.onrender.com
-**Backend API:** https://study-prep-manager-api.onrender.com/api
-**API Docs (Swagger):** https://study-prep-manager-api.onrender.com/api/docs
+# 🎯 StudyNest
 
-A hierarchical study management system built for interview preparation and continuous learning. Organize topics and subtopics with notes, flashcards, quizzes, and a coding problems tracker — all in one place.
+**Your personal interview prep command center**
 
-## Features
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-studynest-667eea?style=for-the-badge&logo=render&logoColor=white)](https://studynest-z0r3.onrender.com)
+[![API Docs](https://img.shields.io/badge/API%20Docs-Swagger-85ea2d?style=for-the-badge&logo=swagger&logoColor=black)](https://study-prep-manager-api.onrender.com/api/docs)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](./LICENSE)
 
-### Authentication
+Organize topics and subtopics with notes, flashcards, quizzes, and a coding problems tracker — all in one place. Built for interview preparation and continuous learning.
 
-- Email/password registration and login with bcryptjs hashing
-- JWT stored in an HttpOnly cookie (no localStorage)
-- Password reset via email link (requires SMTP config)
-- Rate limiting on auth endpoints
+</div>
 
-### Topics & Organization
+---
 
-- **Unlimited nesting** — create topics and subtopics to any depth
-- **Status tracking** — mark topics as Not Started / In Progress / Review / Mastered
-- **Completion percentage** — automatically recalculated from subtopic statuses when any child is updated
-- **Favorites** — star topics for quick access from the Favorites view
-- **Recursive delete** — deleting a topic with subtopics gives the option to remove the entire tree (all notes, flashcards, quizzes, and nested subtopics) in one action
-- **Public sharing** — publish a read-only link for any topic or subtopic
+## ✨ Features
 
-### Notes
+<table>
+<tr>
+<td width="50%">
 
-- Write in Markdown with a styled reading view (headings, code blocks, tables, images via URL)
-- **Pin notes** to surface them in the global Pinned Notes view across all topics
-- Import notes from a `.md` file; export any note back to Markdown
+### 📚 Topics & Organization
+- Unlimited nesting — topics and subtopics to any depth
+- Status tracking: Not Started → In Progress → Review → Mastered
+- Auto-calculated completion percentage from subtopics
+- ⭐ Favorites for quick access
+- Recursive delete (removes entire subtree in one click)
+- Public sharing — publish a read-only link for any topic
 
-### Flashcards
+</td>
+<td width="50%">
 
-- Front/back format with tag and difficulty tracking
-- **Study mode** — flip cards, rate confidence (Easy / Medium / Hard), and schedule the next review
-- SM-2 style spaced repetition scheduling
-- Study sessions are recorded automatically when you finish a deck
+### 📝 Notes
+- Markdown editor with full GFM rendering
+- Code blocks, tables, images via URL
+- 📌 Pin notes to surface them across all topics
+- Import from `.md` file, export back to Markdown
+
+### 🃏 Flashcards
+- Front/back format with tags and difficulty
+- SM-2 spaced repetition scheduling
+- Study mode with Easy / Medium / Hard confidence rating
 - Bulk import from CSV
 
-### Quizzes
+</td>
+</tr>
+<tr>
+<td width="50%">
 
-- Multiple-choice questions with optional multi-answer support
+### 📊 Quizzes
+- Multiple-choice with optional multi-answer support
 - Per-question explanations, point values, and tags
 - Time limits and difficulty levels
-- Score tracking with attempt history
-- Study sessions recorded automatically on submit, including score and duration
+- Score history and study sessions recorded on submit
 - Bulk import from CSV
 
-### Problems Tracker
+### 💻 Problems Tracker
+- Track LeetCode and other platform problems
+- SRS review scheduling after solving (Easy/Medium/Hard/Again)
+- Review Queue — all problems due today
+- Filter by topic, difficulty, status, or platform
 
-- Track LeetCode and other platform problems linked to any topic or globally
-- Fields: title, platform, problem number, URL, difficulty, status, tags, notes/approach/intuition, time & space complexity, language
-- **Statuses**: Unsolved / Attempted / Solved — shown with color-coded icons
-- **SRS review scheduling** — after solving a problem, schedule the next review:
-  - Easy → +7 days, Medium → +3 days, Hard → +1 day, Again → now
-- **Review Queue** — filtered view of all problems due for review today
-- **Filters** — filter the full list by topic, difficulty, status, or platform
-- Problems tab inside every topic and subtopic, pre-filtered to that scope
+</td>
+<td width="50%">
 
-### Study Session History
+### 🔍 Global Search
+- Searches topics, notes, flashcards, and quizzes simultaneously
+- Keyboard navigation (↑ ↓ Enter) in the dropdown
+- `Ctrl+F` to focus from anywhere
 
-- Sessions are logged automatically when you finish a flashcard deck, submit a quiz, or create a note
-- Manual study sessions can be started from the Dashboard
-- History view with pagination, showing activity type, duration, score, and date
-- Streak tracking (daily)
+### 📈 Dashboard
+- Summary stats, recent activity feed
+- Topic progress overview and weekly goals
+- Daily streak tracking
+- Manual study session timer
 
-### Global Search
+</td>
+</tr>
+</table>
 
-- Searches across topics, notes, flashcards, and quizzes simultaneously
-- Keyboard navigation (↑ ↓ Enter) in the results dropdown
-- Ctrl+F to focus the search box from anywhere
+### 🔐 Authentication
+Cookie-based JWT auth (HttpOnly) — no localStorage, no NextAuth. Rate-limited login/register, password reset via email link.
 
-### Dashboard
+---
 
-- Summary stats (topic count, notes, flashcards, quizzes)
-- Recent activity feed
-- Topic progress overview
-- Weekly goals
+## 🛠 Tech Stack
 
-## Tech Stack
+| | Frontend | Backend |
+|---|---|---|
+| **Framework** | Next.js 16 (App Router) + React 19 | NestJS 10 |
+| **Language** | TypeScript | TypeScript |
+| **Styling** | Tailwind CSS v4 | — |
+| **Database** | — | MongoDB + Mongoose |
+| **Auth** | Cookie + fetch `credentials: include` | JWT (HttpOnly cookie) + bcryptjs |
+| **Email** | — | Nodemailer (Gmail SMTP) |
+| **API Docs** | — | Swagger (`@nestjs/swagger`) |
+| **Icons** | Lucide React | — |
+| **Markdown** | react-markdown + GFM | — |
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js (App Router), React 19, TypeScript |
-| Backend | NestJS 10, TypeScript |
-| Styling | Tailwind CSS v4 |
-| Database | MongoDB with Mongoose |
-| Auth | Custom JWT (HttpOnly cookie), bcryptjs |
-| Email | Nodemailer (Gmail SMTP) |
-| API Docs | Swagger UI (`@nestjs/swagger`) |
-| Icons | Lucide React |
-| Markdown | react-markdown with GFM |
+---
 
-## Architecture
+## 🏗 Architecture
 
-The project is split into two services:
+Two separate services — a Next.js frontend and a NestJS REST API:
 
 ```
 interview_prep/
-├── app/                  # Next.js frontend (pages, components, contexts)
-├── backend/              # NestJS API server (separate Node.js process)
+├── app/                    # Next.js pages and layouts
+├── components/             # UI components (Button, Card, Modal, Tabs…)
+├── contexts/               # AuthContext, ToastContext
+├── hooks/                  # useNavigation, useKeyboardShortcuts
+├── lib/                    # api.ts (all API calls), errorHandler.ts
+├── backend/                # NestJS API (separate Node.js process)
 │   └── src/
-│       ├── auth/
-│       ├── topics/
-│       ├── notes/
-│       ├── flashcards/
-│       ├── quizzes/
-│       ├── problems/
-│       ├── study-sessions/
-│       ├── dashboard/
-│       ├── search/
-│       ├── upload/
-│       └── public/
-└── scripts/              # Database utilities (seed, clear)
+│       ├── auth/           # login, register, logout, password reset
+│       ├── topics/         # CRUD + sharing + recursive delete
+│       ├── notes/          # CRUD + import/export markdown
+│       ├── flashcards/     # CRUD + CSV import + SRS review
+│       ├── quizzes/        # CRUD + CSV import + scoring
+│       ├── problems/       # CRUD + SRS review scheduling
+│       ├── study-sessions/ # history + streak
+│       ├── dashboard/      # stats, activity, progress, goals
+│       ├── search/         # global full-text search
+│       ├── upload/         # image upload
+│       └── public/         # read-only shared topic pages
+└── scripts/                # seed and clear database utilities
 ```
 
-The frontend talks to the backend via `NEXT_PUBLIC_API_URL`. In development both run locally on different ports. In production they are deployed as two separate Render Web Services.
+---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-
 - Node.js 18+
-- MongoDB (local or Atlas)
+- MongoDB (local or [Atlas](https://www.mongodb.com/atlas))
 
-### Installation
+### 1. Clone and install
 
 ```bash
-git clone <repository-url>
-cd interview_prep
+git clone https://github.com/ayashaJui/study_prep_manager.git
+cd study_prep_manager
 
-# Install frontend dependencies
-npm install
-
-# Install backend dependencies
-npm install --prefix backend
+npm install                       # frontend deps
+npm install --prefix backend      # backend deps
 ```
 
-### Environment variables
+### 2. Configure environment
 
-**Frontend** — create `.env.local` in the project root:
-
+**Frontend** — copy `.env.local.example` to `.env.local`:
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3001/api
+MONGODB_URI=mongodb://localhost:27017/studynest   # for seed scripts only
 ```
 
-**Backend** — create `.env` inside `backend/`:
-
+**Backend** — copy `backend/.env.example` to `backend/.env`:
 ```env
 MONGODB_URI=mongodb://localhost:27017/studynest
-JWT_SECRET=your-jwt-secret-change-this
-
-# Optional – password reset emails (Gmail SMTP)
-EMAIL_USER=you@gmail.com
-EMAIL_PASSWORD=your-app-password
-
-# Optional – restrict CORS to your frontend URL
+JWT_SECRET=your-strong-secret-here
 FRONTEND_URL=http://localhost:3000
+
+# Optional — enables password reset emails
+EMAIL_USER=you@gmail.com
+EMAIL_PASSWORD=your-gmail-app-password
 ```
 
-### Run both servers
+### 3. Start both servers
 
 ```bash
-# Start frontend (port 3000) and backend (port 3001) together
 npm run dev:all
-
-# Or start separately
-npm run dev          # frontend only
-npm run dev:backend  # backend only
 ```
 
-Open http://localhost:3000. The Swagger docs are at http://localhost:3001/api/docs.
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:3001/api |
+| Swagger Docs | http://localhost:3001/api/docs |
 
-### Seed Sample Data
+> You can also start them separately: `npm run dev` and `npm run dev:backend`
 
-The seed script connects directly to MongoDB and creates two demo accounts so you can test all features and verify data isolation between users.
+---
+
+## 🌱 Seed Sample Data
+
+Load two pre-built demo accounts with a full dataset to explore every feature:
 
 ```bash
 node scripts/seed-sample-data.js
 ```
 
-**User 1 — Sample User** (full DSA + System Design data)
+<details>
+<summary><strong>User 1 — Sample User</strong> (DSA + System Design)</summary>
 
 ```
 Email:    sample.user@example.com
 Password: SamplePass123!
 ```
 
-| Data | Count | Notes |
-|---|---|---|
-| Root topics | 3 | DSA ⭐, System Design ⭐, Behavioral |
-| Subtopics | 9 | Arrays, Two Pointers, Sliding Window, DP, Trees, Caching, Databases, STAR, Leadership |
-| Notes | 11 | 2 pinned (visible in Pinned Notes view) |
-| Flashcards | 12 | Mix of statuses and SRS intervals |
-| Quizzes | 4 | 3 questions each with explanations |
-| Problems | 16 | Easy/Medium/Hard, all statuses, 5 due for Review Queue |
-| Study sessions | 19 | Last 14 days — all 4 activity types |
+| Data | Count |
+|---|---|
+| Root topics | 3 (DSA ⭐, System Design ⭐, Behavioral) |
+| Subtopics | 9 |
+| Notes | 11 (2 pinned) |
+| Flashcards | 12 |
+| Quizzes | 4 |
+| Problems | 16 (5 due for Review Queue) |
+| Study sessions | 19 (last 14 days) |
 
-**User 2 — Alex Dev** (Frontend/Backend data)
+</details>
+
+<details>
+<summary><strong>User 2 — Alex Dev</strong> (Frontend + Backend)</summary>
 
 ```
 Email:    alex.dev@example.com
 Password: AlexPass123!
 ```
 
-| Data | Count | Notes |
-|---|---|---|
-| Root topics | 2 | Frontend ⭐, Backend |
-| Subtopics | 2 | React Hooks, Performance |
-| Notes | 3 | 1 pinned |
-| Flashcards | 3 | React hooks + performance |
-| Quizzes | 1 | React Hooks quiz |
-| Problems | 3 | 1 due for Review Queue |
-| Study sessions | 6 | Last 5 days |
+| Data | Count |
+|---|---|
+| Root topics | 2 (Frontend ⭐, Backend) |
+| Notes | 3 (1 pinned) |
+| Flashcards | 3 |
+| Problems | 3 (1 due for Review Queue) |
+| Study sessions | 6 (last 5 days) |
 
-To clear all seed data:
+</details>
 
 ```bash
+# Clear all seed data
 node scripts/seed-sample-data.js --clear
 ```
 
-The seed script reads `MONGODB_URI` from `.env.local` at the project root.
+---
 
-## Scripts
+## 📦 Scripts
 
 ```bash
-# Development
-npm run dev          # start Next.js frontend (port 3000)
-npm run dev:backend  # start NestJS backend (port 3001)
-npm run dev:all      # start both concurrently
+npm run dev            # start frontend (port 3000)
+npm run dev:backend    # start backend  (port 3001)
+npm run dev:all        # start both concurrently
 
-# Build & lint (frontend)
-npm run build        # production build
-npm run lint         # ESLint
+npm run build          # production build (frontend)
+npm run lint           # ESLint
+npm test               # Vitest
 
-# Tests
-npm test             # run Vitest tests
-
-# Database utilities
 node scripts/seed-sample-data.js          # seed demo data
 node scripts/seed-sample-data.js --clear  # clear demo data
 ```
 
-## CSV Import Format
+---
 
-**Flashcards** (comma, pipe, or tab separated):
+## 📥 CSV Import Formats
+
+<details>
+<summary>Flashcards</summary>
+
+Comma, pipe, or tab separated:
 ```
 Front Question,Back Answer
-What is React?,A JavaScript library for building UIs
+What is a hash map?,A key-value data structure with O(1) average lookup
+What is Big O notation?,A way to describe algorithm time/space complexity
 ```
 
-**Quizzes**:
+</details>
+
+<details>
+<summary>Quizzes</summary>
+
 ```
 Question,Option1,Option2,Option3,Option4,CorrectAnswer(0-3)
 What is React?,A library,A framework,A database,A server,0
 ```
 
-## Deployment
+</details>
 
-The app is deployed as **two separate Render Web Services**.
+---
 
-### Frontend (Next.js)
+## ☁️ Deployment (Render)
+
+The app runs as **two separate Render Web Services**.
+
+### Frontend
 
 | Setting | Value |
 |---|---|
@@ -268,12 +288,11 @@ The app is deployed as **two separate Render Web Services**.
 | Build command | `npm install && npm run build` |
 | Start command | `npm start` |
 
-Environment variables:
 ```
-NEXT_PUBLIC_API_URL=https://<your-backend>.onrender.com/api
+NEXT_PUBLIC_API_URL = https://<your-backend>.onrender.com/api
 ```
 
-### Backend (NestJS)
+### Backend
 
 | Setting | Value |
 |---|---|
@@ -281,16 +300,19 @@ NEXT_PUBLIC_API_URL=https://<your-backend>.onrender.com/api
 | Build command | `npm install && npm run build` |
 | Start command | `node dist/main` |
 
-Environment variables:
 ```
-MONGODB_URI=<your Atlas connection string>
-JWT_SECRET=<strong random secret>
-NODE_ENV=production
-FRONTEND_URL=https://<your-frontend>.onrender.com
-EMAIL_USER=<gmail address>          # optional
-EMAIL_PASSWORD=<gmail app password> # optional
+MONGODB_URI   = <Atlas connection string>
+JWT_SECRET    = <strong random secret>
+NODE_ENV      = production
+FRONTEND_URL  = https://<your-frontend>.onrender.com
+EMAIL_USER    = <optional>
+EMAIL_PASSWORD= <optional>
 ```
 
-## License
+> **Note:** `NEXT_PUBLIC_API_URL` is baked in at build time — after changing it, trigger a **Manual Deploy** (full rebuild) on the frontend service.
 
-MIT
+---
+
+## 📄 License
+
+MIT © [ayashaJui](https://github.com/ayashaJui)
