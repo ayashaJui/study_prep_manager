@@ -3,12 +3,18 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ITopicDocument, TOPIC_MODEL } from '../common/schemas/topic.schema';
 import { IUserDocument, USER_MODEL } from '../common/schemas/user.schema';
+import { NOTE_MODEL } from '../common/schemas/note.schema';
+import { FLASHCARD_MODEL } from '../common/schemas/flashcard.schema';
+import { QUIZ_MODEL } from '../common/schemas/quiz.schema';
 
 @Injectable()
 export class PublicService {
   constructor(
     @InjectModel(TOPIC_MODEL) private topicModel: Model<ITopicDocument>,
     @InjectModel(USER_MODEL) private userModel: Model<IUserDocument>,
+    @InjectModel(NOTE_MODEL) private noteModel: Model<any>,
+    @InjectModel(FLASHCARD_MODEL) private flashcardModel: Model<any>,
+    @InjectModel(QUIZ_MODEL) private quizModel: Model<any>,
   ) {}
 
   async getPublicTopics(page = 1, limit = 20) {
@@ -39,8 +45,52 @@ export class PublicService {
   }
 
   async getPublicTopicByShareId(shareId: string) {
-    const topic = await this.topicModel.findOne({ shareId, isPublic: true });
+    const topic = await this.topicModel.findOne({ shareId, isPublic: true }).lean();
     if (!topic) throw new NotFoundException('Public topic not found');
-    return topic;
+
+    const topicId = (topic as any)._id;
+
+    const [notes, flashcards, quizzes] = await Promise.all([
+      this.noteModel.find({ topicId }).select('content tags pinned createdAt').lean(),
+      this.flashcardModel.find({ topicId }).select('front back difficulty tags').lean(),
+      this.quizModel.find({ topicId }).select('title description difficulty tags timeLimit questions').lean(),
+    ]);
+
+    return {
+      topic: {
+        name: (topic as any).name,
+        description: (topic as any).description || null,
+        tags: (topic as any).tags || [],
+      },
+      notes: notes.map((n: any) => ({
+        id: n._id.toString(),
+        content: n.content,
+        tags: n.tags || [],
+        pinned: n.pinned || false,
+        createdAt: n.createdAt,
+      })),
+      flashcards: flashcards.map((f: any) => ({
+        id: f._id.toString(),
+        front: f.front,
+        back: f.back,
+        difficulty: f.difficulty,
+        tags: f.tags || [],
+      })),
+      quizzes: quizzes.map((q: any) => ({
+        id: q._id.toString(),
+        title: q.title,
+        description: q.description || null,
+        difficulty: q.difficulty,
+        tags: q.tags || [],
+        timeLimit: q.timeLimit || null,
+        questions: (q.questions || []).map((qq: any) => ({
+          id: qq._id?.toString() || qq.id,
+          question: qq.question,
+          options: qq.options || [],
+          correctAnswer: qq.correctAnswer,
+          explanation: qq.explanation || null,
+        })),
+      })),
+    };
   }
 }

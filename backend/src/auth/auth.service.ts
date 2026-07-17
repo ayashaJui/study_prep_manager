@@ -114,6 +114,17 @@ export class AuthService {
     return user;
   }
 
+  async updateProfile(userId: string, name: string, avatar?: string | null) {
+    if (!name?.trim()) throw new BadRequestException('Name is required');
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { name: name.trim(), ...(avatar !== undefined ? { avatar } : {}) },
+      { new: true },
+    ).select('-password -resetToken -resetTokenExpiry -verificationToken');
+    if (!user) throw new NotFoundException('User not found');
+    return { user: { id: user._id, name: user.name, email: user.email, avatar: user.avatar } };
+  }
+
   // ── forgot password ──────────────────────────────────────────────────────
 
   async forgotPassword(email: string) {

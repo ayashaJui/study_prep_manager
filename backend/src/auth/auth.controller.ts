@@ -14,7 +14,7 @@
  * Combined with the global prefix 'api' set in main.ts → /api/auth/...
  */
 import {
-  Controller, Get, Post, Body, Res, HttpCode, UseGuards,
+  Controller, Get, Post, Put, Body, Res, HttpCode, UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiCookieAuth } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -70,6 +70,13 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async getProfile(@CurrentUser() userId: string) {
     return this.authService.getProfile(userId);
+  }
+
+  // PUT /api/auth/profile
+  @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(@CurrentUser() userId: string, @Body() body: { name: string; avatar?: string | null }) {
+    return this.authService.updateProfile(userId, body.name, body.avatar);
   }
 
   // POST /api/auth/forgot-password

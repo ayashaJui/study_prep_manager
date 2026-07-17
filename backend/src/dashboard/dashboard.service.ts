@@ -42,7 +42,7 @@ export class DashboardService {
       this.topicModel.countDocuments({ userId, level: 0 }),
       this.flashcardModel.countDocuments({ userId }),
       this.quizModel.countDocuments({ userId }),
-      this.quizModel.find({ userId }).select('attempts'),
+      this.quizModel.find({ userId }).select('attempts lastScore'),
       this.sessionModel.find({ userId, createdAt: { $gte: sevenDaysAgo } }).select('duration'),
     ]);
 
