@@ -1,6 +1,8 @@
 # StudyNest
 
-**Live:** https://studynest-z0r3.onrender.com
+**Frontend:** https://studynest-z0r3.onrender.com
+**Backend API:** https://study-prep-manager-api.onrender.com/api
+**API Docs (Swagger):** https://study-prep-manager-api.onrender.com/api/docs
 
 A hierarchical study management system built for interview preparation and continuous learning. Organize topics and subtopics with notes, flashcards, quizzes, and a coding problems tracker — all in one place.
 
@@ -9,9 +11,9 @@ A hierarchical study management system built for interview preparation and conti
 ### Authentication
 
 - Email/password registration and login with bcryptjs hashing
+- JWT stored in an HttpOnly cookie (no localStorage)
 - Password reset via email link (requires SMTP config)
-- OAuth support for Google/GitHub — implemented but disabled by default; see [docs/OAUTH_SETUP.md](./docs/OAUTH_SETUP.md) to enable
-- JWT-protected API routes with rate limiting on auth endpoints
+- Rate limiting on auth endpoints
 
 ### Topics & Organization
 
@@ -80,13 +82,40 @@ A hierarchical study management system built for interview preparation and conti
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js (App Router), React 19, TypeScript |
+| Frontend | Next.js (App Router), React 19, TypeScript |
+| Backend | NestJS 10, TypeScript |
 | Styling | Tailwind CSS v4 |
 | Database | MongoDB with Mongoose |
-| Auth | Custom JWT + NextAuth.js, bcryptjs |
+| Auth | Custom JWT (HttpOnly cookie), bcryptjs |
 | Email | Nodemailer (Gmail SMTP) |
+| API Docs | Swagger UI (`@nestjs/swagger`) |
 | Icons | Lucide React |
 | Markdown | react-markdown with GFM |
+
+## Architecture
+
+The project is split into two services:
+
+```
+interview_prep/
+├── app/                  # Next.js frontend (pages, components, contexts)
+├── backend/              # NestJS API server (separate Node.js process)
+│   └── src/
+│       ├── auth/
+│       ├── topics/
+│       ├── notes/
+│       ├── flashcards/
+│       ├── quizzes/
+│       ├── problems/
+│       ├── study-sessions/
+│       ├── dashboard/
+│       ├── search/
+│       ├── upload/
+│       └── public/
+└── scripts/              # Database utilities (seed, clear)
+```
+
+The frontend talks to the backend via `NEXT_PUBLIC_API_URL`. In development both run locally on different ports. In production they are deployed as two separate Render Web Services.
 
 ## Getting Started
 
@@ -100,39 +129,52 @@ A hierarchical study management system built for interview preparation and conti
 ```bash
 git clone <repository-url>
 cd interview_prep
+
+# Install frontend dependencies
 npm install
-cp .env.local.example .env.local
+
+# Install backend dependencies
+npm install --prefix backend
 ```
 
-Edit `.env.local`:
+### Environment variables
+
+**Frontend** — create `.env.local` in the project root:
 
 ```env
-# Required
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+```
+
+**Backend** — create `.env` inside `backend/`:
+
+```env
 MONGODB_URI=mongodb://localhost:27017/studynest
-JWT_SECRET=your-jwt-secret
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-nextauth-secret
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+JWT_SECRET=your-jwt-secret-change-this
 
 # Optional – password reset emails (Gmail SMTP)
 EMAIL_USER=you@gmail.com
 EMAIL_PASSWORD=your-app-password
 
-# Optional – OAuth (disabled by default)
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
+# Optional – restrict CORS to your frontend URL
+FRONTEND_URL=http://localhost:3000
 ```
 
+### Run both servers
+
 ```bash
-npm run dev
-# open http://localhost:3000
+# Start frontend (port 3000) and backend (port 3001) together
+npm run dev:all
+
+# Or start separately
+npm run dev          # frontend only
+npm run dev:backend  # backend only
 ```
+
+Open http://localhost:3000. The Swagger docs are at http://localhost:3001/api/docs.
 
 ### Seed Sample Data
 
-The seed script creates **two demo accounts**, each with independent data, so you can test all features and verify data isolation between users.
+The seed script connects directly to MongoDB and creates two demo accounts so you can test all features and verify data isolation between users.
 
 ```bash
 node scripts/seed-sample-data.js
@@ -172,131 +214,32 @@ Password: AlexPass123!
 | Problems | 3 | 1 due for Review Queue |
 | Study sessions | 6 | Last 5 days |
 
-To clear all seed data (both users):
+To clear all seed data:
 
 ```bash
 node scripts/seed-sample-data.js --clear
 ```
 
-## Project Structure
-
-```
-├── app/
-│   ├── api/
-│   │   ├── auth/              # register, login, logout, profile, password reset
-│   │   ├── topics/            # CRUD + share + recursive delete
-│   │   ├── notes/             # CRUD + import/export markdown
-│   │   ├── flashcards/        # CRUD + import CSV + SRS review
-│   │   ├── quizzes/           # CRUD + import CSV
-│   │   ├── problems/          # CRUD + SRS review scheduling
-│   │   ├── study-sessions/    # history + streak
-│   │   ├── search/            # global search
-│   │   ├── dashboard/         # stats, activity, progress, goals
-│   │   └── public/            # read-only shared topic pages
-│   ├── auth/                  # login, register, password reset pages
-│   ├── public/                # public shared topic viewer
-│   └── page.tsx               # main app (SPA-style with URL state)
-├── components/
-│   ├── layout/                # Header, Sidebar, MainContent, Breadcrumb
-│   ├── ui/                    # Button, Card, Input, Modal, Tabs, Badge, etc.
-│   └── views/                 # ProblemsPage, TopicProblems, TopicNotes,
-│                              # TopicFlashcards, TopicQuizzes, Dashboard,
-│                              # StudySessionHistory, FavoriteTopics, etc.
-├── controllers/               # Business logic (topicController, problemController, …)
-├── models/                    # Mongoose schemas (Topic, Note, Flashcard, Quiz,
-│                              # Problem, StudySession, User)
-├── hooks/                     # useNavigation, useKeyboardShortcuts
-├── contexts/                  # AuthContext, ToastContext
-├── lib/                       # api.ts (client), db.ts (connection), auth helpers
-└── scripts/
-    └── seed-sample-data.js    # demo data for all features
-```
-
-## API Reference
-
-### Auth
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/auth/register` | Create account |
-| POST | `/api/auth/login` | Login |
-| POST | `/api/auth/logout` | Logout |
-| GET | `/api/auth/me` | Current user |
-| PUT | `/api/auth/profile` | Update profile |
-| POST | `/api/auth/forgot-password` | Send reset email |
-| POST | `/api/auth/reset-password` | Reset with token |
-
-### Topics
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/topics` | All topics (pass `parentId` to filter children) |
-| POST | `/api/topics` | Create topic |
-| GET | `/api/topics/[id]` | Get by ID |
-| PATCH | `/api/topics/[id]` | Update topic |
-| DELETE | `/api/topics/[id]` | Delete topic (`?recursive=true` to delete with all children) |
-| POST | `/api/topics/[id]/share` | Publish and get share link |
-| DELETE | `/api/topics/[id]/share` | Unpublish |
-
-### Notes
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/notes?topicId=` | List notes |
-| POST | `/api/notes` | Create note |
-| PATCH | `/api/notes/[id]` | Update note |
-| DELETE | `/api/notes/[id]` | Delete note |
-
-### Flashcards
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/flashcards?topicId=` | List flashcards |
-| POST | `/api/flashcards` | Create flashcard |
-| POST | `/api/flashcards/import` | Bulk import from CSV |
-| PATCH | `/api/flashcards/[id]` | Update flashcard |
-| DELETE | `/api/flashcards/[id]` | Delete flashcard |
-| POST | `/api/flashcards/[id]/review` | Submit confidence rating and schedule next review |
-
-### Quizzes
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/quizzes?topicId=` | List quizzes |
-| POST | `/api/quizzes` | Create quiz |
-| POST | `/api/quizzes/import` | Bulk import from CSV |
-| PATCH | `/api/quizzes/[id]` | Update quiz |
-| DELETE | `/api/quizzes/[id]` | Delete quiz |
-
-### Problems
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/problems` | List problems (filters: `topicId`, `difficulty`, `status`, `platform`, `due=true`) |
-| POST | `/api/problems` | Create problem |
-| GET | `/api/problems/[id]` | Get by ID |
-| PATCH | `/api/problems/[id]` | Update problem |
-| DELETE | `/api/problems/[id]` | Delete problem |
-| POST | `/api/problems/[id]/review` | Submit review confidence (easy/medium/hard/again) |
-
-### Study Sessions
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/study-sessions` | Paginated history |
-| POST | `/api/study-sessions` | Log a session |
-| GET | `/api/study-sessions/streak` | Current daily streak |
-
-### Search & Dashboard
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/search?query=` | Search topics, notes, flashcards, quizzes |
-| GET | `/api/dashboard/stats` | Summary counts |
-| GET | `/api/dashboard/activity` | Recent activity feed |
-| GET | `/api/dashboard/progress` | Topic progress |
+The seed script reads `MONGODB_URI` from `.env.local` at the project root.
 
 ## Scripts
 
 ```bash
-npm run dev          # start development server
+# Development
+npm run dev          # start Next.js frontend (port 3000)
+npm run dev:backend  # start NestJS backend (port 3001)
+npm run dev:all      # start both concurrently
+
+# Build & lint (frontend)
 npm run build        # production build
-npm run lint         # lint
+npm run lint         # ESLint
+
+# Tests
 npm test             # run Vitest tests
-npm run db:seed      # seed sample data
-npm run db:clear     # clear seed data
+
+# Database utilities
+node scripts/seed-sample-data.js          # seed demo data
+node scripts/seed-sample-data.js --clear  # clear demo data
 ```
 
 ## CSV Import Format
@@ -315,16 +258,37 @@ What is React?,A library,A framework,A database,A server,0
 
 ## Deployment
 
-Set these environment variables in production:
+The app is deployed as **two separate Render Web Services**.
 
+### Frontend (Next.js)
+
+| Setting | Value |
+|---|---|
+| Root directory | *(project root)* |
+| Build command | `npm install && npm run build` |
+| Start command | `npm start` |
+
+Environment variables:
 ```
-MONGODB_URI
-JWT_SECRET
-NEXTAUTH_SECRET
-NEXTAUTH_URL
-NEXT_PUBLIC_APP_URL
-EMAIL_USER          # if using password reset
-EMAIL_PASSWORD      # Gmail app password
+NEXT_PUBLIC_API_URL=https://<your-backend>.onrender.com/api
+```
+
+### Backend (NestJS)
+
+| Setting | Value |
+|---|---|
+| Root directory | `backend` |
+| Build command | `npm install && npm run build` |
+| Start command | `node dist/main` |
+
+Environment variables:
+```
+MONGODB_URI=<your Atlas connection string>
+JWT_SECRET=<strong random secret>
+NODE_ENV=production
+FRONTEND_URL=https://<your-frontend>.onrender.com
+EMAIL_USER=<gmail address>          # optional
+EMAIL_PASSWORD=<gmail app password> # optional
 ```
 
 ## License
